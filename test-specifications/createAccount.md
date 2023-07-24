@@ -41,7 +41,7 @@ const transaction = new AccountCreateTransaction()
 | 1       | Simple account creation                      | A public key with all other fields at default values          | The account creation succeeds. The account can be queried on the consensus node with AccountInfoQuery, and on mirror node using the REST API, within 10 seconds |
 | 2       | Create an account with no public key         | All fields default with no public key                         | The account creation fails with a response of KEY_NOT_PROVIDED                                                                                                  |
 | 3       | Create an account with an invalid public key | An invalid public key with all other fields at default values | The account creation fails with an error response of :                                                                                                          |
-| 4       | Create account with complex key              | A complext key that has nested keys with 3 levels             | All required keys sign and the transaction is successful
+| 4       | Create account with complex key              | A complex key that has nested keys with 3 levels             | All required keys sign and the transaction is successful
 | 5       | Create account with simple key              | A key that has ED25519 and ECDSA keys in the key list           | All required keys sign and the transaction is successful
 
 
