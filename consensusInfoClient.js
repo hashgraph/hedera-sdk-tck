@@ -4,7 +4,7 @@ class ConsensusInfoClient {
   constructor() {
     if (process.env.NODE_IP && process.env.NODE_ACCOUNT_ID && process.env.MIRROR_NETWORK) {
       const node = { [process.env.NODE_IP]: new AccountId(parseInt(process.env.NODE_ACCOUNT_ID)) };
-      this.sdkClient = Client.forNetwork(node).setMirrorNetwork(process.env.MIRROR_NETWORK);
+      this.sdkClient = Client.forNetwork(node);
     } else {
       this.sdkClient = Client.forTestnet();
     }
