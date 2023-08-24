@@ -10,13 +10,23 @@
 
 ![Diagram](images/tck-high-level-design.png)
 
-The TCK is a TypeScript project that produces an NPM executable. It is made up
-of a test driver, and manages the lifecycle of a hedera network. The client
-SDK (the “SDK” or “SDK under test”) will implement a JSON-RPC server
-implementing a JSON-RPC API defined by the TCK. For each test, the TCK will make
-one or more calls to the SDK’s JSON-RPC server endpoint, and using a combination
-of responses from the SDK’s JSON-RPC server and the mirror and consensus nodes,
-determine the pass/fail/incomplete status of each test.
+Test Driver
+The Test Driver is a crucial component of the TCK. It houses various test cases, such as "create account". When a test case is executed, the Test Driver sends a request to the SDK’s JSON-RPC server with the necessary details for the test. For instance, in the "create account" test, it provides details about the account creation. The outcome of the test is determined by the response from the SDK's JSON-RPC server and the data retrieved from the mirror node. If the action is successful, the Test Driver uses the returned account data to query the mirror node for verification. If the mirror node confirms the data, the test is marked as passed; otherwise, it's marked as failed.
+
+JSON-RPC Server
+The JSON-RPC server is an integral part of the SDK under test. It interprets and processes requests from the Test Driver based on the TCK's requirements. For example, for the "create account" test, the server expects a public key along with other optional parameters. Upon receiving a request, the server utilizes SDK methods to execute the required action, such as creating an account.
+
+Current/New Version of the SDKs
+The TCK project incorporates a static version of the JS SDK, which is employed to fetch information from the consensus node. The Test Client remains consistent across versions. When SDK developers release a new version, they should run the TCK tests against this latest version after initiating their JSON-RPC server. This ensures compatibility and adherence to standards.
+
+Test Results
+After the execution of tests, results are stored in the mochawesome-report folder. This provides a comprehensive view of which tests passed, failed, or were incomplete.
+
+Test Driver Response
+The Test Driver not only evaluates the success or failure of a test but also checks for the implementation of specific methods in the SDK's JSON-RPC server. If a method is not implemented, the test is skipped, as indicated by a "NOT_IMPLEMENTED" status in the response.
+
+SDK JSON-RPC Server Response
+The SDK's JSON-RPC server returns responses that originate from the consensus node. For instance, an error message like "REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT" might be returned. The Test Driver expects certain responses based on the test case. If the received response matches the expected outcome, the test is marked as passed.
 
 ### Requirements
 
