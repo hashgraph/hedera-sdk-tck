@@ -1,27 +1,39 @@
-import axios from "axios";
+import axios from 'axios';
 
 class MirrorNodeClient {
   constructor() {
     this.mirrorNodeRestUrl = process.env.MIRROR_NODE_REST_URL;
-    this.nodeDelay = process.env.NODE_DELAY;
+    this.NODE_TIMEOUT = process.env.NODE_TIMEOUT;
   }
 
   async getAccountData(accountId) {
-    await this.delay();
     const url = `${this.mirrorNodeRestUrl}/api/v1/accounts?account.id=${accountId}`;
-    const response = await axios.get(url);
-    return response.data;
+    return this.retryUntilData(url, 'accounts');
   }
 
   async getBalanceData(accountId) {
-    await this.delay();
     const url = `${this.mirrorNodeRestUrl}/api/v1/balances?account.id=${accountId}`;
-    const response = await axios.get(url);
-    return response.data;
+    return this.retryUntilData(url, 'balances');
   }
 
-  async delay() {
-    return new Promise((resolve) => setTimeout(resolve, this.nodeDelay));
+  async retryUntilData(url, dataKey) {
+    const maxRetries = Math.floor(this.NODE_TIMEOUT / 1000); // retry once per second
+    let retries = 0;
+    
+    while(retries < maxRetries) {
+      const response = await axios.get(url);
+
+      // If the array is not empty, return the data
+      if(response.data[dataKey] && response.data[dataKey].length > 0) {
+        return response.data;
+      }
+
+      // If the array is empty, delay for a second before the next try
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      retries++;
+    }
+    
+    throw new Error('Max retries reached without data');
   }
 }
 
