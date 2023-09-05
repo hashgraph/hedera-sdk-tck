@@ -227,7 +227,7 @@ describe("#createAccount()", function () {
   });
 
   //----------- Maximum number of tokens that an Account be associated with -----------
-  describe("Max Token Association", function () {
+  describe.only("Max Token Association", function () {
     // Creates an account with a default max token association
     // maxAutomaticTokenAssociations can be queried via consensus node with AccountInfoQuery
     it("Default max token association", async function () {
@@ -245,11 +245,11 @@ describe("#createAccount()", function () {
       assert.equal(acctMaxTokenConsensus, 0);
     });
     // Creates an account with max token set to the maximum
-    it("Max token set to the maximum (No max in 0.25 Mainnet)", async function () {
+    it("Max token set to the maximum", async function () {
       const response = await JSONRPCRequest("createAccount", {
         publicKey: publicKey,
         initialBalance: 0,
-        maxAutomaticTokenAssociations: 10,
+        maxAutomaticTokenAssociations: 5000,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const newAccountId = response.accountId;
@@ -257,7 +257,7 @@ describe("#createAccount()", function () {
       const accountInfoFromConsensusNode = await consensusInfoClient.getAccountInfo(newAccountId);
       const acctMaxTokenConsensus = accountInfoFromConsensusNode.maxAutomaticTokenAssociations.low;
 
-      assert.equal(acctMaxTokenConsensus, 10);
+      assert.equal(acctMaxTokenConsensus, 5000);
     });
     // Create an account with token association over the max
     it("Max token association over the maximum - should have status REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT", async function () {
@@ -265,9 +265,10 @@ describe("#createAccount()", function () {
         const response = await JSONRPCRequest("createAccount", {
           publicKey: publicKey,
           initialBalance: 0,
-          maxAutomaticTokenAssociations: 50000,
+          maxAutomaticTokenAssociations: 5001,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
+        assert.fail("Expected an error but none was thrown.");
       } catch (err) {
         assert.equal(err.data.status, "REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT");
       }
