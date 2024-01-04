@@ -35,6 +35,6 @@ const transaction = new AccountDeleteTransaction()
 
 - The AccountID of the account to be deleted
 
-| Test no | Name                                         | Input                                                         | Expected response                                                                                                                                               |
-| ------- | -------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test no | Name                                         | Input                                                         | Expected response                                                                                                                                               | Implemented (Y/N) |
+| ------- | -------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | 1       | deleteAccount                     | AccountID to delete and a recipient of funds account          | The account deletion succeeds. The recipient account received the funds |
