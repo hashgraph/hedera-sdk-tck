@@ -1,7 +1,7 @@
-# hedera-sdk-tck
+# Hedera SDK TCK
 
-A TCK (Technology Compatibility Kit) used to verify compliant implementations of
-a Hedera SDK
+A Technology Compatibility Kit (TCK) is a set of tools, documentation, and test suites used to verify whether a software implementation conforms to a specific technology standard or specification. The hedera-sdk-tck aims to verify compliant implementations of
+a Hedera SDK. It will encompass tests that validate the implmentation of consensus node software transactions and queries, performance and longevity testing.
 
 # test-driver-js
 
@@ -26,7 +26,7 @@ Clone repository
 
 ### Start a JSON-RPC server
 
-Start only the JSON-RPC sever for the SDK you want to test.
+Start only the JSON-RPC server for the SDK you want to test. The JSON-RPC server for the specified SDK will parse the JSON formatted request received by the test driver. The JSON-RPC server will execute the corresponding function or procedure associated with that method and prepare the response in JSON format to send back to the test driver. 
 
 ### Install and run
 
@@ -45,3 +45,25 @@ Run all tests
 ### Reports
 
 After running `npm run test` the generated HTML and JSON reports can be found in the mochawesome-report folder
+
+## Support
+
+If you have a question on how to use the product, please see our
+[support guide](https://github.com/hashgraph/.github/blob/main/SUPPORT.md).
+
+## Contributing
+
+Contributions are welcome. Please see the
+[contributing guide](https://github.com/hashgraph/.github/blob/main/CONTRIBUTING.md)
+to see how you can get involved.
+
+## Code of Conduct
+
+This project is governed by the
+[Contributor Covenant Code of Conduct](https://github.com/hashgraph/.github/blob/main/CODE_OF_CONDUCT.md). By
+participating, you are expected to uphold this code of conduct. Please report unacceptable behavior
+to [oss@hedera.com](mailto:oss@hedera.com).
+
+## License
+
+[Apache License 2.0](LICENSE)
