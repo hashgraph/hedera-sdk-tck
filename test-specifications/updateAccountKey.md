@@ -36,8 +36,8 @@ const transaction = new AccountUpdateTransaction().setAccountId(accountId).setKe
 
 - The public key to update on the account
 
-| Test no | Name                                                | Input                                                   | Expected response                     |
-| ------- | --------------------------------------------------- | ------------------------------------------------------- | ------------------------------------- |
-| 1       | should update key on an account via JSON-RPC server | accountId, newPublicKey, oldPrivateKey, newPrivateKey   | The account key was correctly updated |
-| 2       | should test transaction signature                   | accountId, samePublicKey, newPrivateKey, oldPrivateKey  | error message INVALID_SIGNATURE       |
-| 3       | should test for error in transaction signature      | accountId, wrongPublicKey, oldPrivateKey, newPrivateKey | error message INVALID_SIGNATURE       |
+| Test no | Name                                                | Input                                                   | Expected response                     | Implemented (Y/N) |
+| ------- | --------------------------------------------------- | ------------------------------------------------------- | ------------------------------------- | ----------------- |
+| 1       | should update key on an account via JSON-RPC server | accountId, newPublicKey, oldPrivateKey, newPrivateKey   | The account key was correctly updated |                   |
+| 2       | should test transaction signature                   | accountId, samePublicKey, newPrivateKey, oldPrivateKey  | error message INVALID_SIGNATURE       |                   |
+| 3       | should test for error in transaction signature      | accountId, wrongPublicKey, oldPrivateKey, newPrivateKey | error message INVALID_SIGNATURE       |                   |
