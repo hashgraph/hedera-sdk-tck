@@ -36,7 +36,7 @@ const transaction = new AccountUpdateTransaction().setAccountId(accountId).setAc
 
 - The Account memo of the created account
 
-| Test no | Name                               | Input              | Expected response                                                       |
-| ------- | ---------------------------------- | ------------------ | ----------------------------------------------------------------------- |
-| 1       | should test memo field is too long | 101 character memo | The account memo was not changed and correct error message was returned |
-| 2       | should verify memo was updated     | 99 character memo  | The account memo was correctly changed                                  |
+| Test no | Name                               | Input              | Expected response                                                       | Implemented (Y/N) |
+| ------- | ---------------------------------- | ------------------ | ----------------------------------------------------------------------- | ----------------- |
+| 1       | should test memo field is too long | 101 character memo | The account memo was not changed and correct error message was returned |                   |
+| 2       | should verify memo was updated     | 99 character memo  | The account memo was correctly changed                                  |                   |
