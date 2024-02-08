@@ -1,7 +1,7 @@
-# Get account info - Test specification
+# AccountBalanceQuery - Test specification
 
 ## Description:
-This test specification for get account info is to be one of many for testing the functionality of the Hedera SDKs. The SDK under test will use the language specific JSON-RPC server return responses back to the test driver.
+This test specification for the AccountBalanceQuery is to be one of many for testing the functionality of the Hedera SDKs. The SDK under test will use the language specific JSON-RPC server return responses back to the test driver.
 
 ## Design:
 Each test within the test specification is linked to one of the properties within AccountBalanceQuery. Each property is tested with a mix of boundaries. The inputs for each test are a range of valid, minimum, maximum, negative and invalid values for the method. The expected response of a passed test can be a correct error or a results of node queries. Success on the consensus node can be obtained by a queries such as AccountInfoQuery or AccountBalanceQuery, and on the mirror node through the rest API. Error codes are obtained from the response code proto files.
@@ -10,7 +10,7 @@ Each test within the test specification is linked to one of the properties withi
 
 https://docs.hedera.com/hedera/sdks-and-apis/sdks/accounts-and-hbar/get-account-balance
 
-**Crypto get account balance protobufs:**
+**CryptoGetAccountBalance protobufs:**
 
 https://github.com/hashgraph/hedera-protobufs/blob/main/services/crypto_get_account_balance.proto
 
