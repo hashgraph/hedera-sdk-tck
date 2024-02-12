@@ -1,8 +1,8 @@
-# Update account - Test specification
+# AccountUpdateTransaction - Test specification
 
 ## Description:
 
-This test specification for updating an account is to be one of many for testing the functionality of the Hedera SDKs. The SDK under test will use the language specific JSON-RPC server return responses back to the test driver.
+This test specification for the AccountUpdateTransaction is to be one of many for testing the functionality of the Hedera SDKs. The SDK under test will use the language specific JSON-RPC server return responses back to the test driver.
 
 ## Design:
 
@@ -12,13 +12,13 @@ Each test within the test specification is linked to one of the properties withi
 
 https://docs.hedera.com/hedera/sdks-and-apis/sdks/accounts-and-hbar/update-an-account
 
-**Crypto update protobufs:**
+**CryptoUpdate protobufs:**
 
 https://github.com/hashgraph/hedera-protobufs/blob/main/services/crypto_update.proto
 
 **Response codes:**
 
-[https://github.com/hashgraph/hedera-protobufs/blob/main/services/response_code.proto](https://github.com/hashgraph/hedera-protobufs/blob/main/services/response_code.proto)
+https://github.com/hashgraph/hedera-protobufs/blob/main/services/response_code.proto
 
 ## Initialisation:
 
