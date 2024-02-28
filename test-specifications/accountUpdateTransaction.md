@@ -12,14 +12,13 @@ Each test within the test specification is linked to one of the properties withi
 
 https://docs.hedera.com/hedera/sdks-and-apis/sdks/accounts-and-hbar/update-an-account
 
-**CryptoUpdate protobufs:**
+**Crypto update protobufs:**
 
 https://github.com/hashgraph/hedera-protobufs/blob/main/services/crypto_update.proto
 
 **Response codes:**
 
-https://github.com/hashgraph/hedera-protobufs/blob/main/services/response_code.proto
-
+[https://github.com/hashgraph/hedera-protobufs/blob/main/services/response_code.proto](https://github.com/hashgraph/hedera-protobufs/blob/main/services/response_code.proto)
 ## Initialisation:
 
 ```jsx
@@ -46,11 +45,15 @@ const transaction = new AccountUpdateTransaction().setAccountId(accountId).setKe
 
 - The public key to update on the account.
 
-| Test no | Name                                                       | Input                                                   | Expected response                                             | Implemented (Y/N) |
-|---------|------------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------------|-------------------|
-| 1       | Update an account with a new public key                    | accountId, oldPrivateKey, newPrivateKey, newPublicKey   | The account update succeeds and the account has the new key   | N                 |
-| 2       | Update an account key without signing with new private key | accountId, oldPrivateKey, newPublicKey                  | The account update fails with response code INVALID_SIGNATURE | N                 |
-| 3       | Update an account key and sign with incorrect private key  | accountId, oldPrivateKey, wrongPrivateKey, newPublicKey | The account update fails with response code INVALID_SIGNATURE | N                 |
+| Test no | Name                                                                                                                 | Input                                                                | Expected response                                                      | Implemented (Y/N) |
+|---------|----------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|------------------------------------------------------------------------|-------------------|
+| 1       | Update an account with a new public ED25519 key                                                                      | accountId, oldPrivateKey, newPrivateKey, newPublicKey                | The account update succeeds and the account has the new key            | N                 |
+| 2       | Update an account with a new public ECDSA key                                                                        | accountId, oldPrivateKey, newPrivateKey, newPublicKey                | The account update succeeds and the account has the new key            | N                 |
+| 3       | Update an account key without signing with new private key                                                           | accountId, oldPrivateKey, newPublicKey                               | The account update fails with response code INVALID_SIGNATURE          | N                 |
+| 4       | Update an account key and sign with incorrect private key                                                            | accountId, oldPrivateKey, wrongPrivateKey, newPublicKey              | The account update fails with response code INVALID_SIGNATURE          | N                 |
+| 5       | Update an account key to an ECDSA threshold key and sign with the old key + threshold key                            | accountId, oldPrivateKey, thresholdPrivateKey, newThresholdPublicKey | The account update succeeds and the account has an ECDSA threshold key | N                 |
+| 6       | Update an account key to an ED25519 threshold key and sign with the old key + threshokd key                          | accountId, oldPrivateKey, thresholdPrivateKey, newThresholdPublicKey | The account update succeeds and the account has an ECDSA threshold key | N                 |
+| 7       | Update an account key that is composed of both ED25519+ ECSDA threshold key and sign with the old key + threshokd key| accountId, oldPrivateKey, thresholdPrivateKey, newThresholdPublicKey | The account update succeeds and the account has an ECDSA threshold key | N                 |
 
 ### **Auto Renew Period:**
 
