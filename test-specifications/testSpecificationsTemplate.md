@@ -1,4 +1,4 @@
-# TestName - Test specification
+# RequestName - Test specification
 
 ## Description:
 
