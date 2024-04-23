@@ -140,7 +140,7 @@ describe("#createAccount()", function () {
        * The payer account has insufficient cryptocurrency to pay the transaction fee
        * INSUFFICIENT_PAYER_BALANCE = 10;
        **/
-          // set initial bal to 5 Hbar ( 500000000 Tinybar at ratio 1: 100,000,000 )
+      // set initial bal to 5 Hbar ( 500000000 Tinybar at ratio 1: 100,000,000 )
       const initialBalance = 500000000;
       // set payer (funding account) bal to 5 Hbar + 1 Tinybar ( 500000001 Tinybar )
       const payerBalance = 500000001;
