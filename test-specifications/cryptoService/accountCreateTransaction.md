@@ -4,7 +4,7 @@
 This test specification for AccountCreateTransaction is to be one of many for testing the functionality of the Hedera SDKs. The SDK under test will use the language specific JSON-RPC server return responses back to the test driver.
 
 ## Design:
-Each test within the test specification is linked to one of the properties within AccountCreateTransaction. Each property is tested with a mix of boundaries. The inputs for each test are a range of valid, minimum, maximum, negative and invalid values for the method. The expected response of a passed test can be a correct error response code or seen as the result of node queries. Success on the consensus node can be obtained by a queries such as AccountInfoQuery or AccountBalanceQuery, and on the mirror node through the rest API. Error codes are obtained from the response code proto files.
+Each test within the test specification is linked to one of the properties within AccountCreateTransaction. Each property is tested with a mix of boundaries. The inputs for each test are a range of valid, minimum, maximum, negative and invalid values for the method. The expected response of a passed test can be a correct error response code or seen as the result of node queries. A successful transaction (the transaction reached consensus and was applied to state) can be determined by getting a `TransactionReceipt` or `TransactionRecord`, or can be determined by using queries such as `AccountInfoQuery` or `AccountBalanceQuery` and investigating for the required changes (creations, updates, etc.). The mirror node can also be used to determine if a transaction was successful via its rest API. Error codes are obtained from the response code proto files.
 
 **Transaction properties:**
 
@@ -54,7 +54,8 @@ const transaction = new AccountCreateTransaction()
 | stakedAccountId           | string | optional          |                                                                                                                                             |
 | stakedNodeId              | int64  | optional          |                                                                                                                                             |
 | declineStakingReward      | bool   | optional          |                                                                                                                                             |
-| alias                     | string | optional          | Hex string representation of a serialized protobuf Key of an ED25519 or ECDSAsecp256k1 public key type.                                     |
+| alias                     | string | optional          | Hex string representation of the keccak-256 hash of an ECDSAsecp256k1 public key type.                                                      |
+| signerKey                 | string | optional          | DER-encoded hex string representation of an additional private key required to sign.                                                        |
 
 ## Property Tests
 
@@ -145,11 +146,11 @@ const transaction = new AccountCreateTransaction()
 
 ### **Alias:**
 
-- The bytes to be used as the account's alias. The bytes must be the serialization of a protobuf Key message for an ED25519/ECDSA_SECP256K1 primitive key type or, if the account is ECDSA_SECP256K1 based it may also be the public address, calculated as the last 20 bytes of the keccak-256 hash of the ECDSA_SECP256K1 primitive key.
+- The bytes to be used as the account's alias. The bytes must be formatted as the calculated last 20 bytes of the keccak-256 hash of an ECDSA primitive key.
 
-| Test no | Name                                                       | Input                                                     | Expected response                                                                      | Implemented (Y/N) |
-|---------|------------------------------------------------------------|-----------------------------------------------------------|----------------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account with an ED25519 public key alias        | key=<VALID_KEY>, alias=<VALID_ED25519_PUBLIC_KEY>         | The account creation succeeds and the account has the ED25519 public key alias.        | N                 |
-| 2       | Creates an account with an ECDSAsecp256k1 public key alias | key=<VALID_KEY>, alias=<VALID_ECDSA_SECP256K1_PUBLIC_KEY> | The account creation succeeds and the account has the ECDSAsecp256k1 public key alias. | N                 |
-| 2       | Creates an account with an invalid public key alias        | key=<VALID_KEY>, alias=<INVALID_PUBLIC_KEY>               | The account creation fails with an INVALID_ALIAS_KEY response code from the network.   | N                 |
+| Test no | Name                                                                                            | Input                                                                                                                                    | Expected response                                                                                                    | Implemented (Y/N) |
+|---------|-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key                     | key=<VALID_KEY>, alias=<LAST_20_BYTES_ECDSA_SECP256K1_PUBLIC_KEY_KECCAK_256_HASH>, signerKey=<CORRESPONDING_ECDSA_SECP256K1_PRIVATE_KEY> | The account creation succeeds and the account has the keccak-256 hash of the ECDSAsecp256k1 public key as its alias. | N                 |
+| 2       | Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key without a signature | key=<VALID_KEY>, alias=<LAST_20_BYTES_ECDSA_SECP256K1_PUBLIC_KEY_KECCAK_256_HASH>                                                        | The account creation fails with an INVALID_SIGNATURE response code from the network.                                 | N                 |
+| 3       | Creates an account with an invalid alias                                                        | key=<VALID_KEY>, alias=<INVALID_ALIAS>                                                                                                   | The account creation fails with an INVALID_ALIAS_KEY response code from the network.                                 | N                 |
 
