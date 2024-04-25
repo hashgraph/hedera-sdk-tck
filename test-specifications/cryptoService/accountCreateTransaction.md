@@ -43,19 +43,21 @@ const transaction = new AccountCreateTransaction()
 
 ### Parameters
 
-| Parameter Name            | Type   | Required/Optional | Description/Notes                                                                                                                           |
-|---------------------------|--------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| key                       | string | optional          | DER-encoded hex string representation for private or public keys. Keylists and threshold keys are the hex of the serialized protobuf bytes. |
-| initialBalance            | int64  | optional          | Units of tinybars                                                                                                                           |
-| receiverSignatureRequired | bool   | optional          |                                                                                                                                             |
-| autoRenewPeriod           | int64  | optional          | Units of seconds                                                                                                                            |
-| memo                      | string | optional          |                                                                                                                                             |
-| maxAutoTokenAssociations  | int32  | optional          |                                                                                                                                             |
-| stakedAccountId           | string | optional          |                                                                                                                                             |
-| stakedNodeId              | int64  | optional          |                                                                                                                                             |
-| declineStakingReward      | bool   | optional          |                                                                                                                                             |
-| alias                     | string | optional          | Hex string representation of the keccak-256 hash of an ECDSAsecp256k1 public key type.                                                      |
-| signerKey                 | string | optional          | DER-encoded hex string representation of an additional private key required to sign.                                                        |
+| Parameter Name            | Type   | Required/Optional | Input/Output | Description/Notes                                                                                                                           |
+|---------------------------|--------|-------------------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| key                       | string | optional          | Input        | DER-encoded hex string representation for private or public keys. Keylists and threshold keys are the hex of the serialized protobuf bytes. |
+| initialBalance            | int64  | optional          | Input        | Units of tinybars                                                                                                                           |
+| receiverSignatureRequired | bool   | optional          | Input        |                                                                                                                                             |
+| autoRenewPeriod           | int64  | optional          | Input        | Units of seconds                                                                                                                            |
+| memo                      | string | optional          | Input        |                                                                                                                                             |
+| maxAutoTokenAssociations  | int32  | optional          | Input        |                                                                                                                                             |
+| stakedAccountId           | string | optional          | Input        |                                                                                                                                             |
+| stakedNodeId              | int64  | optional          | Input        |                                                                                                                                             |
+| declineStakingReward      | bool   | optional          | Input        |                                                                                                                                             |
+| alias                     | string | optional          | Input        | Hex string representation of the keccak-256 hash of an ECDSAsecp256k1 public key type.                                                      |
+| signerKey                 | string | optional          | Input        | DER-encoded hex string representation of an additional private key required to sign.                                                        |
+| accountId                 | string | required          | Output       | The ID of the created account.                                                                                                              |
+| status                    | string | required          | Output       | The status of the submitted `AccountCreateTransaction` (from a `TransactionReceipt`).                                                       |
 
 ## Property Tests
 
@@ -74,52 +76,219 @@ const transaction = new AccountCreateTransaction()
 | 7       | Creates an account with no key                                                                |                                         | The account creation fails with a KEY_REQUIRED response code from the network. | N                 |
 | 8       | Creates an account with an invalid key                                                        | key=<INVALID_KEY>                       | The account creation fails with an SDK internal error.                         | N                 |
 
+#### JSON Request Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "3030020100300706052b8104000a04220420e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35"
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
+
 ### **Initial Balance:**
 
 - The initial number of tinybars to put into the account.
 
-| Test no | Name                                                                                | Input                                             | Expected response                                                                             | Implemented (Y/N) |
-|---------|-------------------------------------------------------------------------------------|---------------------------------------------------|-----------------------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account with an initial balance                                          | key=<VALID_KEY>, initialBalance=100               | The account creation succeeds and the account contains 100 tinybar.                           | N                 |
-| 2       | Creates an account with a negative initial balance                                  | key=<VALID_KEY>, initialBalance=-1                | The account creation fails with an INVALID_INITIAL_BALANCE response code from the network.    | N                 |
-| 3       | Creates an account with an initial balance higher than the operator account balance | key=<VALID_KEY>, initialBalance=1,000,000,000,000 | The account creation fails with an INSUFFICIENT_PAYER_BALANCE response code from the network. | N                 |
+| Test no | Name                                                                                | Input                                                | Expected response                                                                             | Implemented (Y/N) |
+|---------|-------------------------------------------------------------------------------------|------------------------------------------------------|-----------------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account with an initial balance                                          | key=<VALID_KEY>, initialBalance=100                  | The account creation succeeds and the account contains 100 tinybar.                           | N                 |
+| 2       | Creates an account with a negative initial balance                                  | key=<VALID_KEY>, initialBalance=-1                   | The account creation fails with an INVALID_INITIAL_BALANCE response code from the network.    | N                 |
+| 3       | Creates an account with an initial balance higher than the operator account balance | key=<VALID_KEY>, initialBalance=<OPERATOR_BALANCE>+1 | The account creation fails with an INSUFFICIENT_PAYER_BALANCE response code from the network. | N                 |
+
+#### JSON Request Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "3030020100300706052b8104000a04220420e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35",
+    "initialBalance": 100
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
 
 ### **Receiver Signature Required:**
 
-- If true, this account's key must sign any transaction depositing into this account (in addition to all withdrawals)..
+- If true, this account's key must sign any transaction depositing into this account (in addition to all withdrawals).
 
 | Test no | Name                                                                                       | Input                                                   | Expected response                                                                    | Implemented (Y/N) |
 |---------|--------------------------------------------------------------------------------------------|---------------------------------------------------------|--------------------------------------------------------------------------------------|-------------------|
 | 1       | Creates an account that requires a receiving signature                                     | key=<VALID_PRIVATE_KEY>, receiverSignatureRequired=true | The account creation succeeds and the account requires a receiving signature.        | N                 |
 | 2       | Creates an account that requires a receiving signature but isn't signed by the account key | key=<VALID_PUBLIC_KEY>, receiverSignatureRequired=true  | The account creation fails with an INVALID_SIGNATURE response code from the network. | N                 |
 
+#### JSON Request Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
+    "receiverSignatureRequired": true
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
+
 ### **Auto Renew Period:**
 
 - The account is charged to extend its expiration date every ‘this many’ seconds. If it doesn't have enough balance, it extends as long as possible. If it is empty when it expires, then it is deleted.
 
-| Test no | Name                                                                            | Input                                    | Expected response                                                                                  | Implemented (Y/N) |
-|---------|---------------------------------------------------------------------------------|------------------------------------------|----------------------------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account with an auto renew period set to 30 days (2,592,000 seconds) | key=<VALID_KEY>, autoRenewPeriod=2592000 | The account creation succeeds and the account's auto renew period should equal 2,592,000 seconds.  | N                 |
-| 2       | Creates an account and set the auto renew period to -1 seconds                  | key=<VALID_KEY>, autoRenewPeriod=-1      | The account creation fails with an INVALID_RENEWAL_PERIOD response code from the network.          | N                 |
-| 3       | Creates an account and set the auto renew period to 10 days (864,000 seconds)   | key=<VALID_KEY>, autoRenewPeriod=864000  | The account creation fails with an AUTORENEW_DURATION_NOT_IN_RANGE response code from the network. | N                 |
+| Test no | Name                                                                                                                   | Input                                    | Expected response                                                                                  | Implemented (Y/N) |
+|---------|------------------------------------------------------------------------------------------------------------------------|------------------------------------------|----------------------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account with an auto renew period set to 60 days (5,184,000 seconds)                                        | key=<VALID_KEY>, autoRenewPeriod=5184000 | The account creation succeeds and the account's auto renew period should equal 5,184,000 seconds.  | N                 |
+| 2       | Creates an account with an auto renew period set to -1 seconds                                                         | key=<VALID_KEY>, autoRenewPeriod=-1      | The account creation fails with an INVALID_RENEWAL_PERIOD response code from the network.          | N                 |
+| 3       | Creates an account with an auto renew period set to the minimum period of 30 days (2,592,000 seconds)                  | key=<VALID_KEY>, autoRenewPeriod=2592000 | The account creation succeeds and the account's auto renew period should equal 2,592,000 seconds.  | N                 |
+| 4       | Creates an account with an auto renew period set to the minimum period of 30 days minus one second (2,591,999 seconds) | key=<VALID_KEY>, autoRenewPeriod=2591999 | The account creation fails with an AUTORENEW_DURATION_NOT_IN_RANGE response code from the network. | N                 |
+| 5       | Creates an account with an auto renew period set to the maximum period of 8,000,001 seconds                            | key=<VALID_KEY>, autoRenewPeriod=8000001 | The account creation succeeds and the account's auto renew period should equal 8,000,001 seconds.  | N                 |
+| 6       | Creates an account with an auto renew period set to the maximum period plus one seconds (8,000,002 seconds)            | key=<VALID_KEY>, autoRenewPeriod=8000002 | The account creation fails with an AUTORENEW_DURATION_NOT_IN_RANGE response code from the network. | N                 |
+
+#### JSON Request Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
+    "autoRenewPeriod": 5184000
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
 
 ### **Memo:**
 
 - The memo associated with the account (UTF-8 encoding max 100 bytes).
 
-| Test no | Name                                                       | Input                                                                                                                                 | Expected response                                                               | Implemented (Y/N) |
-|---------|------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account with a memo                             | key=<VALID_KEY>, memo="testmemo"                                                                                                      | The account creation succeeds and the account's memo equals “testmemo”.         | N                 |
-| 2       | Creates an account with a memo that exceeds 100 characters | key=<VALID_KEY>, memo="this is a really long memo that definitely exceeds 100 characters and it should without a doubt fail the test" | The account creation fails with a MEMO_TOO_LONG response code from the network. | N                 |
+| Test no | Name                                                       | Input                                                                                                                         | Expected response                                                                                                                                                   | Implemented (Y/N) |
+|---------|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account with a valid memo                       | key=<VALID_KEY>, memo="testmemo"                                                                                              | The account creation succeeds and the account's memo equals “testmemo”.                                                                                             | N                 |
+| 2       | Creates an account with an empty memo                      | key=<VALID_KEY>, memo=""                                                                                                      | The account creation succeeds and the account's memo is empty.                                                                                                      | N                 |
+| 3       | Creates an account with a memo that is 100 characters      | key=<VALID_KEY>, memo="This is a really long memo but it is still valid because it is 100 characters exactly on the money!!"  | The account creation succeeds and the account's memo equals "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!". | N                 |
+| 4       | Creates an account with a memo that exceeds 100 characters | key=<VALID_KEY>, memo="This is a long memo that is not valid because it exceeds 100 characters and it should fail the test!!" | The account creation fails with a MEMO_TOO_LONG response code from the network.                                                                                     | N                 |
+
+#### JSON Request Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
+    "memo": "testmemo"
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
 
 ### **Max Automatic Token Associations:**
 
 - The maximum number of tokens with which an account can be implicitly associated. Defaults to 0 and up to a maximum value of 1000.
 
-| Test no | Name                                                                       | Input                                          | Expected response                                                                                                                | Implemented (Y/N) |
-|---------|----------------------------------------------------------------------------|------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account with a max token association set to maximum value       | key=<VALID_KEY>, maxAutoTokenAssociations=1000 | The account creation succeeds and the account has 1000 automatic token associations.                                             | N                 |
-| 2       | Creates an account with a max token association set over the maximum value | key=<VALID_KEY>, maxAutoTokenAssociations=1001 | The account creation fails with a REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT response code from the network. | N                 |
+| Test no | Name                                                                               | Input                                          | Expected response                                                                                                                | Implemented (Y/N) |
+|---------|------------------------------------------------------------------------------------|------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account with a max token association set to 0                           | key=<VALID_KEY>, maxAutoTokenAssociations=0    | The account creation succeeds and the account has 0 automatic token associations.                                                | N                 |
+| 2       | Creates an account with a max token association that is the maximum value          | key=<VALID_KEY>, maxAutoTokenAssociations=1000 | The account creation succeeds and the account has 1000 automatic token associations.                                             | N                 |
+| 3       | Creates an account with a max token association that is the maximum value plus one | key=<VALID_KEY>, maxAutoTokenAssociations=1001 | The account creation fails with a REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT response code from the network. | N                 |
+
+#### JSON Request Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
+    "maxAutoTokenAssociations": 100
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
 
 ### **Staked ID:**
 
@@ -127,14 +296,65 @@ const transaction = new AccountCreateTransaction()
   - OR
 - ID of the node to which this account is staked.
 
-| Test no | Name                                                                                  | Input                                                  | Expected response                                                                                     | Implemented (Y/N) |
-|---------|---------------------------------------------------------------------------------------|--------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account with the staked account ID set to the operators account ID         | key=<VALID_KEY>, stakedAccountId=<OPERATOR_ACCOUNT_ID> | The account creation succeeds and the account has a staking account ID equal to the input account ID. | N                 |
-| 2       | Creates an account with the staked node ID set to a valid node ID                     | key=<VALID_KEY>, stakedNodeId=<VALID_NETWORK_NODE_ID>  | The account creation succeeds and the account has a staking node ID equal to the input node ID.       | N                 |
-| 3       | Creates an account with the staked account ID set to an account ID that doesn't exist | key=<VALID_KEY>, stakedAccountId=123.456.789           | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
-| 4       | Creates an account with the staked node ID set to a node ID that doesn't exist        | key=<VALID_KEY>, stakedNodeId=123456789                | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
-| 5       | Creates an account with the staked account ID set to an empty account ID              | key=<VALID_KEY>, stakedAccountId=""                    | The account creation fails with and SDK internal error.                                               | N                 |
-| 6       | Creates an account with the staked account ID set to an invalid node ID               | key=<VALID_KEY>, stakedNodeId=-100                     | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
+| Test no | Name                                                                                  | Input                                                                                        | Expected response                                                                                     | Implemented (Y/N) |
+|---------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account with the staked account ID set to the operators account ID         | key=<VALID_KEY>, stakedAccountId=<OPERATOR_ACCOUNT_ID>                                       | The account creation succeeds and the account has a staking account ID equal to the input account ID. | N                 |
+| 2       | Creates an account with the staked node ID set to a valid node ID                     | key=<VALID_KEY>, stakedNodeId=<VALID_NETWORK_NODE_ID>                                        | The account creation succeeds and the account has a staking node ID equal to the input node ID.       | N                 |
+| 3       | Creates an account with the staked account ID set to an account ID that doesn't exist | key=<VALID_KEY>, stakedAccountId="123.456.789"                                               | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
+| 4       | Creates an account with the staked node ID set to a node ID that doesn't exist        | key=<VALID_KEY>, stakedNodeId=123456789                                                      | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
+| 5       | Creates an account with the staked account ID set to an empty account ID              | key=<VALID_KEY>, stakedAccountId=""                                                          | The account creation fails with and SDK internal error.                                               | N                 |
+| 6       | Creates an account with the staked account ID set to an invalid node ID               | key=<VALID_KEY>, stakedNodeId=-100                                                           | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
+| 7       | Creates an account with a staked account ID and a staked node ID                      | key=<VALID_KEY>, stakedAccountId=<OPERATOR_ACCOUNT_ID>, stakedNodeId=<VALID_NETWORK_NODE_ID> | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
+
+#### JSON Request Examples
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
+    "stakedAccountId": "0.0.3"
+  }
+}
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99233,
+  "method": "createAccount",
+  "params": {
+    "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
+    "stakedNodeId": 10
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99233,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
 
 ### **Decline rewards:**
 
@@ -143,6 +363,33 @@ const transaction = new AccountCreateTransaction()
 | Test no | Name                                             | Input                                       | Expected response                                                       | Implemented (Y/N) |
 |---------|--------------------------------------------------|---------------------------------------------|-------------------------------------------------------------------------|-------------------|
 | 1       | Creates an account that declines staking rewards | key=<VALID_KEY>, declineStakingRewards=true | The account creation succeeds and the account declines staking rewards. | N                 |
+
+#### JSON Request Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
+    "declineStakingRewards": true
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
 
 ### **Alias:**
 
@@ -153,4 +400,32 @@ const transaction = new AccountCreateTransaction()
 | 1       | Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key                     | key=<VALID_KEY>, alias=<LAST_20_BYTES_ECDSA_SECP256K1_PUBLIC_KEY_KECCAK_256_HASH>, signerKey=<CORRESPONDING_ECDSA_SECP256K1_PRIVATE_KEY> | The account creation succeeds and the account has the keccak-256 hash of the ECDSAsecp256k1 public key as its alias. | N                 |
 | 2       | Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key without a signature | key=<VALID_KEY>, alias=<LAST_20_BYTES_ECDSA_SECP256K1_PUBLIC_KEY_KECCAK_256_HASH>                                                        | The account creation fails with an INVALID_SIGNATURE response code from the network.                                 | N                 |
 | 3       | Creates an account with an invalid alias                                                        | key=<VALID_KEY>, alias=<INVALID_ALIAS>                                                                                                   | The account creation fails with an INVALID_ALIAS_KEY response code from the network.                                 | N                 |
+
+#### JSON Request Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "method": "createAccount",
+  "params": {
+    "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
+    "alias": "990a3f6573669cc6266c00983dc24359bd4b223b",
+    "signerKey": "30540201010420c5f9d140822511e581228feb2bde5a9706ee4c4377822e7cf4755fec529f0bcfa00706052b8104000aa124032200038064ccfe93ce1492ada790da7204edd8e3fd004ee68e4fae7641e00db20527c5"
+  }
+}
+```
+
+#### JSON Response Example
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 99232,
+  "result": {
+    "accountId": "0.0.12345",
+    "status": "SUCCESS"
+  }
+}
+```
 

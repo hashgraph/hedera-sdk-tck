@@ -110,7 +110,7 @@ Method used to generate a Hedera Key.
 | keys           | list   | optional          | Input        | Required for `keyList` and `thresholdKey` types. Specify the types of keys to be generated and put in the `keyList` or `thresholdKey`. All keys should contain the same parameters as this `generateKey` method (see examples below), if required                                                                                             |
 | key            | string | required          | Output       | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key). If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf                                                                                                               |
 
-#### JSON Request Examples
+#### JSON Request/Response Examples
 
 *Generates a random ED25519 or ECDSAsecp256k1 private or public key*
 ```json
@@ -118,6 +118,16 @@ Method used to generate a Hedera Key.
   "jsonrpc": "2.0",
   "id": 1,
   "method": "generateKey"
+}
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "key": "302D300706052B8104000A0322000345B82F32CA13D777FC9474AD8785045A4EC8C55B15B339CE8DFE00B9AC62ED0A"
+  }
 }
 ```
 
@@ -129,6 +139,16 @@ Method used to generate a Hedera Key.
   "method": "generateKey",
   "params": {
     "type": "ed25519PrivateKey"
+  }
+}
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "key": "302E020100300506032B65700422042002986CE0E075C595C8F092D4144F24925C38A4C4ADEE25E3AA0ABED5C6F309BF"
   }
 }
 ```
@@ -145,6 +165,16 @@ Method used to generate a Hedera Key.
 }
 ```
 
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": {
+    "key": "302A300506032B657003210025FCF76794560FAB2E0E795E14AB12E88C853F09BDFA7DBF7FAC7A2F6B31E403"
+  }
+}
+```
+
 *Generates the serialized protobuf ECDSAsecp256k1 public key that is paired with the input ECDSAsecp256k1 private key*
 ```json
 {
@@ -155,6 +185,16 @@ Method used to generate a Hedera Key.
     "type": "ecdsaSecp256k1PublicKey",
     "privateKey": "3030020100300706052b8104000a04220420e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35",
     "protobufBytes": true
+  }
+}
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "key": "3A210339A36013301597DAEF41FBE593A02CC513D0B55527EC2DF1050E2E8FF49C85C2"
   }
 }
 ```
@@ -178,6 +218,16 @@ Method used to generate a Hedera Key.
         "privateKey": "3030020100300706052b8104000a04220420e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35"
       }
     ]
+  }
+}
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+    "key": "2A710802126D0A2212209181CA10AA3166E56755D5F5A7D0A80DABB17A5699B1185F6E85B0F7F450669E0A2212205C7F51463FF9444951E878EEB7161EE7250691684DE0DFE048B68BDF1602D05F0A233A210339A36013301597DAEF41FBE593A02CC513D0B55527EC2DF1050E2E8FF49C85C2"
   }
 }
 ```
@@ -226,58 +276,6 @@ Method used to generate a Hedera Key.
         ]
       }
     ]
-  }
-}
-```
-
-#### JSON Response Examples
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "key": "302D300706052B8104000A0322000345B82F32CA13D777FC9474AD8785045A4EC8C55B15B339CE8DFE00B9AC62ED0A"
-  }
-}
-```
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "result": {
-    "key": "302E020100300506032B65700422042002986CE0E075C595C8F092D4144F24925C38A4C4ADEE25E3AA0ABED5C6F309BF"
-  }
-}
-```
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 3,
-  "result": {
-    "key": "302A300506032B657003210025FCF76794560FAB2E0E795E14AB12E88C853F09BDFA7DBF7FAC7A2F6B31E403"
-  }
-}
-```
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 4,
-  "result": {
-    "key": "3A210339A36013301597DAEF41FBE593A02CC513D0B55527EC2DF1050E2E8FF49C85C2"
-  }
-}
-```
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 5,
-  "result": {
-    "key": "2A710802126D0A2212209181CA10AA3166E56755D5F5A7D0A80DABB17A5699B1185F6E85B0F7F450669E0A2212205C7F51463FF9444951E878EEB7161EE7250691684DE0DFE048B68BDF1602D05F0A233A210339A36013301597DAEF41FBE593A02CC513D0B55527EC2DF1050E2E8FF49C85C2"
   }
 }
 ```
