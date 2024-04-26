@@ -41,23 +41,28 @@ const transaction = new AccountCreateTransaction()
 
 `createAccount`
 
-### Parameters
+### Input Parameters
 
-| Parameter Name            | Type   | Required/Optional | Input/Output | Description/Notes                                                                                                                           |
-|---------------------------|--------|-------------------|--------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| key                       | string | optional          | Input        | DER-encoded hex string representation for private or public keys. Keylists and threshold keys are the hex of the serialized protobuf bytes. |
-| initialBalance            | int64  | optional          | Input        | Units of tinybars                                                                                                                           |
-| receiverSignatureRequired | bool   | optional          | Input        |                                                                                                                                             |
-| autoRenewPeriod           | int64  | optional          | Input        | Units of seconds                                                                                                                            |
-| memo                      | string | optional          | Input        |                                                                                                                                             |
-| maxAutoTokenAssociations  | int32  | optional          | Input        |                                                                                                                                             |
-| stakedAccountId           | string | optional          | Input        |                                                                                                                                             |
-| stakedNodeId              | int64  | optional          | Input        |                                                                                                                                             |
-| declineStakingReward      | bool   | optional          | Input        |                                                                                                                                             |
-| alias                     | string | optional          | Input        | Hex string representation of the keccak-256 hash of an ECDSAsecp256k1 public key type.                                                      |
-| signerKey                 | string | optional          | Input        | DER-encoded hex string representation of an additional private key required to sign.                                                        |
-| accountId                 | string | required          | Output       | The ID of the created account.                                                                                                              |
-| status                    | string | required          | Output       | The status of the submitted `AccountCreateTransaction` (from a `TransactionReceipt`).                                                       |
+| Parameter Name            | Type   | Required/Optional | Description/Notes                                                                                                                           |
+|---------------------------|--------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| key                       | string | optional          | DER-encoded hex string representation for private or public keys. Keylists and threshold keys are the hex of the serialized protobuf bytes. |
+| initialBalance            | int64  | optional          | Units of tinybars                                                                                                                           |
+| receiverSignatureRequired | bool   | optional          |                                                                                                                                             |
+| autoRenewPeriod           | int64  | optional          | Units of seconds                                                                                                                            |
+| memo                      | string | optional          |                                                                                                                                             |
+| maxAutoTokenAssociations  | int32  | optional          |                                                                                                                                             |
+| stakedAccountId           | string | optional          |                                                                                                                                             |
+| stakedNodeId              | int64  | optional          |                                                                                                                                             |
+| declineStakingReward      | bool   | optional          |                                                                                                                                             |
+| alias                     | string | optional          | Hex string representation of the keccak-256 hash of an ECDSAsecp256k1 public key type.                                                      |
+| signerKey                 | string | optional          | DER-encoded hex string representation of an additional private key required to sign.                                                        |
+
+### Output Parameters
+
+| Parameter Name | Type   | Required/Optional | Description/Notes                                                                     |
+|----------------|--------|-------------------|---------------------------------------------------------------------------------------|
+| accountId      | string | required          | The ID of the created account.                                                        |
+| status         | string | required          | The status of the submitted `AccountCreateTransaction` (from a `TransactionReceipt`). |
 
 ## Property Tests
 
@@ -109,8 +114,9 @@ const transaction = new AccountCreateTransaction()
 | Test no | Name                                                                                | Input                                                | Expected response                                                                             | Implemented (Y/N) |
 |---------|-------------------------------------------------------------------------------------|------------------------------------------------------|-----------------------------------------------------------------------------------------------|-------------------|
 | 1       | Creates an account with an initial balance                                          | key=<VALID_KEY>, initialBalance=100                  | The account creation succeeds and the account contains 100 tinybar.                           | N                 |
-| 2       | Creates an account with a negative initial balance                                  | key=<VALID_KEY>, initialBalance=-1                   | The account creation fails with an INVALID_INITIAL_BALANCE response code from the network.    | N                 |
-| 3       | Creates an account with an initial balance higher than the operator account balance | key=<VALID_KEY>, initialBalance=<OPERATOR_BALANCE>+1 | The account creation fails with an INSUFFICIENT_PAYER_BALANCE response code from the network. | N                 |
+| 2       | Creates an account with no initial balance                                          | key=<VALID_KEY>, initialBalance=0                    | The account creation succeeds and the account contains 0 tinybar.                             | N                 |
+| 3       | Creates an account with a negative initial balance                                  | key=<VALID_KEY>, initialBalance=-1                   | The account creation fails with an INVALID_INITIAL_BALANCE response code from the network.    | N                 |
+| 4       | Creates an account with an initial balance higher than the operator account balance | key=<VALID_KEY>, initialBalance=<OPERATOR_BALANCE>+1 | The account creation fails with an INSUFFICIENT_PAYER_BALANCE response code from the network. | N                 |
 
 #### JSON Request Example
 
@@ -143,10 +149,11 @@ const transaction = new AccountCreateTransaction()
 
 - If true, this account's key must sign any transaction depositing into this account (in addition to all withdrawals).
 
-| Test no | Name                                                                                       | Input                                                   | Expected response                                                                    | Implemented (Y/N) |
-|---------|--------------------------------------------------------------------------------------------|---------------------------------------------------------|--------------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account that requires a receiving signature                                     | key=<VALID_PRIVATE_KEY>, receiverSignatureRequired=true | The account creation succeeds and the account requires a receiving signature.        | N                 |
-| 2       | Creates an account that requires a receiving signature but isn't signed by the account key | key=<VALID_PUBLIC_KEY>, receiverSignatureRequired=true  | The account creation fails with an INVALID_SIGNATURE response code from the network. | N                 |
+| Test no | Name                                                                                       | Input                                                    | Expected response                                                                    | Implemented (Y/N) |
+|---------|--------------------------------------------------------------------------------------------|----------------------------------------------------------|--------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account that requires a receiving signature                                     | key=<VALID_PRIVATE_KEY>, receiverSignatureRequired=true  | The account creation succeeds and the account requires a receiving signature.        | N                 |
+| 1       | Creates an account that doesn't require a receiving signature                              | key=<VALID_PRIVATE_KEY>, receiverSignatureRequired=false | The account creation succeeds and the account doesn't require a receiving signature. | N                 |
+| 2       | Creates an account that requires a receiving signature but isn't signed by the account key | key=<VALID_PUBLIC_KEY>, receiverSignatureRequired=true   | The account creation fails with an INVALID_SIGNATURE response code from the network. | N                 |
 
 #### JSON Request Example
 
@@ -360,9 +367,10 @@ const transaction = new AccountCreateTransaction()
 
 - If true, the account declines receiving a staking reward.
 
-| Test no | Name                                             | Input                                       | Expected response                                                       | Implemented (Y/N) |
-|---------|--------------------------------------------------|---------------------------------------------|-------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account that declines staking rewards | key=<VALID_KEY>, declineStakingRewards=true | The account creation succeeds and the account declines staking rewards. | N                 |
+| Test no | Name                                                    | Input                                        | Expected response                                                              | Implemented (Y/N) |
+|---------|---------------------------------------------------------|----------------------------------------------|--------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account that declines staking rewards        | key=<VALID_KEY>, declineStakingRewards=true  | The account creation succeeds and the account declines staking rewards.        | N                 |
+| 1       | Creates an account that doesn't decline staking rewards | key=<VALID_KEY>, declineStakingRewards=false | The account creation succeeds and the account doesn't decline staking rewards. | N                 |
 
 #### JSON Request Example
 

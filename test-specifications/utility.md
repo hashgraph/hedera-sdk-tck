@@ -9,19 +9,24 @@ The JSON RPC methods mentioned in this file describe additional methods that sho
 
 #### Description
 
-Method used to establish communication and initialize a TCK server with fee-payer information, as well as optional network information depending on the network setup being used to test.
+Method used to establish communication and initialize a TCK server with fee-payer information, as well as optional network information depending on the network setup being used to test. If the TCK server only receives `operatorAccountId` and `operatorPrivateKey` parameters, it will assume that a testnet connection should be established. Other network parameters imply a custom/local network setup.
 
-#### Parameters
+#### Input Parameters
 
-| Parameter Name     | Type   | Required/Optional | Input/Output | Description/Notes                                                                 |
-|--------------------|--------|-------------------|--------------|-----------------------------------------------------------------------------------|
-| operatorAccountId  | string | required          | Input        | The ID of the account to pay for all requests                                     |
-| operatorPrivateKey | string | required          | Input        | The private key of the fee-payer account in DER-encoded hex string representation |
-| nodeIp             | string | optional          | Input        | Required for a custom network. The IP of the local consensus node                 |
-| nodeAccountId      | string | optional          | Input        | Required for a custom network. The account ID for the local node                  |
-| mirrorNetworkIp    | string | optional          | Input        | Required for a custom network. The IP for the local mirror node                   |
-| message            | string | required          | Output       | Informational message about the execution of the method                           |
-| status             | string | required          | Output       | The status/result of the execution                                                |
+| Parameter Name     | Type   | Required/Optional | Description/Notes                                                                 |
+|--------------------|--------|-------------------|-----------------------------------------------------------------------------------|
+| operatorAccountId  | string | required          | The ID of the account to pay for all requests                                     |
+| operatorPrivateKey | string | required          | The private key of the fee-payer account in DER-encoded hex string representation |
+| nodeIp             | string | optional          | Required for a custom network. The IP of the local consensus node                 |
+| nodeAccountId      | string | optional          | Required for a custom network. The account ID for the local node                  |
+| mirrorNetworkIp    | string | optional          | Required for a custom network. The IP for the local mirror node                   |
+
+#### Output Parameters
+
+| Parameter Name | Type   | Required/Optional | Description/Notes                                       |
+|----------------|--------|-------------------|---------------------------------------------------------|
+| message        | string | required          | Informational message about the execution of the method |
+| status         | string | required          | The status/result of the execution                      |
 
 #### JSON Request Example
 
@@ -61,12 +66,12 @@ Method used to establish communication and initialize a TCK server with fee-paye
 
 Method used to close the TCK network connections. Network connections can be reestablished after with another `setup` call.
 
-#### Parameters
+#### Output Parameters
 
-| Parameter Name | Type   | Required/Optional | Input/Output | Description/Notes                                       |
-|----------------|--------|-------------------|--------------|---------------------------------------------------------|
-| message        | string | required          | Output       | Informational message about the execution of the method |
-| status         | string | required          | Output       | The status/result of the execution                      |
+| Parameter Name | Type   | Required/Optional | Description/Notes                                       |
+|----------------|--------|-------------------|---------------------------------------------------------|
+| message        | string | required          | Informational message about the execution of the method |
+| status         | string | required          | The status/result of the execution                      |
 
 #### JSON Request Example
 
@@ -99,16 +104,21 @@ Method used to close the TCK network connections. Network connections can be ree
 
 Method used to generate a Hedera Key.
 
-#### Parameters
+#### Input Parameters
 
-| Parameter Name | Type   | Required/Optional | Input/Output | Description/Notes                                                                                                                                                                                                                                                                                                                             |
-|----------------|--------|-------------------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| type           | string | optional          | Input        | The type of Key to generate. If provided, it MUST be one of `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, `ecdsaSecp256k1PublicKey`, `keyList`, or `thresholdKey`. If not provided, the returned key will be of type `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, or `ecdsaSecp256k1PublicKey` |
-| privateKey     | string | optional          | Input        | The DER-encoded hex string private key from which to generate a public key. This should only be provided for types `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` if the public keys would like to be generated from a specific private key, but still not required if a random public key is desired.                                      |
-| protobufBytes  | bool   | optional          | Input        | For `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` types, `true` if instead of the DER-encoded hex string of the generated key, the serialized Key protobuf bytes are desired. Useful for generating aliases.                                                                                                                               |
-| threshold      | int    | optional          | Input        | Required for `thresholdKey` types. The number of keys that must sign for a threshold key.                                                                                                                                                                                                                                                     |
-| keys           | list   | optional          | Input        | Required for `keyList` and `thresholdKey` types. Specify the types of keys to be generated and put in the `keyList` or `thresholdKey`. All keys should contain the same parameters as this `generateKey` method (see examples below), if required                                                                                             |
-| key            | string | required          | Output       | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key). If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf                                                                                                               |
+| Parameter Name | Type   | Required/Optional | Description/Notes                                                                                                                                                                                                                                                                                                                              |
+|----------------|--------|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| type           | string | optional          | The type of Key to generate. If provided, it MUST be one of `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, `ecdsaSecp256k1PublicKey`, `keyList`, or `thresholdKey`. If not provided, the returned key will be of type `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, or `ecdsaSecp256k1PublicKey`. |
+| privateKey     | string | optional          | The DER-encoded hex string private key from which to generate a public key. This should only be provided for types `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` if the public keys would like to be generated from a specific private key, but still not required if a random public key is desired.                                       |
+| protobufBytes  | bool   | optional          | For `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` types, `true` if instead of the DER-encoded hex string of the generated key, the serialized Key protobuf bytes are desired. Useful for generating aliases.                                                                                                                                |
+| threshold      | int    | optional          | Required for `thresholdKey` types. The number of keys that must sign for a threshold key.                                                                                                                                                                                                                                                      |
+| keys           | list   | optional          | Required for `keyList` and `thresholdKey` types. Specify the types of keys to be generated and put in the `keyList` or `thresholdKey`. All keys should contain the same parameters as this `generateKey` method (see examples below), if required.                                                                                             |
+
+#### Output Parameters
+
+| Parameter Name | Type   | Required/Optional | Description/Notes                                                                                                                                                                                                                |
+|----------------|--------|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| key            | string | required          | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key). If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf. |
 
 #### JSON Request/Response Examples
 
