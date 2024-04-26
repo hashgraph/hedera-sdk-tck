@@ -19,7 +19,7 @@ Since the process outlined will require coordination across all SDKs, having a d
 
 The TCK development process encompasses all work done for a Hedera request type, including documentation, development of tests, the actual testing of the tests, and finally synchronously merging all the work.
 
-## Step 1: Documentation
+### Step 1: Documentation
 
 Before any development takes place, the tests to be written need to be thought out and put in a markdown file in the `test-specifications` folder. A new file should use the `test-specifications/testSpecificationsTemplate.md` file as a template. The new markdown file should also be placed within a folder within the `test-specifications` folder that contains all the tests for the particular Hedera service that services the request for which tests are being written. For example, if tests are being written for `AccountCreateTransaction`, the `accountCreateTransaction.md` file should be placed in `test-specifications/crypto-service`.
 
@@ -47,7 +47,7 @@ The items that should be included in a request's test documentation can be seen 
    
 Once the tests have been written, they can be put up for in a pull request. The designated SDK leads mentioned above should be included on this pull request. The tests should be reviewed for clarity, test range, and consistency. Once reviewed, SDK leads should approve and once all SDK leads approve, the pull request can be merged.
 
-## Step 2a: TCK Test Driver
+### Step 2a: TCK Test Driver
 
 Once the tests are written, approved, and merged, they can then be developed. The approved and merged test documentation should be used to discern what tests to write and how they should operate. Much like the test documentation, the file that contains the code for the tests should be placed within a folder within the `test` folder that contains all the tests for the particular Hedera service that services the request for which the tests are being written. For example, if tests are being written for `AccountCreateTransaction`, the `test_accountCreateTransaction.js` file should be placed in `test/crypto-service`.
 
@@ -89,7 +89,7 @@ describe("AccountCreateTransaction", function () {
 
 Once the development of the tests is complete, a pull request can be made with all the SDK leads as reviewers. This pull request should act as a signal to the SDKs that the tests are ready to be run against the SDK servers. The tests should be run against each SDK server implementation and pass before being approved and merged. An SDK lead's approval on this pull request will act as a signal that the SDK server implementation for the respective SDK is complete and all tests pass. Since the TCK tests can't be tested without an SDK server implementation and an SDK server implementation can't be tested without the TCK tests, these two steps can happen in parallel.
 
-## Step 2b: SDK Server
+### Step 2b: SDK Server
 
 Much like the TCK, once the documentation for the TCK tests are written, approved, and merged, the SDK server can be developed. The approved and merged test documentation should be used to discern what tests to write and how they should operate. Since this will live in the codebase of the SDK, it will be primarily up to the SDK developers how they want to structure and build their server, though having a file structure and conventions similar to the TCK would probably be beneficial. As mentioned before, since the SDK server implementation can't be tested without the TCK tests and the TCK tests can't be tested without an SDK server implementation, these two steps can happen in parallel.
 
@@ -100,12 +100,12 @@ A couple of things in the test documentation to help with SDK server development
  - The method name for the developed JSON-RPC API should match exactly what's in the test documentation.
  - The input parameters describe the potential parameters the TCK could send the SDK server. They are marked required/optional. The SDK server can assume a required parameter will be sent with every request, and an optional parameter may or may not be sent.
  - The input parameters for the SDK server JSON-RPC method endpoint should be in the same order as they are described in the test documentation to keep order and clarity.
- - The output parameters describe the fields the TCK is expecting to receive back from the SDK server. The response depends on the execution of the request with the parameters provided by the TCK. If all parameters were parsed correctly and a request was able to be successfully sent to the test network, the "result" parameters should be filled out (accordingly if they're required or optional) by the SDK server with the relevant result information and sent back to the TCK. If there was an issue of some sort that didn't allow the SDK server to submit a request, the "error" parameters should be filled out (once again, accordingly if they're required or optional) with the relevant error information and sent back to the TCK.
+ - The output parameters describe the fields the TCK is expecting to receive back from the SDK server. The response depends on the execution of the request with the parameters provided by the TCK. If all parameters were parsed correctly and a request was able to be successfully sent to the test network, the output parameters should be filled out (accordingly if they're required or optional) by the SDK server with the relevant result information and sent back to the TCK. If there was an issue of some sort that didn't allow the SDK server to submit a request, a [JSON-RPC standard](https://www.jsonrpc.org/specification#error_object) error object should be filled out with the relevant error information and sent back to the TCK.
 
 Once the development of the SDK server is complete, it should be tested against the relevant TCK branch that contains the associated TCK tests. Any bugs can be worked out and when all tests pass, the SDK lead can put up a pull request for the SDK server work, as well as approve the respective pull request for the development of the TCK tests. This approval will signal that the SDK server work for the respective SDK is complete and all tests pass. DO NOT merge any pull requests at this step yet, in case issues are found by other repos that may require TCK changes. These TCK changes could require testing of the SDK server again which, if already merged, would require the issue to be opened again and another pull request eventually put up.
 
 **NOTE:** If any issue comes up that would require changes to the test documentation during the development of the TCK tests or the SDK servers, the development work should stop and the test documentation should be updated and approved first. This will help ensure the development work being done is always done correctly and time isn't wasted developing incorrect or out-of-date tests.
 
-## Step 3: Merge Pull Requests
+### Step 3: Merge Pull Requests
 
 Once the development work for the TCK and the SDK servers is complete and all tests pass on all SDK servers, ALL pull requests in all SDK repos, as well as the TCK pull request, can be merged. This will mark the completion of the development work for this specific Hedera request.
