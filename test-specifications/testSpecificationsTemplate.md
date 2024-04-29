@@ -16,13 +16,6 @@ https://github.com/hashgraph/hedera-protobufs/blob/main/services/response_code.p
 
 https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 
-
-## Initialisation:
-
-```jsx
-
-```
-
 ## JSON-RPC API Endpoint Documentation
 
 ### Method Name

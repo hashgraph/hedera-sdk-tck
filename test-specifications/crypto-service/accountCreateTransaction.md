@@ -22,19 +22,6 @@ https://github.com/hashgraph/hedera-protobufs/blob/main/services/response_code.p
 
 https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 
-## Initialisation
-
-```jsx
-new AccountCreateTransaction()
-
-//example
-
-const transaction = new AccountCreateTransaction()
-  .setKey(privateKey.publicKey)
-  .setInitialBalance(new Hbar(1000))
-  ...
-```
-
 ## JSON-RPC API Endpoint Documentation
 
 ### Method Name
@@ -59,10 +46,10 @@ const transaction = new AccountCreateTransaction()
 
 ### Output Parameters
 
-| Parameter Name | Type   | Required/Optional | Description/Notes                                                                     |
-|----------------|--------|-------------------|---------------------------------------------------------------------------------------|
-| accountId      | string | required          | The ID of the created account.                                                        |
-| status         | string | required          | The status of the submitted `AccountCreateTransaction` (from a `TransactionReceipt`). |
+| Parameter Name | Type   | Description/Notes                                                                     |
+|----------------|--------|---------------------------------------------------------------------------------------|
+| accountId      | string | The ID of the created account.                                                        |
+| status         | string | The status of the submitted `AccountCreateTransaction` (from a `TransactionReceipt`). |
 
 ## Property Tests
 
@@ -310,7 +297,7 @@ const transaction = new AccountCreateTransaction()
 | 3       | Creates an account with the staked account ID set to an account ID that doesn't exist | key=<VALID_KEY>, stakedAccountId="123.456.789"                                               | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
 | 4       | Creates an account with the staked node ID set to a node ID that doesn't exist        | key=<VALID_KEY>, stakedNodeId=123456789                                                      | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
 | 5       | Creates an account with the staked account ID set to an empty account ID              | key=<VALID_KEY>, stakedAccountId=""                                                          | The account creation fails with and SDK internal error.                                               | N                 |
-| 6       | Creates an account with the staked account ID set to an invalid node ID               | key=<VALID_KEY>, stakedNodeId=-100                                                           | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
+| 6       | Creates an account with the staked node ID set to an invalid node ID                  | key=<VALID_KEY>, stakedNodeId=-100                                                           | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
 | 7       | Creates an account with a staked account ID and a staked node ID                      | key=<VALID_KEY>, stakedAccountId=<OPERATOR_ACCOUNT_ID>, stakedNodeId=<VALID_NETWORK_NODE_ID> | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | N                 |
 
 #### JSON Request Examples
