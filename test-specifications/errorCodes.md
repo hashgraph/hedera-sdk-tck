@@ -12,7 +12,7 @@ The JSON-RPC 2.0 specification that the TCK and SDK servers use allow for implem
 
 #### Usage
 
-When a request is successfully submit to a network, but either does not pass precheck, or does not come to consensus and is rejected. In SDK terms, the `execute()` call for a request is met with a `PrecheckStatusException` or `ReceiptStatusException`.
+When a request is successfully submit to a network, but either does not pass precheck, or does not come to consensus and is rejected. In SDK terms, an executed request is met with a `PrecheckStatusException` or `ReceiptStatusException`.
 
 #### Data
 
