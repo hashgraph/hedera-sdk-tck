@@ -23,10 +23,10 @@ Method used to establish communication and initialize a TCK server with fee-paye
 
 #### Output Parameters
 
-| Parameter Name | Type   | Required/Optional | Description/Notes                                       |
-|----------------|--------|-------------------|---------------------------------------------------------|
-| message        | string | required          | Informational message about the execution of the method |
-| status         | string | required          | The status/result of the execution                      |
+| Parameter Name | Type   | Description/Notes                                       |
+|----------------|--------|---------------------------------------------------------|
+| message        | string | Informational message about the execution of the method |
+| status         | string | The status/result of the execution                      |
 
 #### JSON Request Example
 
@@ -68,10 +68,10 @@ Method used to close the TCK network connections. Network connections can be ree
 
 #### Output Parameters
 
-| Parameter Name | Type   | Required/Optional | Description/Notes                                       |
-|----------------|--------|-------------------|---------------------------------------------------------|
-| message        | string | required          | Informational message about the execution of the method |
-| status         | string | required          | The status/result of the execution                      |
+| Parameter Name | Type   | Description/Notes                                       |
+|----------------|--------|---------------------------------------------------------|
+| message        | string | Informational message about the execution of the method |
+| status         | string | The status/result of the execution                      |
 
 #### JSON Request Example
 
@@ -116,9 +116,9 @@ Method used to generate a Hedera Key.
 
 #### Output Parameters
 
-| Parameter Name | Type   | Required/Optional | Description/Notes                                                                                                                                                                                                                |
-|----------------|--------|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| key            | string | required          | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key). If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf. |
+| Parameter Name | Type   | Description/Notes                                                                                                                                                                                                                |
+|----------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| key            | string | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key). If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf. |
 
 #### JSON Request/Response Examples
 
