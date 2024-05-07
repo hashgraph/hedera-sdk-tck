@@ -5,176 +5,290 @@ import { generateAccountKeys, setOperator, getNodeType } from "../../setup_Tests
 import { PrivateKey } from "@hashgraph/sdk";
 import crypto from "crypto";
 import { assert, expect } from "chai";
+import { JSONRPC } from "json-rpc-2.0";
 
 /**
- * Test Create account and compare results with js SDK
+ * Tests for AccountCreateTransaction
  */
-describe("#createAccount()", function () {
+describe("AccountCreateTransaction", function () {
+  async function verifyOnlyAccountCreation(accountId) {
+    // Query for the account via the consensus node.
+    const accountIdFromConsensusNode = await consensusInfoClient.getAccountInfo(accountId).accountId.toString();
+  
+    // Query for the account via the mirror node.
+    const accountIdFromMirrorNode = await mirrorNodeClient.getAccountData(accountIdFromConsensusNode).accounts[0].account;
+  
+    // If the account was created successfully, the queried account IDs should be equal.
+    expect(accountId).to.equal(accountIdFromConsensusNode);
+    expect(accountId).to.equal(accountIdFromMirrorNode);
+  }
+  
+  async function verifyAccountCreationWithInitialBalance(accountId, initialBalance) {
+    // Query for the account's initial balance via the consensus node.
+    const accountInfoFromConsensusNode = await consensusInfoClient.getAccountInfo(accountId);
+    const accountBalanceFromConsensusNode = accountInfoFromConsensusNode.balance._valueInTinybar;
+  
+    // Query for the account's initial balance via the mirror node.
+    const accountBalanceFromMirrorNode = await mirrorNodeClient.getBalanceData(accountInfoFromConsensusNode.accountId.toString()).balances[0].balance;
+  
+    // If the account was created successfully, the queried account balances should be equal.
+    expect(initialBalance).to.equal(Number(accountBalanceFromConsensusNode));
+    expect(initialBalance).to.equal(Number(accountBalanceFromMirrorNode));
+  }
+  
+  // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
-  let publicKey, privateKey, local;
 
+  // Each test should first establish the network to use, and then teardown the network when complete.
   beforeEach(async function () {
-    local = await getNodeType(process.env.NODE_TYPE);
-    ({ publicKey, privateKey } = await generateAccountKeys());
     await setOperator(process.env.OPERATOR_ACCOUNT_ID, process.env.OPERATOR_ACCOUNT_PRIVATE_KEY);
   });
   afterEach(async function () {
     await JSONRPCRequest("reset");
   });
 
-  //----------- Key is needed to sign each transfer -----------
-  describe("Key signature for each transfer", function () {
-    it("Creates an account with a public key", async function () {
-      // initiate request for JSON-RPC server to create a new account
+  describe("Key", function () {
+    it("(#1) Creates an account with a valid ED25519 public key", async function () {
+      // Generate an ED25519 public key for the account.
+      const ed25519PublicKey = await JSONRPCRequest("generateKey", {
+        type: "ed25519PublicKey"
+      });
+      if (ed25519PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account.
       const response = await JSONRPCRequest("createAccount", {
-        publicKey: publicKey,
+        key: ed25519PublicKey.key,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const newAccountId = response.accountId;
 
-      // query account via consensus node to verify creation
-      const accountInfoFromConsensusNode = await consensusInfoClient.getAccountInfo(newAccountId);
-      const accountIDFromConsensusNode = accountInfoFromConsensusNode.accountId.toString();
-
-      // query account via mirror node to confirm availability after creation
-      const accountInfoFromMirrorNode = await mirrorNodeClient.getAccountData(accountIDFromConsensusNode);
-      const accountIDFromMirrorNode = accountInfoFromMirrorNode.accounts[0].account;
-
-      // confirm pass status with assertion testing for account creation
-      expect(newAccountId).to.equal(accountIDFromConsensusNode);
-      expect(newAccountId).to.equal(accountIDFromMirrorNode);
+      // Verify the account was created.
+      verifyOnlyAccountCreation(response.accountId);
     });
-    // Create an account with no public key
-    it("Creates an account with no public key", async function () {
-      /**
-       * Key not provided in the transaction body
-       * KEY_REQUIRED = 26;
-       **/
-      try {
-        // request JSON-RPC server to create a new account without providing public key
-        // Try to create account with the JSON-RPC without providing a PublicKey
 
+    it("(#2) Creates an account with a valid ECDSAsecp256k1 public key", async function () {
+      // Generate an ECDSAsecp256k1 public key for the account.
+      const ecdsaSecp256k1PublicKey = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PublicKey"
+      });
+      if (ecdsaSecp256k1PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account.
+      const response = await JSONRPCRequest("createAccount", {
+        key: ecdsaSecp256k1PublicKey.key,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was created.
+      verifyOnlyAccountCreation(response.accountId);
+    });
+
+    it("(#3) Creates an account with a valid ED25519 private key", async function () {
+      // Generate an ED25519 private key for the account.
+      const ed25519PrivateKey = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (ed25519PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account.
+      const response = await JSONRPCRequest("createAccount", {
+        key: ed25519PrivateKey.key,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was created.
+      verifyOnlyAccountCreation(response.accountId);
+    });
+
+    it("(#4) Creates an account with a valid ECDSAsecp256k1 private key", async function () {
+      // Generate an ECDSAsecp256k1 private key for the account.
+      const ecdsaSecp256k1PrivateKey = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PrivateKey"
+      });
+      if (ecdsaSecp256k1PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account.
+      const response = await JSONRPCRequest("createAccount", {
+        key: ecdsaSecp256k1PrivateKey.key,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was created.
+      verifyOnlyAccountCreation(response.accountId);
+    });
+
+    it("(#5) Creates an account with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
+      // Generate a KeyList of ED25519 and ECDSAsecp256k1 private and public keys for the account.
+      const keyList = await JSONRPCRequest("generateKey", {
+        keys: [
+          {},
+          {},
+          {}
+        ]
+      });
+      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account.
+      const response = await JSONRPCRequest("createAccount", {
+        key: keyList.key,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was created.
+      verifyOnlyAccountCreation(response.accountId);
+    });
+
+    it("(#6) Creates an account with a valid KeyList of nested Keylists (three levels)", async function () {
+      // Generate a KeyList of nested KeyLists of ED25519 and ECDSAsecp256k1 private and public keys for the account.
+      const nestedKeyList = await JSONRPCRequest("generateKey", {
+        keys: [
+          {
+            keys: [
+              {},
+              {}
+            ]
+          },
+          {
+            keys: [
+              {},
+              {}
+            ]
+          },
+          {
+            keys: [
+              {},
+              {}
+            ]
+          }
+        ]
+      });
+      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account.
+      const response = await JSONRPCRequest("createAccount", {
+        key: nestedKeyList.key,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was created.
+      verifyOnlyAccountCreation(response.accountId);
+    });
+
+    it("(#7) Creates an account with no key", async function () {
+      try {
+        // Attempt to create an account without providing a key. The network should respond with a KEY_REQUIRED status.
         const response = await JSONRPCRequest("createAccount", {});
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        // confirm error thrown for creation attempt without provision of public key
         assert.equal(err.data.status, "KEY_REQUIRED");
         return;
       }
+
+      // This shouldn't happen, the JSONRPCRequest should throw.
       assert.fail("Should throw an error");
     });
-    // Create an account with an invalid public key
-    it("Creates an account with an invalid public key", async function () {
+    
+    it("(#8) Creates an account with an invalid key", async function () {
       try {
-        // generate a random key value (where 88b is equal to byte length of valid public key)
+        // Generate a random key value (88 is equal to the byte length of a valid public key).
         const invalidPublicKey = crypto.randomBytes(88).toString();
-        // set initial balance of 10,000,000,000 tinybars (100 Hbar)
-        const initialBal = 10000000000;
-        // request JSON-RPC server to create a new account with invalid public key
+        
+        // Attempt to create an account with the invalid key. The SDK should throw an internal error.
         const response = await JSONRPCRequest("createAccount", {
-          publicKey: invalidPublicKey,
-          initialBalance: initialBal,
+          publicKey: invalidPublicKey
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        // confirm error thrown for creation attempt with an invalid public key
         assert.equal(err.code, -32603, "Internal error");
         return;
       }
+      
+      // This shouldn't happen, the JSONRPCRequest should throw.
       assert.fail("Should throw an error");
     });
   });
 
-  //----------- Create an account with an initial balance -----------
-  describe("Create an account with an initial balance", function () {
-    it("Sets initial balance to 100 HBar", async function () {
-      // set initial balance of 10,000,000,000 tinybars (100 Hbar)
-      const initialBal = 10000000000;
-      // initiate request for JSON-RPC server to create a new account
+  describe("Initial Balance", function () {
+    it("(#1) Creates an account with an initial balance", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+      
+      // Attempt to create an account with an initial balance of 100 tinybars.
+      const initialBalance = 100;
       const response = await JSONRPCRequest("createAccount", {
-        publicKey: publicKey,
-        initialBalance: initialBal,
+        key: key.key,
+        initialBalance: initialBalance,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const newAccountId = response.accountId;
 
-      // query account balance via consensus node to check amount set
-      const accountInfoFromConsensusNode = await consensusInfoClient.getAccountInfo(newAccountId);
-      const accountIDFromConsensusNode = accountInfoFromConsensusNode.accountId.toString();
-      const accountBalConsensus = accountInfoFromConsensusNode.balance;
-      const accountBalanceConsensusNode = accountBalConsensus._valueInTinybar;
-
-      // query account balance via mirror node to check amount set
-      const accountInfoFromMirrorNode = await mirrorNodeClient.getBalanceData(accountIDFromConsensusNode);
-      const accountBalanceMirrorNode = accountInfoFromMirrorNode.balances[0].balance;
-
-      expect(initialBal).to.equal(Number(accountBalanceConsensusNode));
-      expect(initialBal).to.equal(Number(accountBalanceMirrorNode));
+      // Verify the account was created with 100 tinybars.
+      verifyAccountCreationWithInitialBalance(response.accountId, initialBalance);
     });
-    // Set initial balance to -1 HBAR
-    it("Sets initial balance to -1 HBar", async function () {
-      /**
-       * Attempt to set negative initial balance
-       * INVALID_INITIAL_BALANCE = 85;
-       **/
+    
+    it("(#2) Creates an account with no initial balance", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+      
+      // Attempt to create an account with an initial balance of 0 tinybars.
+      const initialBalance = 0;
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        initialBalance: 0,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was created with 0 tinybars.
+      verifyAccountCreationWithInitialBalance(response.accountId, initialBalance);
+    });
+
+    it("(#3) Creates an account with a negative initial balance", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
       try {
-        // set a negative initial balance of minus 1 HBar
-        let initialBalance = -1;
-        // convert Hbar to Tinybar at ratio 1: 100,000,000
-        let negativeInitialBalance = (initialBalance *= 100000000);
+        // Attempt to create an account with an initial balance of -1. The network should respond with an INVALID_INITIAL_BALANCE status.
         const response = await JSONRPCRequest("createAccount", {
-          publicKey: publicKey,
-          initialBalance: negativeInitialBalance,
+          key: key.key,
+          initialBalance: -1,
         });
         if (response.status == "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        // confirm error thrown for using a negative initial balance amount
         assert.equal(err.data.status, "INVALID_INITIAL_BALANCE");
         return;
       }
+      
+      // This shouldn't happen, the JSONRPCRequest should throw.
       assert.fail("Should throw an error");
     });
-    // Set the initial balance to more than operator balance
-    it("Sets initial balance to more than operator balance", async function () {
-      /**
-       * The payer account has insufficient cryptocurrency to pay the transaction fee
-       * INSUFFICIENT_PAYER_BALANCE = 10;
-       **/
-      // set initial bal to 5 Hbar ( 500000000 Tinybar at ratio 1: 100,000,000 )
-      const initialBalance = 500000000;
-      // set payer (funding account) bal to 5 Hbar + 1 Tinybar ( 500000001 Tinybar )
-      const payerBalance = 500000001;
-      // create a first test account that will be used as the funding account for a
-      // second account. Allocate an initial balance of 5 HBAr to the funding account
-      const response = await JSONRPCRequest("createAccount", {
-        publicKey: publicKey,
-        initialBalance: initialBalance,
-      });
-      const firstAccountId = response.accountId;
-      // set operator Id temporarily to firstAccountId
-      await setOperator(firstAccountId, privateKey);
+    
+    it("(#4) Creates an account with an initial balance higher than the operator account balance", async function () {
+      // Get the operator account balance.
+      const operatorAccountBalance = await mirrorNodeClient.getBalanceData(process.env.OPERATOR_ACCOUNT_ID).balances[0].balance;
 
-      // generate fresh keys for second account
-      ({ publicKey, privateKey } = await generateAccountKeys());
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
       try {
+        // Attempt to create an account with an initial balance of the operator account balance + 1. The network should respond with an INSUFFICIENT_PAYER_BALANCE status.
         const response = await JSONRPCRequest("createAccount", {
-          publicKey: publicKey,
-          initialBalance: payerBalance,
+          key: key.key,
+          initialBalance: operatorAccountBalance + 1,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        // confirm error thrown for creation attempt where initial balance is more
-        // than the balance held in the funding account balance
         assert.equal(err.data.status, "INSUFFICIENT_PAYER_BALANCE");
         return;
       }
+      
+      // This shouldn't happen, the JSONRPCRequest should throw.
       assert.fail("Should throw an error");
     });
   });
 
-  //-----------  Account key signs transactions depositing into account -----------
-  // Require a receiving signature when creating account transaction
-  describe("Account key signatures to deposit into account", function () {
+  describe("Receiver Signature Required", function () {
     it("Creates account that always requires Receiver signature", async function () {
       // Creates new account that always requires transactions to have receiving signature
       const response = await JSONRPCRequest("createAccount", {
@@ -302,7 +416,7 @@ describe("#createAccount()", function () {
     });
     // Create an account and set staked node ID and a node ID
     it("Creates an account and sets staked node ID to a node ID", async function () {
-      if (local) this.skip();
+      if (await getNodeType(process.env.NODE_TYPE)) this.skip();
 
       // select a staked node id between 0 and 6 for the test
       const randomNodeId = Math.floor(Math.random() * 6) + 1;
