@@ -139,8 +139,8 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 | Test no | Name                                                                                       | Input                                                    | Expected response                                                                    | Implemented (Y/N) |
 |---------|--------------------------------------------------------------------------------------------|----------------------------------------------------------|--------------------------------------------------------------------------------------|-------------------|
 | 1       | Creates an account that requires a receiving signature                                     | key=<VALID_PRIVATE_KEY>, receiverSignatureRequired=true  | The account creation succeeds and the account requires a receiving signature.        | N                 |
-| 1       | Creates an account that doesn't require a receiving signature                              | key=<VALID_PRIVATE_KEY>, receiverSignatureRequired=false | The account creation succeeds and the account doesn't require a receiving signature. | N                 |
-| 2       | Creates an account that requires a receiving signature but isn't signed by the account key | key=<VALID_PUBLIC_KEY>, receiverSignatureRequired=true   | The account creation fails with an INVALID_SIGNATURE response code from the network. | N                 |
+| 2       | Creates an account that doesn't require a receiving signature                              | key=<VALID_PRIVATE_KEY>, receiverSignatureRequired=false | The account creation succeeds and the account doesn't require a receiving signature. | N                 |
+| 3       | Creates an account that requires a receiving signature but isn't signed by the account key | key=<VALID_PUBLIC_KEY>, receiverSignatureRequired=true   | The account creation fails with an INVALID_SIGNATURE response code from the network. | N                 |
 
 #### JSON Request Example
 
