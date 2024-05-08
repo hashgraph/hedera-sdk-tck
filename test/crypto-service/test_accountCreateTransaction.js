@@ -10,32 +10,7 @@ import { JSONRPC } from "json-rpc-2.0";
 /**
  * Tests for AccountCreateTransaction
  */
-describe("AccountCreateTransaction", function () {
-  async function verifyOnlyAccountCreation(accountId) {
-    // Query for the account via the consensus node.
-    const accountIdFromConsensusNode = await consensusInfoClient.getAccountInfo(accountId).accountId.toString();
-  
-    // Query for the account via the mirror node.
-    const accountIdFromMirrorNode = await mirrorNodeClient.getAccountData(accountIdFromConsensusNode).accounts[0].account;
-  
-    // If the account was created successfully, the queried account IDs should be equal.
-    expect(accountId).to.equal(accountIdFromConsensusNode);
-    expect(accountId).to.equal(accountIdFromMirrorNode);
-  }
-  
-  async function verifyAccountCreationWithInitialBalance(accountId, initialBalance) {
-    // Query for the account's initial balance via the consensus node.
-    const accountInfoFromConsensusNode = await consensusInfoClient.getAccountInfo(accountId);
-    const accountBalanceFromConsensusNode = accountInfoFromConsensusNode.balance._valueInTinybar;
-  
-    // Query for the account's initial balance via the mirror node.
-    const accountBalanceFromMirrorNode = await mirrorNodeClient.getBalanceData(accountInfoFromConsensusNode.accountId.toString()).balances[0].balance;
-  
-    // If the account was created successfully, the queried account balances should be equal.
-    expect(initialBalance).to.equal(Number(accountBalanceFromConsensusNode));
-    expect(initialBalance).to.equal(Number(accountBalanceFromMirrorNode));
-  }
-  
+describe("AccountCreateTransaction", function () {  
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
@@ -48,6 +23,12 @@ describe("AccountCreateTransaction", function () {
   });
 
   describe("Key", function () {
+    async function verifyOnlyAccountCreation(accountId) {
+      // If the account was created successfully, the queried account IDs should be equal.
+      expect(accountId).to.equal(await consensusInfoClient.getAccountInfo(accountId).accountId.toString());
+      expect(accountId).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].account);
+    }
+
     it("(#1) Creates an account with a valid ED25519 public key", async function () {
       // Generate an ED25519 public key for the account.
       const ed25519PublicKey = await JSONRPCRequest("generateKey", {
@@ -208,6 +189,12 @@ describe("AccountCreateTransaction", function () {
   });
 
   describe("Initial Balance", function () {
+    async function verifyAccountCreationWithInitialBalance(accountId, initialBalance) {
+      // If the account was created successfully, the queried account balances should be equal.
+      expect(initialBalance).to.equal(Number(await consensusInfoClient.getAccountInfo(accountId).balance._valueInTinybar));
+      expect(initialBalance).to.equal(Number(await mirrorNodeClient.getBalanceData(accountId).balances[0].balance));
+    }
+
     it("(#1) Creates an account with an initial balance", async function () {
       // Generate a valid key for the account.
       const key = await JSONRPCRequest("generateKey", {});
@@ -289,54 +276,265 @@ describe("AccountCreateTransaction", function () {
   });
 
   describe("Receiver Signature Required", function () {
-    it("Creates account that always requires Receiver signature", async function () {
-      // Creates new account that always requires transactions to have receiving signature
+    async function verifyAccountCreationWithReceiverSignatureRequired(accountId, receiverSignatureRequired) {
+      // If the account was created successfully, the queried account receiver signature required policies should be equal.
+      expect(receiverSignatureRequired).to.equal(await consensusInfoClient.getAccountInfo(accountId).isReceiverSignatureRequired);
+      expect(receiverSignatureRequired).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].receiver_sig_required);
+    }
+
+    it("(#1) Creates an account that requires a receiving signature", async function () {
+      // Generate a valid private key for the account.
+      const key = await JSONRPCRequest("generateKey", {
+        type: "privateKey"
+      });
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account that requires a signature when receiving.
+      const receiverSignatureRequired = true;
       const response = await JSONRPCRequest("createAccount", {
-        publicKey: publicKey,
-        privateKey: privateKey,
-        initialBalance: 1,
-        receiverSignatureRequired: true,
+        key: key.key,
+        receiverSignatureRequired: receiverSignatureRequired,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const newAccountId = response.accountId;
 
-      // query account via consensus node to verify creation
-      const accountInfoFromConsensusNode = await consensusInfoClient.getAccountInfo(newAccountId);
-      const accountIDFromConsensusNode = accountInfoFromConsensusNode.accountId.toString();
-      const recvdSignatureStatusFromConsensusNode = accountInfoFromConsensusNode.isReceiverSignatureRequired;
-
-      // query account via mirror node to confirm availability after creation
-      const respJSON = await mirrorNodeClient.getAccountData(accountIDFromConsensusNode);
-      const recvdSignatureStatusFromMirrorNode = respJSON.accounts[0].receiver_sig_required;
-
-      // confirm pass status for account creation with signature required
-      expect(recvdSignatureStatusFromConsensusNode).to.equal(true);
-      expect(recvdSignatureStatusFromMirrorNode).to.equal(true);
+      verifyAccountCreationWithReceiverSignatureRequired(response.accountId, receiverSignatureRequired);
     });
-    // Creates new account that doesn't require transactions to have receiving signature
-    it("Creates account without receiver signature required", async function () {
-      // Creates new account that always requires transactions to have receiving signature
+
+    it("(#2) Creates an account that doesn't require a receiving signature", async function () {
+      // Generate a valid private key for the account.
+      const key = await JSONRPCRequest("generateKey", {
+        type: "privateKey"
+      });
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account that doesn't require a signature when receiving.
+      const receiverSignatureRequired = false;
       const response = await JSONRPCRequest("createAccount", {
-        publicKey: publicKey,
-        privateKey: privateKey,
-        initialBalance: 1,
-        receiverSignatureRequired: false,
+        key: key.key,
+        receiverSignatureRequired: receiverSignatureRequired,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const newAccountId = response.accountId;
 
-      // query account via consensus node to verify creation
-      const accountInfoFromConsensusNode = await consensusInfoClient.getAccountInfo(newAccountId);
-      const accountIDFromConsensusNode = accountInfoFromConsensusNode.accountId.toString();
-      const recvdSignatureStatusFromConsensusNode = accountInfoFromConsensusNode.isReceiverSignatureRequired;
+      verifyAccountCreationWithReceiverSignatureRequired(response.accountId, receiverSignatureRequired);
+    });
 
-      // query account via mirror node to confirm availability after creation
-      const respJSON = await mirrorNodeClient.getAccountData(accountIDFromConsensusNode);
-      const recvdSignatureStatusFromMirrorNode = respJSON.accounts[0].receiver_sig_required;
+    it("(#3) Creates an account that requires a receiving signature but isn't signed by the account key", async function () {
+      // Generate a valid public key for the account.
+      const key = await JSONRPCRequest("generateKey", {
+        type: "publicKey"
+      });
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
 
-      // confirm pass for account creation with requirement for signature set to true
-      expect(recvdSignatureStatusFromConsensusNode).to.equal(false);
-      expect(recvdSignatureStatusFromMirrorNode).to.equal(false);
+      try {
+        // Attempt to create an account that requires a signature when receiving but can't be signed. The network should respond with an INVALID_SIGNATURE status.
+        const response = await JSONRPCRequest("createAccount", {
+          key: key.key,
+          receiverSignatureRequired: true,
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        return;
+      }
+      
+      // This shouldn't happen, the JSONRPCRequest should throw.
+      assert.fail("Should throw an error");
+    });
+  });
+
+  describe("Auto Renew Period", function () {
+    async function verifyAccountCreationWithAutoRenewPeriod(accountId, autoRenewPeriodSeconds) {
+      // If the account was created successfully, the queried account auto renew periods should be equal.
+      expect(autoRenewPeriodSeconds).to.equal(await consensusInfoClient.getAccountInfo(accountId).autoRenewPeriod);
+      expect(autoRenewPeriodSeconds).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].auto_renew_period);
+    }
+
+    it("(#1) Creates an account with an auto renew period set to 60 days (5,184,000 seconds)", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account with an auto-renew period set to 60 days.
+      const autoRenewPeriodSeconds = 5184000;
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        autoRenewPeriod: autoRenewPeriodSeconds,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
+    });
+
+    it("(#2) Creates an account with an auto renew period set to -1 seconds", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      try {
+        // Attempt to create an account with an auto-renew period set to -1 seconds. The network should respond with an INVALID_RENEWAL_PERIOD status.
+        const response = await JSONRPCRequest("createAccount", {
+          key: key.key,
+          autoRenewPeriod: -1,
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_RENEWAL_PERIOD");
+        return;
+      }
+      
+      // This shouldn't happen, the JSONRPCRequest should throw.
+      assert.fail("Should throw an error");
+    });
+
+    it("(#3) Creates an account with an auto renew period set to the minimum period of 30 days (2,592,000 seconds)", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account with an auto-renew period set to 30 days.
+      const autoRenewPeriodSeconds = 2592000;
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        autoRenewPeriod: autoRenewPeriodSeconds,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
+    });
+
+    it("(#4) Creates an account with an auto renew period set to the minimum period of 30 days minus one second (2,591,999 seconds)", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      try {
+        // Attempt to create an account with an auto-renew period set to 2,591,999 seconds. The network should respond with an AUTORENEW_DURATION_NOT_IN_RANGE status.
+        const response = await JSONRPCRequest("createAccount", {
+          key: key.key,
+          autoRenewPeriod: 2591999,
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
+        return;
+      }
+      
+      // This shouldn't happen, the JSONRPCRequest should throw.
+      assert.fail("Should throw an error");
+    });
+
+    it("(#5) Creates an account with an auto renew period set to the maximum period of 8,000,001 seconds", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account with an auto-renew period set to 90ish days.
+      const autoRenewPeriodSeconds = 8000001;
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        autoRenewPeriod: autoRenewPeriodSeconds,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
+    });
+
+    it("(#6) Creates an account with an auto renew period set to the maximum period plus one seconds (8,000,002 seconds)", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      try {
+        // Attempt to create an account with an auto-renew period set to 8,000,002 seconds. The network should respond with an AUTORENEW_DURATION_NOT_IN_RANGE status.
+        const response = await JSONRPCRequest("createAccount", {
+          key: key.key,
+          autoRenewPeriod: 8000002,
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
+        return;
+      }
+      
+      // This shouldn't happen, the JSONRPCRequest should throw.
+      assert.fail("Should throw an error");
+    });
+  });
+
+  describe("Memo", async function () {
+    async function verifyAccountCreationWithMemo(accountId, memo) {
+      // If the account was created successfully, the queried account memos should be equal.
+      expect(memo).to.equal(await consensusInfoClient.getAccountInfo(accountId).memo);
+      expect(memo).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].memo);
+    }
+
+    it("(#1) Creates an account with a valid memo", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account with a memo set to "testmemo".
+      const memo = "testmemo";
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        memo: memo,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyAccountCreationWithMemo(response.accountId, memo);
+    });
+
+    it("(#2) Creates an account with an empty memo", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account with an empty memo.
+      const memo = "";
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        memo: memo,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyAccountCreationWithMemo(response.accountId, memo);
+    });
+
+    it("(#3) Creates an account with a memo that is 100 characters", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to create an account with a memo set to the maximum length.
+      const memo = "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!";
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        memo: memo,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyAccountCreationWithMemo(response.accountId, memo);
+    });
+
+    it("(#4) Creates an account with a memo that exceeds 100 characters", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      try {
+        // Attempt to create an account with a memo over the maximum length. The network should respond with an MEMO_TOO_LONG status.
+        const response = await JSONRPCRequest("createAccount", {
+          key: key.key,
+          memo: "This is a long memo that is not valid because it exceeds 100 characters and it should fail the test!!",
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "MEMO_TOO_LONG");
+        return;
+      }
+      
+      // This shouldn't happen, the JSONRPCRequest should throw.
+      assert.fail("Should throw an error");
     });
   });
 
@@ -572,88 +770,6 @@ describe("AccountCreateTransaction", function () {
 
       expect(cNodeRes).to.be.false;
       expect(mNodeRes).to.be.false;
-    });
-  });
-
-  describe("Create accounts with a memo", async function () {
-    // Create an account with a memo
-    it("Creates an account with a memo", async function () {
-      const testMemo = "testMemo";
-      // Create account with the JSON-RPC that includes a memo in the memo field
-      const response = await JSONRPCRequest("createAccount", {
-        publicKey: publicKey,
-        accountMemo: testMemo,
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      const newAccountID = response.accountId;
-      // First query consensus node
-      const cNodeQuery = await consensusInfoClient.getAccountInfo(newAccountID);
-      const cNodeRes = cNodeQuery.accountMemo;
-
-      // Query the mirror node
-      const mNodeQuery = await mirrorNodeClient.getAccountData(newAccountID);
-      const mNodeRes = mNodeQuery.accounts[0].memo;
-
-      expect(cNodeRes).to.equal(testMemo);
-      expect(mNodeRes).to.equal(testMemo);
-    });
-    // Create an account with a memo that exceeds 100 characters
-    it("Creates an account with a memo exceeding 100 characters", async function () {
-      // put 101 characters in memo
-      const testMemo = "testMemo12testMemo12testMemo12testMemo12testMemo12testMemo12testMemo12testMemo12testMemo12testMemo123";
-      try {
-        const response = await JSONRPCRequest("createAccount", {
-          publicKey: publicKey,
-          accountMemo: testMemo,
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "MEMO_TOO_LONG");
-        return;
-      }
-      assert.fail("Should throw an error");
-    });
-  });
-
-  //----------- Set auto renew periods -----------
-  describe("Create account with specific auto renew period", async function () {
-    // Create an account and set auto renew period to 2,592,000 seconds
-    it("should set account auto renew period to 2,592,000 seconds", async function () {
-      const response = await JSONRPCRequest("createAccount", {
-        publicKey: publicKey,
-        autoRenewPeriod: BigInt(2592000).toString(),
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      let newAccountId = response.accountId;
-      // consensus node account
-      const accountInfoFromConsensusNode = await consensusInfoClient.getAccountInfo(newAccountId);
-      const autoRenewConsensus = accountInfoFromConsensusNode.autoRenewPeriod;
-      assert.equal(autoRenewConsensus.seconds.toString(), BigInt(2592000).toString());
-    });
-    // Create an account and set auto renew period to -1
-    it("should set account auto renew period to -1 seconds - returns 'AUTORENEW_DURATION_NOT_IN_RANGE'", async function () {
-      try {
-        const response = await JSONRPCRequest("createAccount", {
-          publicKey: publicKey,
-          autoRenewPeriod: BigInt(-1).toString(),
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
-      }
-    });
-    // Create an account and set the auto renew period to 10 days (864000 seconds)
-    it("should set account auto renew period to 864000 seconds returns 'AUTORENEW_DURATION_NOT_IN_RANGE'", async function () {
-      try {
-        const response = await JSONRPCRequest("createAccount", {
-          publicKey: publicKey,
-          autoRenewPeriod: BigInt(864000).toString(),
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
-      }
     });
   });
 
