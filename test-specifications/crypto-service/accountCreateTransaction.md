@@ -351,7 +351,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 }
 ```
 
-### **Decline rewards:**
+### **Decline Reward:**
 
 - If true, the account declines receiving a staking reward.
 
