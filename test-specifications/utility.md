@@ -106,19 +106,18 @@ Method used to generate a Hedera Key.
 
 #### Input Parameters
 
-| Parameter Name | Type   | Required/Optional | Description/Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-|----------------|--------|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| type           | string | optional          | The type of Key to generate. If provided, it MUST be one of `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, `ecdsaSecp256k1PublicKey`, `keyList`, `thresholdKey`, `privateKey`, or `publicKey`. If not provided, the returned key will be of type `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, or `ecdsaSecp256k1PublicKey`. `privateKey` and `publicKey` types are used when any private or public key type (respectively) is required but the specific type doesn't matter. |
-| privateKey     | string | optional          | The DER-encoded hex string private key from which to generate a public key. This should only be provided for types `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` if the public keys would like to be generated from a specific private key, but still not required if a random public key is desired.                                                                                                                                                                                                                   |
-| protobufBytes  | bool   | optional          | For `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` types, `true` if instead of the DER-encoded hex string of the generated key, the serialized Key protobuf bytes are desired. Useful for generating aliases.                                                                                                                                                                                                                                                                                                            |
-| threshold      | int    | optional          | Required for `thresholdKey` types. The number of keys that must sign for a threshold key.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| keys           | list   | optional          | Required for `keyList` and `thresholdKey` types. Specify the types of keys to be generated and put in the `keyList` or `thresholdKey`. All keys should contain the same parameters as this `generateKey` method (see examples below), if required.                                                                                                                                                                                                                                                                         |
+| Parameter Name | Type   | Required/Optional | Description/Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+|----------------|--------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| type           | string | optional          | The type of Key to generate. If provided, it MUST be one of `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, `ecdsaSecp256k1PublicKey`, `keyList`, `thresholdKey`, `privateKey`, `publicKey`, or `evmAddress`. If not provided, the returned key will be of type `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, or `ecdsaSecp256k1PublicKey`. `privateKey` and `publicKey` types should be used when any private or public key type is required (respectively) but the specific type (ED25519 or ECDSAsecp256k1) doesn't matter.                                                |
+| fromKey        | string | optional          | For `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` types, the DER-encoded hex string private key from which to generate the public key. No value means a random `ed25519PublicKey` or `ecdsaSecp256k1PublicKey` will be generated, respectively. For the `evmAddress` type, the DER-encoded hex string of an `ecdsaSecp256k1PrivateKey` or `ecdsaSecp256k1PublicKey` from which to generate the EVM address. An `ecdsaSecp256k1PrivateKey` will first generate its respective `ecdsaSecp256k1PublicKey`, and then generate the EVM address from that public key. No value means a random EVM address will be generated. |
+| threshold      | int    | optional          | Required for `thresholdKey` types. The number of keys that must sign for a threshold key.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| keys           | list   | optional          | Required for `keyList` and `thresholdKey` types. Specify the types of keys to be generated and put in the `keyList` or `thresholdKey`. All keys should contain the same parameters as this `generateKey` method (see examples below), if required.                                                                                                                                                                                                                                                                                                                                                                        |
 
 #### Output Parameters
 
-| Parameter Name | Type   | Description/Notes                                                                                                                                                                                                                |
-|----------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| key            | string | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key). If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf. |
+| Parameter Name | Type   | Description/Notes                                                                                                                                                                                                                               |
+|----------------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| key            | string | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key) or EVM address. If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf. |
 
 #### JSON Request/Response Examples
 
@@ -185,7 +184,7 @@ Method used to generate a Hedera Key.
 }
 ```
 
-*Generates the serialized protobuf ECDSAsecp256k1 public key that is paired with the input ECDSAsecp256k1 private key*
+*Generates the ECDSAsecp256k1 public key that is paired with the input ECDSAsecp256k1 private key*
 ```json
 {
   "jsonrpc": "2.0",
@@ -193,8 +192,7 @@ Method used to generate a Hedera Key.
   "method": "generateKey",
   "params": {
     "type": "ecdsaSecp256k1PublicKey",
-    "privateKey": "3030020100300706052b8104000a04220420e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35",
-    "protobufBytes": true
+    "fromKey": "302D300706052B8104000A0322000339A36013301597DAEF41FBE593A02CC513D0B55527EC2DF1050E2E8FF49C85C2"
   }
 }
 ```
@@ -225,7 +223,7 @@ Method used to generate a Hedera Key.
       },
       {
         "type": "ecdsaSecp256k1PublicKey",
-        "privateKey": "3030020100300706052b8104000a04220420e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35"
+        "privateKey": "3030020100300706052B8104000A04220420E8f32E723DECF4051AEFAC8E2C93C9C5B214313817CDB01A1494B917C8436B35"
       }
     ]
   }
@@ -260,7 +258,7 @@ Method used to generate a Hedera Key.
           {},
           {
             "type": "ecdsaSecp256k1PublicKey",
-            "privateKey": "3030020100300706052b8104000a04220420e8f32e723decf4051aefac8e2c93c9c5b214313817cdb01a1494b917c8436b35"
+            "privateKey": "3030020100300706052b8104000A04220420E8f32E723DECF4051AEFAC8E2C93C9C5B214313817CDB01A1494B917C8436B35"
           }
         ]
       },
@@ -278,7 +276,7 @@ Method used to generate a Hedera Key.
               {},
               {
                 "type": "ed25519PublicKey",
-                "privateKey": "302e020100300506032b657004220420c036915d924e5b517fae86ce34d8c76005cb5099798a37a137831ff5e3dc0622"
+                "privateKey": "302E020100300506032B657004220420C036915D924E5B517FAE86CE34D8C76005CB5099798A37A137831FF5E3DC0622"
               }
             ]
           },
@@ -296,6 +294,29 @@ Method used to generate a Hedera Key.
   "id": 6,
   "result": {
     "key": "328D020A6F326D0A22122056E73F6802877166FD611D421F8AAC8D24527E0A657AFFF28DC7167CAB838B690A221220202D875F498B407BBBF5B5358A1F73D326419B4BA5AF7A3A8C2FA03F39C9628B0A233A210339A36013301597DAEF41FBE593A02CC513D0B55527EC2DF1050E2E8FF49C85C20A99013296010A233A2103936FE869DB7187AC18E19E002B5EAE47EA6A02F51E9F02E190D1EF8F0B5DB2A50A6F326D0A233A210220C3866F3C42DFB0C530351A35274FE2BD9531B89A770D6336638D88C18150950A22122077F49D8D6F82DA4BC0AC9BD55B36571022E85812A25AEAF80B7AF4502F1CC3E70A22122008530EA4B75F639032EDA3C18F41A296CF631D1828697E4F052297553139F347"
+  }
+}
+```
+
+*Generate an EVM address from a specific ECDSA secp256k1 private key*
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "method": "generateKey",
+  "params": {
+    "type": "evmAddress",
+    "privateKey": "3030020100300706052B8104000A042204203F41CE2C0255C90738A50150818931F8F886D6C7078DDE289C089C1FB83F256F"
+  }
+}
+```
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "result": {
+    "key": "F43ABA261849F4848B8A8BA4386EC49FEB61BC18"
   }
 }
 ```
