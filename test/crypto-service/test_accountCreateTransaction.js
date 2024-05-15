@@ -283,16 +283,26 @@ describe("AccountCreateTransaction", function () {
 
     it("(#1) Creates an account that requires a receiving signature", async function () {
       // Generate a valid private key for the account.
-      const key = await JSONRPCRequest("generateKey", {
+      const privateKey = await JSONRPCRequest("generateKey", {
         type: "privateKey"
       });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
+      if (privateKey.status === "NOT_IMPLEMENTED") this.skip();
+      
+      // Generate a valid public key from the generated private key.
+      const publicKey = await JSONRPCRequest("generateKey", {
+        type: "publicKey",
+        privateKey: privateKey.key
+      });
+      if (publicKey.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account that requires a signature when receiving.
       const receiverSignatureRequired = true;
       const response = await JSONRPCRequest("createAccount", {
-        key: key.key,
+        key: publicKey.key,
         receiverSignatureRequired: receiverSignatureRequired,
+        signerKeys: [
+          privateKey.key
+        ]
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -550,14 +560,14 @@ describe("AccountCreateTransaction", function () {
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the max automatic token associations set to 0.
-      const maxAutomaticTokenAssociations = 0;
+      const maxAutoTokenAssociations = 0;
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
-        maxAutomaticTokenAssociations: maxAutomaticTokenAssociations,
+        maxAutoTokenAssociations: maxAutoTokenAssociations,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutomaticTokenAssociations)
+      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
     });
 
     it("(#2) Creates an account with a max token association set to 100", async function () {
@@ -566,14 +576,14 @@ describe("AccountCreateTransaction", function () {
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the max automatic token associations set to 100.
-      const maxAutomaticTokenAssociations = 100;
+      const maxAutoTokenAssociations = 100;
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
-        maxAutomaticTokenAssociations: maxAutomaticTokenAssociations,
+        maxAutoTokenAssociations: maxAutoTokenAssociations,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutomaticTokenAssociations)
+      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
     });
 
     it("(#3) Creates an account with a max token association that is the maximum value", async function () {
@@ -582,14 +592,14 @@ describe("AccountCreateTransaction", function () {
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the max automatic token associations set to the maximum value.
-      const maxAutomaticTokenAssociations = 1000;
+      const maxAutoTokenAssociations = 5000;
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
-        maxAutomaticTokenAssociations: maxAutomaticTokenAssociations,
+        maxAutoTokenAssociations: maxAutoTokenAssociations,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutomaticTokenAssociations)
+      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
     });
 
     it("(#4) Creates an account with a max token association that is the maximum value plus one", async function () {
@@ -601,7 +611,7 @@ describe("AccountCreateTransaction", function () {
         // Attempt to create an account with the max automatic token associations over the maximum value. The network should respond with an REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT status.
         const response = await JSONRPCRequest("createAccount", {
           key: key.key,
-          maxAutomaticTokenAssociations: 1001,
+          maxAutoTokenAssociations: 5001,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
