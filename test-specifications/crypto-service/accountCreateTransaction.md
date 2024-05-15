@@ -358,7 +358,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 | Test no | Name                                                    | Input                                        | Expected response                                                              | Implemented (Y/N) |
 |---------|---------------------------------------------------------|----------------------------------------------|--------------------------------------------------------------------------------|-------------------|
 | 1       | Creates an account that declines staking rewards        | key=<VALID_KEY>, declineStakingRewards=true  | The account creation succeeds and the account declines staking rewards.        | Y                 |
-| 1       | Creates an account that doesn't decline staking rewards | key=<VALID_KEY>, declineStakingRewards=false | The account creation succeeds and the account doesn't decline staking rewards. | Y                 |
+| 2       | Creates an account that doesn't decline staking rewards | key=<VALID_KEY>, declineStakingRewards=false | The account creation succeeds and the account doesn't decline staking rewards. | Y                 |
 
 #### JSON Request Example
 

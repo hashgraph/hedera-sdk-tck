@@ -99,6 +99,7 @@ describe("AccountCreateTransaction", function () {
     it("(#5) Creates an account with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
       // Generate a KeyList of ED25519 and ECDSAsecp256k1 private and public keys for the account.
       const keyList = await JSONRPCRequest("generateKey", {
+        type: "keyList",
         keys: [
           {},
           {},
@@ -120,6 +121,7 @@ describe("AccountCreateTransaction", function () {
     it("(#6) Creates an account with a valid KeyList of nested Keylists (three levels)", async function () {
       // Generate a KeyList of nested KeyLists of ED25519 and ECDSAsecp256k1 private and public keys for the account.
       const nestedKeyList = await JSONRPCRequest("generateKey", {
+        type: "keyList",
         keys: [
           {
             keys: [
@@ -248,7 +250,8 @@ describe("AccountCreateTransaction", function () {
     
     it("(#4) Creates an account with an initial balance higher than the operator account balance", async function () {
       // Get the operator account balance.
-      const operatorAccountBalance = await mirrorNodeClient.getBalanceData(process.env.OPERATOR_ACCOUNT_ID).balances[0].balance;
+      const operatorBalanceData = await mirrorNodeClient.getBalanceData(process.env.OPERATOR_ACCOUNT_ID);
+      const operatorAccountBalance = Number(operatorBalanceData.balances[0].balance);
 
       // Generate a valid key for the account.
       const key = await JSONRPCRequest("generateKey", {});
