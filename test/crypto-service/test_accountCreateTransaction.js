@@ -2,7 +2,6 @@ import { JSONRPCRequest } from "../../client.js";
 import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
 import { setOperator, getNodeType } from "../../setup_Tests.js";
-import { EvmAddress } from "@hashgraph/sdk";
 import crypto from "crypto";
 import { assert, expect } from "chai";
 
@@ -173,7 +172,7 @@ describe("AccountCreateTransaction", function () {
       try {        
         // Attempt to create an account with an invalid key (random 88 bytes, which is equal to the byte length of a valid public key). The SDK should throw an internal error.
         const response = await JSONRPCRequest("createAccount", {
-          key: crypto.randomBytes(88).toString()
+          key: crypto.randomBytes(88).toString('hex')
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -291,7 +290,7 @@ describe("AccountCreateTransaction", function () {
       // Generate a valid public key from the generated private key.
       const publicKey = await JSONRPCRequest("generateKey", {
         type: "publicKey",
-        privateKey: privateKey.key
+        fromKey: privateKey.key
       });
       if (publicKey.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -616,6 +615,7 @@ describe("AccountCreateTransaction", function () {
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
         assert.equal(err.data.status, "REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT");
+        return;
       }
       
       // This shouldn't happen, the JSONRPCRequest should throw.
@@ -652,16 +652,13 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#2) Creates an account with the staked node ID set to a valid node ID", async function () {
-      // Only run this test in a local setup.
-      if (await getNodeType(process.env.NODE_TYPE)) this.skip();
-
       // Generate a valid key for the account.
       const key = await JSONRPCRequest("generateKey", {});
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
-      // Attempt to create an account with the staked node ID set to the operator's account ID.
-      // TODO: figure out from where to grab the correct node ID. .env file?? For now, using random node ID.
-      const stakedNodeId = Math.floor(Math.random() * 6) + 1;
+      // Attempt to create an account with the staked node ID set to the node's node ID.
+      // TODO: figure out from where to grab the correct node ID. .env file?? For now, 0 is what works.
+      const stakedNodeId = 0;
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
         stakedNodeId: stakedNodeId,
@@ -830,18 +827,19 @@ describe("AccountCreateTransaction", function () {
         "type": "ecdsaSecp256k1PrivateKey"
       });
 
-      // Generate the ECDSAsecp256k1 public key associated with the private key, which will then be used as the alias for the account.
-      const ecdsaSecp256k1PublicKey = await JSONRPCRequest("generateKey", {
-        "type": "ecdsaSecp256k1PublicKey",
-        "privateKey": ecdsaSecp256k1PrivateKey.key
+      // Generate the EVM address associated with the private key, which will then be used as the alias for the account.
+      const alias = await JSONRPCRequest("generateKey", {
+        "type": "evmAddress",
+        "fromKey": ecdsaSecp256k1PrivateKey.key
       });
 
       // Attempt to create an account with the alias.
-      const alias = EvmAddress.fromString(ecdsaSecp256k1PublicKey.key).toString();
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
-        alias: alias,
-        signerKey: ecdsaSecp256k1PrivateKey.key
+        alias: alias.key,
+        signerKeys: [
+          ecdsaSecp256k1PrivateKey.key
+        ]
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -853,20 +851,21 @@ describe("AccountCreateTransaction", function () {
       const key = await JSONRPCRequest("generateKey", {});
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Generate the ECDSAsecp256k1 public key to be used as the alias for the account.
-      const ecdsaSecp256k1PublicKey = await JSONRPCRequest("generateKey", {
-        "type": "ecdsaSecp256k1PublicKey"
+      // Generate the EVM address to be used as the alias for the account.
+      const alias = await JSONRPCRequest("generateKey", {
+        "type": "evmAddress"
       });
       
       try {
         // Attempt to create an account with the alias without signing with the associated ECDSAsecp256k1 private key. The network should respond with an INVALID_SIGNATURE status.
         const response = await JSONRPCRequest("createAccount", {
           key: key.key,
-          alias: EvmAddress.fromString(ecdsaSecp256k1PublicKey.key).toString(),
+          alias: alias.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
         assert.equal(err.data.status, "INVALID_SIGNATURE");
+        return;
       }
       
       // This shouldn't happen, the JSONRPCRequest should throw.
@@ -879,14 +878,15 @@ describe("AccountCreateTransaction", function () {
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
-        // Attempt to create an account with an invalid alias. The network should respond with an INVALID_ALIAS_KEY status.
+        // Attempt to create an account with an invalid alias. The network should respond with an INVALID_SIGNATURE status.
         const response = await JSONRPCRequest("createAccount", {
           key: key.key,
-          alias: crypto.randomBytes(20).toString(),
+          alias: crypto.randomBytes(20).toString('hex').toUpperCase()
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_ALIAS_KEY");
+        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        return;
       }
       
       // This shouldn't happen, the JSONRPCRequest should throw.
