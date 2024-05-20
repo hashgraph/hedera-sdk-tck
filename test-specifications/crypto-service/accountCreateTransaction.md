@@ -255,8 +255,8 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 |---------|--------------------------------------------------------------------------------|------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|-------------------|
 | 1       | Creates an account with a max token association that is a valid amount         | key=<VALID_KEY>, maxAutoTokenAssociations=100  | The account creation succeeds and the account has 100 automatic token associations.                                              | Y                 |
 | 2       | Creates an account with a max token association that is the minimum value      | key=<VALID_KEY>, maxAutoTokenAssociations=0    | The account creation succeeds and the account has 0 automatic token associations.                                                | Y                 |
-| 3       | Creates an account with a max token association that is the maximum value      | key=<VALID_KEY>, maxAutoTokenAssociations=1000 | The account creation succeeds and the account has 1000 automatic token associations.                                             | Y                 |
-| 4       | Creates an account with a max token association that exceeds the maximum value | key=<VALID_KEY>, maxAutoTokenAssociations=1001 | The account creation fails with a REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT response code from the network. | Y                 |
+| 3       | Creates an account with a max token association that is the maximum value      | key=<VALID_KEY>, maxAutoTokenAssociations=5000 | The account creation succeeds and the account has 5000 automatic token associations.                                             | Y                 |
+| 4       | Creates an account with a max token association that exceeds the maximum value | key=<VALID_KEY>, maxAutoTokenAssociations=5001 | The account creation fails with a REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT response code from the network. | Y                 |
 
 #### JSON Request Example
 
