@@ -123,18 +123,21 @@ describe("AccountCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
+            type: "keyList",
             keys: [
               {},
               {}
             ]
           },
           {
+            type: "keyList",
             keys: [
               {},
               {}
             ]
           },
           {
+            type: "keyList",
             keys: [
               {},
               {}
