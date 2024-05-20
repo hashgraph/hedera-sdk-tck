@@ -2,7 +2,7 @@
   "type": "module",
   "dependencies": {
     "@hashgraph/sdk": "^v2.31.0",
-    "axios": "^1.4.0",
+    "axios": "^1.6.0",
     "chai": "^4.3.6",
     "dotenv": "^16.0.1",
     "json-rpc-2.0": "^1.6.0",
