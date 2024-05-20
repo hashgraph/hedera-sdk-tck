@@ -167,7 +167,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
 
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
     
@@ -183,7 +183,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -246,7 +246,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
     
@@ -271,7 +271,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -308,14 +308,13 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with a receiver signature required.
       verifyAccountCreationWithReceiverSignatureRequired(response.accountId, receiverSignatureRequired);
     });
 
     it("(#2) Creates an account that doesn't require a receiving signature", async function () {
       // Generate a valid private key for the account.
-      const key = await JSONRPCRequest("generateKey", {
-        type: "privateKey"
-      });
+      const key = await JSONRPCRequest("generateKey", {});
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account that doesn't require a signature when receiving.
@@ -326,14 +325,13 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with a receiver signature not required.
       verifyAccountCreationWithReceiverSignatureRequired(response.accountId, receiverSignatureRequired);
     });
 
     it("(#3) Creates an account that requires a receiving signature but isn't signed by the account key", async function () {
       // Generate a valid public key for the account.
-      const key = await JSONRPCRequest("generateKey", {
-        type: "publicKey"
-      });
+      const key = await JSONRPCRequest("generateKey", {});
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -348,7 +346,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -373,6 +371,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with an auto-renew period set to 60 days.
       verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
     });
 
@@ -393,7 +392,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -410,6 +409,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with an auto-renew period set to 30 days.
       verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
     });
 
@@ -430,7 +430,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -447,6 +447,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with an auto-renew period set to 90ish days.
       verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
     });
 
@@ -467,7 +468,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -492,6 +493,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with the memo set to "testmemo".
       verifyAccountCreationWithMemo(response.accountId, memo);
     });
 
@@ -508,6 +510,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with an empty memo.
       verifyAccountCreationWithMemo(response.accountId, memo);
     });
 
@@ -524,6 +527,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with the memo set to "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!".
       verifyAccountCreationWithMemo(response.accountId, memo);
     });
 
@@ -544,7 +548,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -556,23 +560,7 @@ describe("AccountCreateTransaction", function () {
       expect(maxAutomaticTokenAssociations).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].max_automatic_token_associations);
     }
 
-    it("(#1) Creates an account with a max token association set to 0", async function () {
-      // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
-      
-      // Attempt to create an account with the max automatic token associations set to 0.
-      const maxAutoTokenAssociations = 0;
-      const response = await JSONRPCRequest("createAccount", {
-        key: key.key,
-        maxAutoTokenAssociations: maxAutoTokenAssociations,
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
-    });
-
-    it("(#2) Creates an account with a max token association set to 100", async function () {
+    it("(#1) Creates an account with a max token association set to 100", async function () {
       // Generate a valid key for the account.
       const key = await JSONRPCRequest("generateKey", {});
       if (key.status === "NOT_IMPLEMENTED") this.skip();
@@ -585,6 +573,24 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with the max automatic token associations set to 100.
+      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
+    });
+
+    it("(#2) Creates an account with a max token association set to 0", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {});
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+      
+      // Attempt to create an account with the max automatic token associations set to 0.
+      const maxAutoTokenAssociations = 0;
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        maxAutoTokenAssociations: maxAutoTokenAssociations,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was created with the max automatic token associations set to 0.
       verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
     });
 
@@ -601,6 +607,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with the max automatic token associations set to 5000.
       verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
     });
 
@@ -621,7 +628,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -651,6 +658,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with the staked account ID equal to the operator account ID.
       verifyAccountCreationWithStakedAccountId(response.accountId, process.env.OPERATOR_ACCOUNT_ID);
     });
 
@@ -668,6 +676,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with the staked node ID equal to 0.
       verifyAccountCreationWithStakedAccountId(response.accountId, stakedNodeId);
     });
 
@@ -687,6 +696,8 @@ describe("AccountCreateTransaction", function () {
         assert.equal(err.data.status, "INVALID_STAKING_ID");
         return;
       }
+      
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -707,7 +718,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
     
@@ -728,7 +739,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
     
@@ -749,7 +760,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -770,6 +781,9 @@ describe("AccountCreateTransaction", function () {
         assert.equal(err.data.status, "INVALID_STAKING_ID");
         return;
       }
+      
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
     });
   });
 
@@ -793,6 +807,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with decline staking rewards.
       verifyAccountCreationWithDeclineRewards(response.accountId, declineStakingReward);
     });
 
@@ -809,6 +824,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created without declining staking rewards.
       verifyAccountCreationWithDeclineRewards(response.accountId, declineStakingReward);
     });
   });
@@ -846,6 +862,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      // Verify the account was created with the generated alias.
       verifyAccountCreationWithAlias(response.accountId, alias);
     });
 
@@ -871,7 +888,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -892,7 +909,7 @@ describe("AccountCreateTransaction", function () {
         return;
       }
       
-      // This shouldn't happen, the JSONRPCRequest should throw.
+      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
