@@ -769,7 +769,7 @@ describe("AccountCreateTransaction", function () {
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with a staked account ID and a staked node ID.
-      const stakedNodeId = Math.floor(Math.random() * 6) + 1;
+      const stakedNodeId = 0;
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
         stakedAccountId: process.env.OPERATOR_ACCOUNT_ID,
