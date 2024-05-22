@@ -668,7 +668,6 @@ describe("AccountCreateTransaction", function () {
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the staked node ID set to the node's node ID.
-      // TODO: figure out from where to grab the correct node ID. .env file?? For now, 0 is what works.
       const stakedNodeId = 0;
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
@@ -769,21 +768,17 @@ describe("AccountCreateTransaction", function () {
       const key = await JSONRPCRequest("generateKey", {});
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
-      try {
-        // Attempt to create an account with a staked account ID and a staked node ID. The network should respond with an INVALID_STAKING_ID status.
-        const response = await JSONRPCRequest("createAccount", {
-          key: key.key,
-          stakedAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          stakedNodeId: Math.floor(Math.random() * 6) + 1,
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_STAKING_ID");
-        return;
-      }
-      
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
+      // Attempt to create an account with a staked account ID and a staked node ID.
+      const stakedNodeId = Math.floor(Math.random() * 6) + 1;
+      const response = await JSONRPCRequest("createAccount", {
+        key: key.key,
+        stakedAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        stakedNodeId: stakedNodeId
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was created with the staked node ID equal to stakedNodeId.
+      verifyAccountCreationWithStakedAccountId(response.accountId, stakedNodeId);
     });
   });
 

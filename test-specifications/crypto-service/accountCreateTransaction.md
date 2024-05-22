@@ -299,7 +299,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 | 4       | Creates an account with the staked node ID set to a node ID that doesn't exist        | key=<VALID_KEY>, stakedNodeId=123456789                                                      | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | Y                 |
 | 5       | Creates an account with the staked account ID set to an empty account ID              | key=<VALID_KEY>, stakedAccountId=""                                                          | The account creation fails with and SDK internal error.                                               | Y                 |
 | 6       | Creates an account with the staked node ID set to an invalid node ID                  | key=<VALID_KEY>, stakedNodeId=-100                                                           | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | Y                 |
-| 7       | Creates an account with a staked account ID and a staked node ID                      | key=<VALID_KEY>, stakedAccountId=<OPERATOR_ACCOUNT_ID>, stakedNodeId=<VALID_NETWORK_NODE_ID> | The account creation fails with an INVALID_STAKING_ID response code from the network.                 | Y                 |
+| 7       | Creates an account with a staked account ID and a staked node ID                      | key=<VALID_KEY>, stakedAccountId=<OPERATOR_ACCOUNT_ID>, stakedNodeId=<VALID_NETWORK_NODE_ID> | The account creation succeeds and the account has a staking node ID equal to the input node ID.       | Y                 |
 
 #### JSON Request Examples
 
