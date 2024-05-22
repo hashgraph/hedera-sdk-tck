@@ -10,7 +10,7 @@ Each test within the test specification is linked to one of the properties withi
 
 https://docs.hedera.com/hedera/sdks-and-apis/sdks/accounts-and-hbar/update-an-account
 
-**CryptoCreate protobufs:**
+**CryptoUpdate protobufs:**
 
 https://github.com/hashgraph/hedera-protobufs/blob/main/services/crypto_update.proto
 
@@ -48,11 +48,11 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 
 | Parameter Name | Type   | Description/Notes                                                                     |
 |----------------|--------|---------------------------------------------------------------------------------------|
-| status         | string | The status of the submitted `AccountCreateTransaction` (from a `TransactionReceipt`). |
+| status         | string | The status of the submitted `AccountUpdateTransaction` (from a `TransactionReceipt`). |
 
 ### Additional Notes
 
-The tests contained in this specification will assume that a valid account was already successfully created. Assume that the account was created with default values, unless specified otherwise. Any `<CREATED_ACCOUNT_ID>` tag will be the account ID of this created account.
+The tests contained in this specification will assume that a valid account was already successfully created. Assume that the account was created with default values, unless specified otherwise. Any `<CREATED_ACCOUNT_ID>` tag will be the account ID of this created account. Any `<PRIVATE_KEY_OF_CREATED_ACCOUNT>` is the DER-encoded hex string of the private key of the account.
 
 ## Property Tests
 
