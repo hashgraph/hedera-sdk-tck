@@ -30,19 +30,19 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 
 ### Input Parameters
 
-| Parameter Name            | Type         | Required/Optional | Description/Notes                                                                                                                           |
-|---------------------------|--------------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| key                       | string       | optional          | DER-encoded hex string representation for private or public keys. Keylists and threshold keys are the hex of the serialized protobuf bytes. |
-| initialBalance            | int64        | optional          | Units of tinybars                                                                                                                           |
-| receiverSignatureRequired | bool         | optional          |                                                                                                                                             |
-| autoRenewPeriod           | int64        | optional          | Units of seconds                                                                                                                            |
-| memo                      | string       | optional          |                                                                                                                                             |
-| maxAutoTokenAssociations  | int32        | optional          |                                                                                                                                             |
-| stakedAccountId           | string       | optional          |                                                                                                                                             |
-| stakedNodeId              | int64        | optional          |                                                                                                                                             |
-| declineStakingReward      | bool         | optional          |                                                                                                                                             |
-| alias                     | string       | optional          | Hex string representation of the keccak-256 hash of an ECDSAsecp256k1 public key type.                                                      |
-| signerKeys                | list<string> | optional          | List of DER-encoded hex strings of all additional private keys required to sign.                                                            |
+| Parameter Name            | Type                                             | Required/Optional | Description/Notes                                                                                                                           |
+|---------------------------|--------------------------------------------------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| key                       | string                                           | optional          | DER-encoded hex string representation for private or public keys. Keylists and threshold keys are the hex of the serialized protobuf bytes. |
+| initialBalance            | int64                                            | optional          | Units of tinybars                                                                                                                           |
+| receiverSignatureRequired | bool                                             | optional          |                                                                                                                                             |
+| autoRenewPeriod           | int64                                            | optional          | Units of seconds                                                                                                                            |
+| memo                      | string                                           | optional          |                                                                                                                                             |
+| maxAutoTokenAssociations  | int32                                            | optional          |                                                                                                                                             |
+| stakedAccountId           | string                                           | optional          |                                                                                                                                             |
+| stakedNodeId              | int64                                            | optional          |                                                                                                                                             |
+| declineStakingReward      | bool                                             | optional          |                                                                                                                                             |
+| alias                     | string                                           | optional          | Hex string representation of the keccak-256 hash of an ECDSAsecp256k1 public key type.                                                      |
+| commonTransactionParams   | [json object](../commonTransactionParameters.md) | optional          |                                                                                                                                             |
 
 ### Output Parameters
 
@@ -136,11 +136,11 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 
 - If true, this account's key must sign any transaction depositing into this account (in addition to all withdrawals).
 
-| Test no | Name                                                                                       | Input                                                                                         | Expected response                                                                    | Implemented (Y/N) |
-|---------|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account that requires a receiving signature                                     | key=<VALID_PUBLIC_KEY>, receiverSignatureRequired=true, signerKeys=[<ASSOCIATED_PRIVATE_KEY>] | The account creation succeeds and the account requires a receiving signature.        | N                 |
-| 2       | Creates an account that doesn't require a receiving signature                              | key=<VALID_KEY>, receiverSignatureRequired=false                                              | The account creation succeeds and the account doesn't require a receiving signature. | N                 |
-| 3       | Creates an account that requires a receiving signature but isn't signed by the account key | key=<VALID_KEY>, receiverSignatureRequired=true                                               | The account creation fails with an INVALID_SIGNATURE response code from the network. | N                 |
+| Test no | Name                                                                                       | Input                                                                                                              | Expected response                                                                    | Implemented (Y/N) |
+|---------|--------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account that requires a receiving signature                                     | key=<VALID_PUBLIC_KEY>, receiverSignatureRequired=true, commonTransactionParams.signers=[<ASSOCIATED_PRIVATE_KEY>] | The account creation succeeds and the account requires a receiving signature.        | N                 |
+| 2       | Creates an account that doesn't require a receiving signature                              | key=<VALID_KEY>, receiverSignatureRequired=false                                                                   | The account creation succeeds and the account doesn't require a receiving signature. | N                 |
+| 3       | Creates an account that requires a receiving signature but isn't signed by the account key | key=<VALID_KEY>, receiverSignatureRequired=true                                                                    | The account creation fails with an INVALID_SIGNATURE response code from the network. | N                 |
 
 #### JSON Request Example
 
@@ -152,9 +152,11 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
   "params": {
     "key": "302a300506032b6570032100e9a0f9c81b3a2bb81a4af5fe05657aa849a3b9b0705da1fb52f331f42cf4b496",
     "receiverSignatureRequired": true,
-    "signerKeys": [
-      "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d"
-    ]
+    "commonTransactionParams": {
+      "signers": [
+        "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d"
+      ]
+    }
   }
 }
 ```
@@ -394,11 +396,11 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 
 - The bytes to be used as the account's alias. The bytes must be formatted as the calculated last 20 bytes of the keccak-256 hash of an ECDSA primitive key.
 
-| Test no | Name                                                                                            | Input                                                                                                                                       | Expected response                                                                                                    | Implemented (Y/N) |
-|---------|-------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|-------------------|
-| 1       | Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key                     | key=<VALID_KEY>, alias=<LAST_20_BYTES_ECDSA_SECP256K1_PUBLIC_KEY_KECCAK_256_HASH>, signerKeys=[<CORRESPONDING_ECDSA_SECP256K1_PRIVATE_KEY>] | The account creation succeeds and the account has the keccak-256 hash of the ECDSAsecp256k1 public key as its alias. | N                 |
-| 2       | Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key without a signature | key=<VALID_KEY>, alias=<LAST_20_BYTES_ECDSA_SECP256K1_PUBLIC_KEY_KECCAK_256_HASH>                                                           | The account creation fails with an INVALID_SIGNATURE response code from the network.                                 | N                 |
-| 3       | Creates an account with an invalid alias                                                        | key=<VALID_KEY>, alias=<INVALID_ALIAS>                                                                                                      | The account creation fails with an INVALID_ALIAS_KEY response code from the network.                                 | N                 |
+| Test no | Name                                                                                            | Input                                                                                                                                                            | Expected response                                                                                                    | Implemented (Y/N) |
+|---------|-------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|-------------------|
+| 1       | Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key                     | key=<VALID_KEY>, alias=<LAST_20_BYTES_ECDSA_SECP256K1_PUBLIC_KEY_KECCAK_256_HASH>, commonTransactionParams.signers=[<CORRESPONDING_ECDSA_SECP256K1_PRIVATE_KEY>] | The account creation succeeds and the account has the keccak-256 hash of the ECDSAsecp256k1 public key as its alias. | N                 |
+| 2       | Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key without a signature | key=<VALID_KEY>, alias=<LAST_20_BYTES_ECDSA_SECP256K1_PUBLIC_KEY_KECCAK_256_HASH>                                                                                | The account creation fails with an INVALID_SIGNATURE response code from the network.                                 | N                 |
+| 3       | Creates an account with an invalid alias                                                        | key=<VALID_KEY>, alias=<INVALID_ALIAS>                                                                                                                           | The account creation fails with an INVALID_ALIAS_KEY response code from the network.                                 | N                 |
 
 #### JSON Request Example
 
@@ -410,9 +412,11 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
   "params": {
     "key": "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d",
     "alias": "990a3f6573669cc6266c00983dc24359bd4b223b",
-    "signerKeys": [
-      "30540201010420c5f9d140822511e581228feb2bde5a9706ee4c4377822e7cf4755fec529f0bcfa00706052b8104000aa124032200038064ccfe93ce1492ada790da7204edd8e3fd004ee68e4fae7641e00db20527c5"
-    ]
+    "commonTransactionParams": {
+      "signers": [
+        "30540201010420c5f9d140822511e581228feb2bde5a9706ee4c4377822e7cf4755fec529f0bcfa00706052b8104000aa124032200038064ccfe93ce1492ada790da7204edd8e3fd004ee68e4fae7641e00db20527c5"
+      ]
+    }
   }
 }
 ```
