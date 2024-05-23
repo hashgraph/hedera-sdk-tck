@@ -110,15 +110,16 @@ Method used to generate a Hedera Key.
 |----------------|--------|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | type           | string | optional          | The type of Key to generate. If provided, it MUST be one of `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, `ecdsaSecp256k1PublicKey`, `keyList`, `thresholdKey`, `privateKey`, or `publicKey`. If not provided, the returned key will be of type `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, or `ecdsaSecp256k1PublicKey`. `privateKey` and `publicKey` types are used when any private or public key type (respectively) is required but the specific type doesn't matter. |
 | privateKey     | string | optional          | The DER-encoded hex string private key from which to generate a public key. This should only be provided for types `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` if the public keys would like to be generated from a specific private key, but still not required if a random public key is desired.                                                                                                                                                                                                                   |
+| rawKey         | bool   | optional          | For `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, `ecdsaSecp256k1PublicKey`, `privateKey`, and `publicKey` types, `true` if instead of the DER-encoded hex string of the generated key, the raw key hex string is desired.                                                                                                                                                                                                                                                                          |
 | protobufBytes  | bool   | optional          | For `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` types, `true` if instead of the DER-encoded hex string of the generated key, the serialized Key protobuf bytes are desired. Useful for generating aliases.                                                                                                                                                                                                                                                                                                            |
 | threshold      | int    | optional          | Required for `thresholdKey` types. The number of keys that must sign for a threshold key.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | keys           | list   | optional          | Required for `keyList` and `thresholdKey` types. Specify the types of keys to be generated and put in the `keyList` or `thresholdKey`. All keys should contain the same parameters as this `generateKey` method (see examples below), if required.                                                                                                                                                                                                                                                                         |
 
 #### Output Parameters
 
-| Parameter Name | Type   | Description/Notes                                                                                                                                                                                                                |
-|----------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| key            | string | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key). If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf. |
+| Parameter Name | Type   | Description/Notes                                                                                                                                                                                                                                      |
+|----------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| key            | string | The DER-encoded (or raw if specified) hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key). If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf. |
 
 #### JSON Request/Response Examples
 
@@ -163,14 +164,15 @@ Method used to generate a Hedera Key.
 }
 ```
 
-*Generates an ED25519 public key*
+*Generates a raw ED25519 public key*
 ```json
 {
   "jsonrpc": "2.0",
   "id": 3,
   "method": "generateKey",
   "params": {
-    "type": "ed25519PublicKey"
+    "type": "ed25519PublicKey",
+    "rawKey": true
   }
 }
 ```
@@ -180,7 +182,7 @@ Method used to generate a Hedera Key.
   "jsonrpc": "2.0",
   "id": 3,
   "result": {
-    "key": "302A300506032B657003210025FCF76794560FAB2E0E795E14AB12E88C853F09BDFA7DBF7FAC7A2F6B31E403"
+    "key": "25FCF76794560FAB2E0E795E14AB12E88C853F09BDFA7DBF7FAC7A2F6B31E403"
   }
 }
 ```
