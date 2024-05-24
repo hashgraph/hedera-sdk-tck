@@ -42,7 +42,7 @@ describe("AccountUpdateTransaction", function () {
     it("(#1) Updates an account with no updates", async function () {
       // Attempt to update the account.
       const response = await JSONRPCRequest("updateAccount", {
-        accountId: caccountId,
+        accountId: accountId,
         commonTransactionParams: {
           signers: [
             accountPrivateKey.key
@@ -89,15 +89,22 @@ describe("AccountUpdateTransaction", function () {
 
   describe("Key", function () {
     async function verifyNewAccountKey(key) {
-      expect(key).to.be.equal(await consensusInfoClient.getAccountInfo(accountId).key.toString());
-      expect(key).to.be.equal()
-      const newAccountInfoMirror = await mirrorNodeClient.getAccountData(accountId).accounts[0];
+      // If the account was updated successfully, the queried account keys should be equal.
+      expect(key).to.be.equal(await consensusInfoClient.getAccountInfo(accountId).key.toStringDer().toLowerCase());
+      expect(key).to.be.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].key.key.toLowerCase());
     }
 
     it("(#1) Updates an account with a new valid ED25519 public key", async function () {
-      // Generate a new ED25519 public key for the account.
+      // Generate a new ED25519 private key for the account.
+      const ed25519PrivateKey = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (ed25519PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Generate the corresponding ED25519 public key.
       const ed25519PublicKey = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
+        fromKey: ed25519PrivateKey.key
       });
       if (ed25519PublicKey.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -107,13 +114,137 @@ describe("AccountUpdateTransaction", function () {
         key: ed25519PublicKey.key,
         commonTransactionParams: {
           signers: [
-            accountPrivateKey
+            accountPrivateKey,
+            ed25519PrivateKey.key
           ]
         }
       })
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      
+      // Verify the account key was updated (use raw key for comparison, ED25519 public key DER-encoding has a 12 byte prefix).
+      verifyNewAccountKey(String(ed25519PublicKey.key).substring(24).toLowerCase());
+    });
+
+    it("(#2) Updates an account with a new valid ECDSAsecp256k1 public key", async function () {
+      // Generate a new ECDSAsecp256k1 private key for the account.
+      const ecdsaSecp256k1PrivateKey = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PrivateKey"
+      });
+      if (ecdsaSecp256k1PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Generate the corresponding ECDSAsecp256k1 public key.
+      const ecdsaSecp256k1PublicKey = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PublicKey",
+        fromKey: ecdsaSecp256k1PrivateKey.key
+      });
+      if (ecdsaSecp256k1PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to update the key of the account with the new ECDSAsecp256k1 public key.
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        key: ecdsaSecp256k1PublicKey.key,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey,
+            ecdsaSecp256k1PrivateKey.key
+          ]
+        }
+      })
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
+      verifyNewAccountKey(String(ecdsaSecp256k1PublicKey.key).substring(28).toLowerCase());
+    });
+
+    it("(#3) Updates an account with a new valid ED25519 private key", async function () {
+      // Generate a new ED25519 private key for the account.
+      const ed25519PrivateKey = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (ed25519PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Generate the corresponding ED25519 public key.
+      const ed25519PublicKey = await JSONRPCRequest("generateKey", {
+        type: "ed25519PublicKey",
+        fromKey: ed25519PrivateKey.key
+      });
+      if (ed25519PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to update the key of the account with the new ED25519 private key.
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        key: ed25519PrivateKey.key,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey,
+            ed25519PrivateKey.key
+          ]
+        }
+      })
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account key was updated (use raw key for comparison, ED25519 public key DER-encoding has a 12 byte prefix).
+      verifyNewAccountKey(String(ed25519PublicKey.key).substring(24).toLowerCase());
+    });
+
+    it("(#4) Updates an account with a new valid ECDSAsecp256k1 private key", async function () {
+      // Generate a new ECDSAsecp256k1 private key for the account.
+      const ecdsaSecp256k1PrivateKey = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PrivateKey"
+      });
+      if (ecdsaSecp256k1PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Generate the corresponding ECDSAsecp256k1 public key.
+      const ecdsaSecp256k1PublicKey = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PublicKey",
+        fromKey: ecdsaSecp256k1PrivateKey.key
+      });
+      if (ecdsaSecp256k1PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to update the key of the account with the new ECDSAsecp256k1 public key.
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        key: ecdsaSecp256k1PrivateKey.key,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey,
+            ecdsaSecp256k1PrivateKey.key
+          ]
+        }
+      })
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
+      verifyNewAccountKey(String(ecdsaSecp256k1PublicKey.key).substring(28).toLowerCase());
+    });
+
+    it("(#4) Updates an account with a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
+      // Generate a KeyList of ED25519 and ECDSAsecp256k1 private and public keys for the account.
+      const keyList = await JSONRPCRequest("generateKey", {
+        type: "keyList",
+        keys: [
+          {},
+          {},
+          {}
+        ]
+      });
+      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Attempt to update the key of the account with the new KeyList of ED25519 and ECDSAsecp256k1 private and public keys.
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        key: keyList.key,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey,
+            keyList.key
+          ]
+        }
+      })
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
+      verifyNewAccountKey(String(ecdsaSecp256k1PublicKey.key).substring(28).toLowerCase());
     });
   });
 
