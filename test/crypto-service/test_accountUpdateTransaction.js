@@ -9,7 +9,7 @@ describe("AccountUpdateTransaction", function () {
   this.timeout(30000);
 
   // An account is created for each test. These hold the information for that account.
-  let accountPrivateKey, accountId, accountInfoConsensus, accountInfoMirror;
+  let accountPrivateKey, accountId;
   
   beforeEach(async function () {
     // Initialize the network and operator.
@@ -28,24 +28,19 @@ describe("AccountUpdateTransaction", function () {
     });
     if (response.status === "NOT_IMPLEMENTED") this.skip();
     accountId = response.accountId;
-
-    // Grab the initial account information.
-    accountInfoConsensus = await consensusInfoClient.getAccountInfo(accountId);
-    accountInfoMirror = await mirrorNodeClient.getAccountData(accountId).accounts[0];
   });
-
   afterEach(async function () {
     await JSONRPCRequest("reset");
   });
 
-  describe("AccountId", function () {
+  describe("AccountId", async function () {
     it("(#1) Updates an account with no updates", async function () {
       // Attempt to update the account.
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
         commonTransactionParams: {
           signers: [
-            accountPrivateKey.key
+            accountPrivateKey
           ]
         }
       });
@@ -53,7 +48,7 @@ describe("AccountUpdateTransaction", function () {
 
       // Account info should remain the same
       expect(await mirrorNodeClient.getAccountData(accountId).accounts[0]).to.be.equal(accountInfoMirror);
-      expect(await consensusInfoClient.getAccountInfo(accountId)).to.be.equal(accountInfoConsensus)
+      expect(await consensusInfoClient.getAccountInfo(accountId)).to.be.equal(accountInfoConsensus);
     });
 
     it("(#2) Updates an account with no updates without signing with the account's private key", async function () {
@@ -87,14 +82,14 @@ describe("AccountUpdateTransaction", function () {
     });
   });
 
-  describe("Key", function () {
+  describe("Key", async function () {
     async function verifyAccountKeyUpdate(key) {
       // If the account was updated successfully, the queried account keys should be equal.
       expect(key).to.be.equal(await consensusInfoClient.getAccountInfo(accountId).key.toStringDer().toLowerCase());
       expect(key).to.be.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].key.key.toLowerCase());
     }
 
-    it("(#1) Updates an account with a new valid ED25519 public key", async function () {
+    it("(#1) Updates the key of an account to a new valid ED25519 public key", async function () {
       // Generate a new ED25519 private key for the account.
       const ed25519PrivateKey = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
@@ -125,7 +120,7 @@ describe("AccountUpdateTransaction", function () {
       verifyAccountKeyUpdate(String(ed25519PublicKey.key).substring(24).toLowerCase());
     });
 
-    it("(#2) Updates an account with a new valid ECDSAsecp256k1 public key", async function () {
+    it("(#2) Updates the key of an account to a new valid ECDSAsecp256k1 public key", async function () {
       // Generate a new ECDSAsecp256k1 private key for the account.
       const ecdsaSecp256k1PrivateKey = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey"
@@ -156,7 +151,7 @@ describe("AccountUpdateTransaction", function () {
       verifyAccountKeyUpdate(String(ecdsaSecp256k1PublicKey.key).substring(28).toLowerCase());
     });
 
-    it("(#3) Updates an account with a new valid ED25519 private key", async function () {
+    it("(#3) Updates the key of an account to a new valid ED25519 private key", async function () {
       // Generate a new ED25519 private key for the account.
       const ed25519PrivateKey = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
@@ -187,7 +182,7 @@ describe("AccountUpdateTransaction", function () {
       verifyAccountKeyUpdate(String(ed25519PublicKey.key).substring(24).toLowerCase());
     });
 
-    it("(#4) Updates an account with a new valid ECDSAsecp256k1 private key", async function () {
+    it("(#4) Updates the key of an account to a new valid ECDSAsecp256k1 private key", async function () {
       // Generate a new ECDSAsecp256k1 private key for the account.
       const ecdsaSecp256k1PrivateKey = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey"
@@ -218,7 +213,7 @@ describe("AccountUpdateTransaction", function () {
       verifyAccountKeyUpdate(String(ecdsaSecp256k1PublicKey.key).substring(28).toLowerCase());
     });
 
-    it("(#5) Updates an account with a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
+    it("(#5) Updates the key of an account to a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
       // Generate a KeyList of ED25519 and ECDSAsecp256k1 private and public keys for the account.
       const keyList = await JSONRPCRequest("generateKey", {
         type: "keyList",
@@ -249,7 +244,7 @@ describe("AccountUpdateTransaction", function () {
       verifyAccountKeyUpdate(keyList.key);
     });
 
-    it("(#6) Updates an account with a new valid KeyList of nested KeyLists (three levels)", async function () {
+    it("(#6) Updates the key of an account to a new valid KeyList of nested KeyLists (three levels)", async function () {
       // Generate a KeyList of nested KeyLists of ED25519 and ECDSAsecp256k1 private and public keys for the account.
       const nestedKeyList = await JSONRPCRequest("generateKey", {
         type: "keyList",
@@ -301,7 +296,7 @@ describe("AccountUpdateTransaction", function () {
       verifyAccountKeyUpdate(keyList.key);
     });
 
-    it("(#7) Updates an account with a new valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
+    it("(#7) Updates the key of an account to a new valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
       // Generate a ThresholdKey of nested KeyLists of ED25519 and ECDSAsecp256k1 private and public keys for the account.
       const thresholdKey = await JSONRPCRequest("generateKey", {
         type: "thresholdKey",
@@ -332,7 +327,7 @@ describe("AccountUpdateTransaction", function () {
       verifyAccountKeyUpdate(thresholdKey.key);
     });
 
-    it("(#8) Updates an account with a key without signing with the new key", async function () {
+    it("(#8) Updates the key of an account to a key without signing with the new key", async function () {
       // Generate a new key for the account.
       const key = await JSONRPCRequest("generateKey", {});
       if (key.status === "NOT_IMPLEMENTED") this.skip();
@@ -358,7 +353,7 @@ describe("AccountUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#9) Updates an account with a new public key and signs with an incorrect private key", async function () {
+    it("(#9) Updates the key of an account to a new public key and signs with an incorrect private key", async function () {
       // Generate a new public key for the account.
       const publicKey = await JSONRPCRequest("generateKey", {
         type: "publicKey"
@@ -393,40 +388,40 @@ describe("AccountUpdateTransaction", function () {
     });
   });
 
-  describe("Auto Renew Period", function () {
-    async function verifyAccountAutoRenewPeriodUpdate(accountId, autoRenewPeriodSeconds) {
+  describe("Auto Renew Period", async function () {
+    async function verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds) {
       // If the account was updated successfully, the queried account's auto renew periods should be equal.
       expect(autoRenewPeriodSeconds).to.equal(await consensusInfoClient.getAccountInfo(accountId).autoRenewPeriod);
       expect(autoRenewPeriodSeconds).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].auto_renew_period);
     }
 
-    it("(#1) Updates an account with an auto renew period set to 60 days (5,184,000 seconds)", async function () {
-      // Attempt to update the account with an auto renew period set to 60 days.
+    it("(#1) Updates the auto-renew period of an account to 60 days (5,184,000 seconds)", async function () {
+      // Attempt to update the auto-renew period of the account 60 days.
       const autoRenewPeriodSeconds = 5184000;
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
         autoRenewPeriod: autoRenewPeriodSeconds,
         commonTransactionParams: {
           signers: [
-            accountPrivateKey.key
+            accountPrivateKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was updated with an auto-renew period set to 60 days.
-      verifyAccountAutoRenewPeriodUpdate(response.accountId, autoRenewPeriodSeconds);
+      verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
     });
 
-    it("(#2) Updates an account with an auto renew period set to -1 seconds", async function () {
+    it("(#2) Updates the auto-renew period of an account to -1 seconds", async function () {
       try {
-        // Attempt to update the account with an auto renew period set to -1 seconds. The network should respond with an INVALID_RENEWAL_PERIOD status.
+        // Attempt to update the auto-renew period of the account to -1 seconds. The network should respond with an INVALID_RENEWAL_PERIOD status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
           autoRenewPeriod: -1,
           commonTransactionParams: {
             signers: [
-              accountPrivateKey.key
+              accountPrivateKey
             ]
           }
         });
@@ -440,33 +435,33 @@ describe("AccountUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#3) Updates an account with an auto renew period set to 30 days (2,592,000 seconds)", async function () {
-      // Attempt to update the account with an auto renew period set to 30 days.
+    it("(#3) Updates the auto-renew period of an account to 30 days (2,592,000 seconds)", async function () {
+      // Attempt to update the auto-renew period of the account to 30 days.
       const autoRenewPeriodSeconds = 2592000;
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
         autoRenewPeriod: autoRenewPeriodSeconds,
         commonTransactionParams: {
           signers: [
-            accountPrivateKey.key
+            accountPrivateKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was updated with an auto-renew period set to 30 days.
-      verifyAccountAutoRenewPeriodUpdate(response.accountId, autoRenewPeriodSeconds);
+      verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
     });
 
-    it("(#4) Updates an account with an auto renew period set to 30 days minus one second (2,591,999 seconds)", async function () {
+    it("(#4) Updates the auto-renew period of an account to 30 days minus one second (2,591,999 seconds)", async function () {
       try {
-        // Attempt to update the account with an auto renew period set to 2,591,999 seconds. The network should respond with an AUTORENEW_DURATION_NOT_IN_RANGE status.
+        // Attempt to update the auto-renew period of the account to 2,591,999 seconds. The network should respond with an AUTORENEW_DURATION_NOT_IN_RANGE status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
           autoRenewPeriod: 2591999,
           commonTransactionParams: {
             signers: [
-              accountPrivateKey.key
+              accountPrivateKey
             ]
           }
         });
@@ -480,33 +475,33 @@ describe("AccountUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#5) Updates an account with an auto renew period set to the maximum period of 8,000,001 seconds", async function () {
-      // Attempt to update the account with an auto renew period set to 8,000,001 seconds.
+    it("(#5) Updates the auto-renew period of an account to the maximum period of 8,000,001 seconds", async function () {
+      // Attempt to update the auto-renew period of the account to 8,000,001 seconds.
       const autoRenewPeriodSeconds = 8000001;
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
         autoRenewPeriod: autoRenewPeriodSeconds,
         commonTransactionParams: {
           signers: [
-            accountPrivateKey.key
+            accountPrivateKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was updated with an auto-renew period set to 8,000,001 seconds.
-      verifyAccountAutoRenewPeriodUpdate(response.accountId, autoRenewPeriodSeconds);
+      verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
     });
 
-    it("(#6) Updates an account with an auto renew period set to the maximum period plus one second (8,000,002 seconds)", async function () {
+    it("(#6) Updates the auto-renew period of an account to the maximum period plus one second (8,000,002 seconds)", async function () {
       try {
-        // Attempt to update the account with an auto renew period set to 8,000,002 seconds. The network should respond with an AUTORENEW_DURATION_NOT_IN_RANGE status.
+        // Attempt to update auto-renew period of the account to 8,000,002 seconds. The network should respond with an AUTORENEW_DURATION_NOT_IN_RANGE status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
           autoRenewPeriod: 8000002,
           commonTransactionParams: {
             signers: [
-              accountPrivateKey.key
+              accountPrivateKey
             ]
           }
         });
@@ -521,46 +516,46 @@ describe("AccountUpdateTransaction", function () {
     });
   });
 
-  describe("Expiration Time", function () {
-    async function verifyAccountExpirationTimeUpdate(accountId, expirationTime) {
+  describe("Expiration Time", async function () {
+    async function verifyAccountExpirationTimeUpdate(expirationTime) {
       // If the account was updated successfully, the queried account's expiration times should be equal.
       expect(expirationTime).to.equal(await consensusInfoClient.getAccountInfo(accountId).expirationTime);
       expect(expirationTime).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].expiry_timestamp);
     }
 
-    it("(#1) Updates an account with an auto renew period set to 60 days (5,184,000 seconds)", async function () {
-      // Attempt to update the account with an auto renew period set to 60 days.
-      const autoRenewPeriodSeconds = 5184000;
+    it("(#1) Updates the expiration time of an account to 60 days (5,184,000 seconds) from the current time", async function () {
+      // Attempt to update the expiration time of the account to 60 days from the current time.
+      const expirationTimeSeconds = (Date.now() / 1000) + 5184000;
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
-        autoRenewPeriod: autoRenewPeriodSeconds,
+        expirationTime: expirationTimeSeconds,
         commonTransactionParams: {
           signers: [
-            accountPrivateKey.key
+            accountPrivateKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the account was updated with an auto-renew period set to 60 days.
-      verifyAccountAutoRenewPeriodUpdate(response.accountId, autoRenewPeriodSeconds);
+      // Verify the account was updated with an expiration time set to 60 days from the current time.
+      verifyAccountExpirationTimeUpdate(autoRenewPeriodSeconds);
     });
 
-    it("(#2) Updates an account with an auto renew period set to -1 seconds", async function () {
+    it("(#2) Updates the expiration time of an account to -1 seconds from the current time", async function () {
       try {
-        // Attempt to update the account with an auto renew period set to -1 seconds. The network should respond with an INVALID_RENEWAL_PERIOD status.
+        // Attempt to update the expiration time of the account to -1 seconds from the current time. The network should respond with an EXPIRATION_REDUCTION_NOT_ALLOWED status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
-          autoRenewPeriod: -1,
+          expirationTime: -1,
           commonTransactionParams: {
             signers: [
-              accountPrivateKey.key
+              accountPrivateKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_RENEWAL_PERIOD");
+        assert.equal(err.data.status, "EXPIRATION_REDUCTION_NOT_ALLOWED");
         return;
       }
 
@@ -568,39 +563,39 @@ describe("AccountUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#3) Updates an account with an auto renew period set to 30 days (2,592,000 seconds)", async function () {
-      // Attempt to update the account with an auto renew period set to 30 days.
-      const autoRenewPeriodSeconds = 2592000;
+    it("(#3) Updates the expiration time of an account to 30 days (2,592,000 seconds) from the current time", async function () {
+      // Attempt to update the expiration time of the account to 30 days from the current time.
+      const expirationTimeSeconds = (Date.now() / 1000) + 2592000;
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
-        autoRenewPeriod: autoRenewPeriodSeconds,
+        expirationTime: expirationTimeSeconds,
         commonTransactionParams: {
           signers: [
-            accountPrivateKey.key
+            accountPrivateKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the account was updated with an auto-renew period set to 30 days.
-      verifyAccountAutoRenewPeriodUpdate(response.accountId, autoRenewPeriodSeconds);
+      // Verify the account was updated with an auto-renew period set to 30 days from the current time.
+      verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
     });
 
-    it("(#4) Updates an account with an auto renew period set to 30 days minus one second (2,591,999 seconds)", async function () {
+    it("(#4) Updates the expiration time of an account to 30 days minus one second (2,591,999 seconds) from the current time", async function () {
       try {
-        // Attempt to update the account with an auto renew period set to 2,591,999 seconds. The network should respond with an AUTORENEW_DURATION_NOT_IN_RANGE status.
+        // Attempt to update the expiration time of the account to 2,591,999 seconds from the current time. The network should respond with an INVALID_EXPIRATION_TIME status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
-          autoRenewPeriod: 2591999,
+          expirationTime: (Date.now() / 1000) + 2591999,
           commonTransactionParams: {
             signers: [
-              accountPrivateKey.key
+              accountPrivateKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
         return;
       }
 
@@ -608,44 +603,461 @@ describe("AccountUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#5) Updates an account with an auto renew period set to the maximum period of 8,000,001 seconds", async function () {
-      // Attempt to update the account with an auto renew period set to 8,000,001 seconds.
-      const autoRenewPeriodSeconds = 8000001;
+    it("(#5) Updates the expiration time of an account to the maximum period of 8,000,001 seconds", async function () {
+      // Attempt to update the expiration time of the account to 8,000,001 seconds from the current time.
+      const expirationTimeSeconds = (Date.now() / 1000) + 8000001;
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
-        autoRenewPeriod: autoRenewPeriodSeconds,
+        expirationTime: expirationTimeSeconds,
         commonTransactionParams: {
           signers: [
-            accountPrivateKey.key
+            accountPrivateKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was updated with an auto-renew period set to 8,000,001 seconds.
-      verifyAccountAutoRenewPeriodUpdate(response.accountId, autoRenewPeriodSeconds);
+      verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
     });
 
-    it("(#6) Updates an account with an auto renew period set to the maximum period plus one second (8,000,002 seconds)", async function () {
+    it("(#6) Updates the expiration time of an account to the maximum period plus one second (8,000,002 seconds) from the current time", async function () {
       try {
-        // Attempt to update the account with an auto renew period set to 8,000,002 seconds. The network should respond with an AUTORENEW_DURATION_NOT_IN_RANGE status.
+        // Attempt to update the expiration time of the account to 8,000,002 seconds from the current time. The network should respond with an INVALID_EXPIRATION_TIME status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
-          autoRenewPeriod: 8000002,
+          expirationTime: (Date.now() / 1000) + 8000002,
           commonTransactionParams: {
             signers: [
-              accountPrivateKey.key
+              accountPrivateKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
         return;
       }
 
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
+    });
+  });
+
+  describe("Receiver Signature Required", async function () {
+    async function verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired) {
+      // If the account was updated successfully, the queried account's receiver signature required policies should be equal.
+      expect(receiverSignatureRequired).to.equal(await consensusInfoClient.getAccountInfo(accountId).isReceiverSignatureRequired);
+      expect(receiverSignatureRequired).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].receiver_sig_required);
+    }
+
+    it("(#1) Updates the receiver signature required policy of an account to require a receiving signature", async function () {
+      // Attempt to update the receiver signature required policy of the account to require a signature when receiving.
+      const receiverSignatureRequired = true;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        receiverSignatureRequired: receiverSignatureRequired,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account receiver signature required policy was updated.
+      verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired);
+    });
+
+    it("(#2) Updates the receiver signature required policy of an account to not require a receiving signature", async function () {
+      // Attempt to update the receiver signature required policy of the account to not require a signature when receiving.
+      const receiverSignatureRequired = false;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        receiverSignatureRequired: receiverSignatureRequired,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account receiver signature required policy was updated.
+      verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired);
+    });
+  });
+
+  describe("Memo", async function () {
+    async function verifyAccountMemoUpdate(memo) {
+      // If the account was updated successfully, the queried account's memos should be equal.
+      expect(memo).to.equal(await consensusInfoClient.getAccountInfo(accountId).memo);
+      expect(memo).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].memo);
+    }
+
+    it("(#1) Updates the memo of an account to a memo that is a valid length", async function () {
+      // Attempt to update the memo of the account to a memo that is a valid length.
+      const memo = "testmemo";
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        memo: memo,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was updated with the memo set to "testmemo".
+      verifyAccountMemoUpdate(memo);
+    });
+
+    it("(#2) Updates the memo of an account to a memo that is the minimum length", async function () {
+      // Attempt to update the memo of the account with a memo that is the minimum length.
+      const memo = "";
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        memo: memo,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was updated with an empty memo.
+      verifyAccountMemoUpdate(memo);
+    });
+
+    it("(#3) Updates the memo of an account to a memo that is the maximum length", async function () {
+      // Attempt to update the memo of the account with a memo that is the maximum length.
+      const memo = "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!";
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        memo: memo,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the account was updated with the memo set to "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!".
+      verifyAccountMemoUpdate(memo);
+    });
+
+    it("(#4) Updates the memo of an account to a memo that exceeds the maximum length", async function () {
+      try {
+        // Attempt to update the memo of the account with a memo that exceeds the maximum length. The network should respond with a MEMO_TOO_LONG status.
+        const response = await JSONRPCRequest("updateAccount", {
+          accountId: accountId,
+          memo: "This is a long memo that is not valid because it exceeds 100 characters and it should fail the test!!",
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "MEMO_TOO_LONG");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+  });
+
+  describe("Max Automatic Token Associations", async function () {
+    async function verifyMaxAutoTokenAssociationsUpdate(maxAutomaticTokenAssociations) {
+      // If the account was updated successfully, the queried account's max automatic token associations should be equal.
+      expect(maxAutomaticTokenAssociations).to.equal(await consensusInfoClient.getAccountInfo(accountId).maxAutomaticTokenAssociations);
+      expect(maxAutomaticTokenAssociations).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].max_automatic_token_associations);
+    }
+
+    it("(#1) Updates the max automatic token associations of an account to a valid amount", async function () {
+      // Attempt to update the max automatic token associations of the account to 100.
+      const maxAutoTokenAssociations = 100;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        maxAutoTokenAssociations: maxAutoTokenAssociations,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the max auto token associations of the account was updated.
+      verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
+    });
+
+    it("(#2) Updates the max automatic token associations of an account to the minimum amount", async function () {
+      // Attempt to update the max automatic token associations of the account to 0.
+      const maxAutoTokenAssociations = 0;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        maxAutoTokenAssociations: maxAutoTokenAssociations,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify max auto token associations of the account was updated.
+      verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
+    });
+
+    it("(#3) Updates the max automatic token associations of an account to the maximum amount", async function () {
+      // Attempt to update the max automatic token associations of the account to 5000.
+      const maxAutoTokenAssociations = 5000;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        maxAutoTokenAssociations: maxAutoTokenAssociations,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify max auto token associations of the account was updated.
+      verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
+    });
+
+    it("(#4) Updates the max automatic token associations of an account to an amount that exceeds the maximum amount", async function () {
+      try {
+        // Attempt to update the max automatic token associations of the account to 5001. The network should respond with a REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT status.
+        const response = await JSONRPCRequest("updateAccount", {
+          accountId: accountId,
+          maxAutoTokenAssociations: 5001,
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+  });
+
+  describe("Staked ID", async function () {
+    async function verifyAccountStakedAccountIdUpdate(stakedAccountId) {
+      // If the account was updated successfully, the queried account's staked account IDs should be equal.
+      expect(memo).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakedAccountId);
+      expect(memo).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].staked_account_id);
+    }
+
+    async function verifyAccountStakedNodeIdUpdate(stakedAccountId) {
+      // If the account was updated successfully, the queried account's staked node IDs should be equal.
+      expect(memo).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakedNodeId);
+      expect(memo).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].staked_node_id);
+    }
+
+    it ("(#1) Updates the staked account ID of an account to the operator's account ID", async function () {
+      // Attempt to update the staked account ID of the account to the operator's account ID.
+      const stakedAccountId = process.env.OPERATOR_ACCOUNT_ID;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        stakedAccountId: stakedAccountId,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the staked account ID of the account was updated. 
+      verifyAccountStakedAccountIdUpdate(stakedAccountId);
+    });
+
+    it ("(#2) Updates the staked node ID of an account to a valid node ID", async function () {
+      // Attempt to update the staked node ID of the account to a valid node ID.
+      const stakedNodeId = 0;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        stakedNodeId: stakedNodeId,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the staked node ID of the account was updated. 
+      verifyAccountStakedNodeIdUpdate(stakedNodeId);
+    });
+
+    it ("(#3) Updates the staked account ID of an account to an account ID that doesn't exist", async function () {
+      try {
+        // Attempt to update the staked account ID of the account to an account ID that doesn't exist. The network should respond with an INVALID_STAKING_ID status.
+        const response = await JSONRPCRequest("updateAccount", {
+          accountId: accountId,
+          stakedAccountId: "123.456.789",
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_STAKING_ID");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+
+    it ("(#4) Updates the staked node ID of an account to a node ID that doesn't exist", async function () {
+      try {
+        // Attempt to update the staked node ID of the account to a node ID that doesn't exist. The network should respond with an INVALID_STAKING_ID status.
+        const response = await JSONRPCRequest("updateAccount", {
+          accountId: accountId,
+          stakedNodeId: 123456789,
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_STAKING_ID");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+
+    it ("(#5) Updates the staked account ID of an account to an empty account ID", async function () {
+      try {
+        // Attempt to update the staked account ID of the account to an empty account ID. The SDK should throw an internal error.
+        const response = await JSONRPCRequest("updateAccount", {
+          accountId: accountId,
+          stakedAccountId: "",
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.code, -32603, "Internal error");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+
+    it ("(#6) Updates the staked node ID of an account to an invalid node ID", async function () {
+      try {
+        // Attempt to update the staked node ID of the account to an invalid node ID. The network should respond with an INVALID_STAKING_ID status.
+        const response = await JSONRPCRequest("updateAccount", {
+          accountId: accountId,
+          stakedNodeId: -100,
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_STAKING_ID");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+
+    it ("(#7) Updates the staked account ID and staked node ID of an account", async function () {
+      try {
+        // Attempt to update the staked account ID and staked node ID of the account. The network should respond with an INVALID_STAKING_ID status.
+        const response = await JSONRPCRequest("updateAccount", {
+          accountId: accountId,
+          stakedAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          stakedNodeId: 0,
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_STAKING_ID");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+  });
+
+  describe("Decline Reward", async function () {
+    async function verifyDeclineRewardUpdate(declineRewards) {
+      // If the account was updated successfully, the queried account's decline staking rewards policy should be equal.
+      expect(declineRewards).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakingInfo.declineStakingReward);
+      expect(declineRewards).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].decline_reward);
+    }
+
+    it ("(#1) Updates the decline reward policy of an account to decline staking rewards", async function () {
+      // Attempt to update the decline reward policy of the account to decline staking rewards.
+      const declineStakingRewards = true;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        declineStakingReward: declineStakingRewards,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the decline reward policy of the account was updated. 
+      verifyDeclineRewardUpdate(declineStakingRewards);
+    });
+
+    it ("(#2) Updates the decline reward policy of an account to not decline staking rewards", async function () {
+      // Attempt to update the decline reward policy of the account to not decline staking rewards.
+      const declineStakingRewards = false;
+      const response = await JSONRPCRequest("updateAccount", {
+        accountId: accountId,
+        declineStakingReward: declineStakingRewards,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Verify the decline reward policy of the account was updated. 
+      verifyDeclineRewardUpdate(declineStakingRewards);
     });
   });
 
