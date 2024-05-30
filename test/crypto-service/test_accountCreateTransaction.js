@@ -302,9 +302,11 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createAccount", {
         key: publicKey.key,
         receiverSignatureRequired: receiverSignatureRequired,
-        signerKeys: [
-          privateKey.key
-        ]
+        commonTransactionParams: {
+          signers: [
+            privateKey.key
+          ]
+        }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -838,22 +840,24 @@ describe("AccountCreateTransaction", function () {
 
       // Generate the ECDSAsecp256k1 private key of the alias for the account.
       const ecdsaSecp256k1PrivateKey = await JSONRPCRequest("generateKey", {
-        "type": "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey"
       });
 
       // Generate the EVM address associated with the private key, which will then be used as the alias for the account.
       const alias = await JSONRPCRequest("generateKey", {
-        "type": "evmAddress",
-        "fromKey": ecdsaSecp256k1PrivateKey.key
+        type: "evmAddress",
+        fromKey: ecdsaSecp256k1PrivateKey.key
       });
 
       // Attempt to create an account with the alias.
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
         alias: alias.key,
-        signerKeys: [
-          ecdsaSecp256k1PrivateKey.key
-        ]
+        commonTransactionParams: {
+          signers: [
+            ecdsaSecp256k1PrivateKey.key
+          ]
+        }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -868,7 +872,7 @@ describe("AccountCreateTransaction", function () {
 
       // Generate the EVM address to be used as the alias for the account.
       const alias = await JSONRPCRequest("generateKey", {
-        "type": "evmAddress"
+        type: "evmAddress"
       });
       
       try {
