@@ -106,12 +106,12 @@ Method used to generate a Hedera Key.
 
 #### Input Parameters
 
-| Parameter Name | Type   | Required/Optional | Description/Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-|----------------|--------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| type           | string | optional          | The type of Key to generate. If provided, it MUST be one of `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, `ecdsaSecp256k1PublicKey`, `keyList`, `thresholdKey`, `privateKey`, `publicKey`, or `evmAddress`. If not provided, the returned key will be of type `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, or `ecdsaSecp256k1PublicKey`. `privateKey` and `publicKey` types should be used when any private or public key type is required (respectively) but the specific type (ED25519 or ECDSAsecp256k1) doesn't matter.                                                |
-| fromKey        | string | optional          | For `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` types, the DER-encoded hex string private key from which to generate the public key. No value means a random `ed25519PublicKey` or `ecdsaSecp256k1PublicKey` will be generated, respectively. For the `evmAddress` type, the DER-encoded hex string of an `ecdsaSecp256k1PrivateKey` or `ecdsaSecp256k1PublicKey` from which to generate the EVM address. An `ecdsaSecp256k1PrivateKey` will first generate its respective `ecdsaSecp256k1PublicKey`, and then generate the EVM address from that public key. No value means a random EVM address will be generated. |
-| threshold      | int    | optional          | Required for `thresholdKey` types. The number of keys that must sign for a threshold key.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| keys           | list   | optional          | Required for `keyList` and `thresholdKey` types. Specify the types of keys to be generated and put in the `keyList` or `thresholdKey`. All keys should contain the same parameters as this `generateKey` method (see examples below), if required.                                                                                                                                                                                                                                                                                                                                                                        |
+| Parameter Name | Type   | Required/Optional | Description/Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|----------------|--------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| type           | string | required          | The type of Key to generate. It MUST be one of `ed25519PrivateKey`, `ed25519PublicKey`, `ecdsaSecp256k1PrivateKey`, `ecdsaSecp256k1PublicKey`, `keyList`, `thresholdKey`, or `evmAddress`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| fromKey        | string | optional          | For `ed25519PublicKey` and `ecdsaSecp256k1PublicKey` types, the DER-encoded hex string private key from which to generate the public key. No value means a random `ed25519PublicKey` or `ecdsaSecp256k1PublicKey` will be generated, respectively. For the `evmAddress` type, the DER-encoded hex string of an `ecdsaSecp256k1PrivateKey` or `ecdsaSecp256k1PublicKey` from which to generate the EVM address. An `ecdsaSecp256k1PrivateKey` will first generate its respective `ecdsaSecp256k1PublicKey`, and then generate the EVM address from that public key. No value means a random EVM address will be generated. For types that are not `ed25519PublicKey`, `ecdsaSecp256k1PublicKey`, or `evmAddress`, this parameter is ignored. |
+| threshold      | int    | optional          | Required for `thresholdKey` types (ignored for other types). The number of keys that must sign for a threshold key.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| keys           | list   | optional          | Required for `keyList` and `thresholdKey` types (ignored for other types). Specify the types of keys to be generated and put in the `keyList` or `thresholdKey`. All keys should contain the same parameters as this `generateKey` method (see examples below), if required.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 #### Output Parameters
 
@@ -120,25 +120,6 @@ Method used to generate a Hedera Key.
 | key            | string | The DER-encoded hex string of the generated ECDSA or ED25519 private or public key (compressed if ECDSAsecp256k1 public key) or EVM address. If the type was `keyList` or `thresholdKey`, the hex string of the respective serialized protobuf. |
 
 #### JSON Request/Response Examples
-
-*Generates a random ED25519 or ECDSAsecp256k1 private or public key*
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "generateKey"
-}
-```
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "key": "302D300706052B8104000A0322000345B82F32CA13D777FC9474AD8785045A4EC8C55B15B339CE8DFE00B9AC62ED0A"
-  }
-}
-```
 
 *Generates an ED25519 private key*
 ```json
@@ -207,7 +188,7 @@ Method used to generate a Hedera Key.
 }
 ```
 
-*Generates a threshold key that requires two keys to sign, and contains a random key, an ED25519 private key, and an ECDSAsecp256k1 public key that is paired with the input ECDSAsecp256k1 private key*
+*Generates a threshold key that requires two keys to sign, and contains an ECDSAsecp256k1 private key, an ED25519 private key, and an ECDSAsecp256k1 public key that is paired with the input ECDSAsecp256k1 private key*
 ```json
 {
   "jsonrpc": "2.0",
@@ -217,7 +198,9 @@ Method used to generate a Hedera Key.
     "type": "thresholdKey",
     "threshold": 2,
     "keys": [
-      {},
+      {
+        "type": "ecdsaSecp256k1PrivateKey"
+      },
       {
         "type": "ed25519PrivateKey"
       },
@@ -240,7 +223,7 @@ Method used to generate a Hedera Key.
 }
 ```
 
-*Generate a key list that contains two key lists. The first key list contains an ED25519 private key, a random key, and an ECDSAsecp256k1 public key that is paired with the input ECDSAsecp256k1 private key. The second key list contains an ECDSAsecp256k1 private key, a threshold key, and a random key. The threshold key requires two keys to sign, and contains two random keys and an ED25519 public key that is paired with the input ED25519 private key.*
+*Generate a key list that contains two key lists. The first key list contains an ED25519 private key, an ED25519 public key, and an ECDSAsecp256k1 public key that is paired with the input ECDSAsecp256k1 private key. The second key list contains an ECDSAsecp256k1 private key, a threshold key, and an ED25519 private key. The threshold key requires two keys to sign, and contains an ED25519 public key, and ECDSAsecp256k1 public key, and an ED25519 public key that is paired with the input ED25519 private key.*
 ```json
 {
   "jsonrpc": "2.0",
@@ -255,7 +238,9 @@ Method used to generate a Hedera Key.
           {
             "type": "ed25519PrivateKey"
           },
-          {},
+          {
+            "type": "ed25519PublicKey"
+          },
           {
             "type": "ecdsaSecp256k1PublicKey",
             "fromKey": "3030020100300706052b8104000A04220420E8f32E723DECF4051AEFAC8E2C93C9C5B214313817CDB01A1494B917C8436B35"
@@ -272,15 +257,21 @@ Method used to generate a Hedera Key.
             "type": "thresholdKey",
             "threshold": 2,
             "keys": [
-              {},
-              {},
+              {
+                "type": "ed25519PublicKey"
+              },
+              {
+                "type": "ecdsaSecp256k1PublicKey"
+              },
               {
                 "type": "ed25519PublicKey",
                 "fromKey": "302E020100300506032B657004220420C036915D924E5B517FAE86CE34D8C76005CB5099798A37A137831FF5E3DC0622"
               }
             ]
           },
-          {}
+          {
+            "type": "ed25519PrivateKey"
+          }
         ]
       }
     ]
