@@ -16,7 +16,7 @@ describe("AccountUpdateTransaction", function () {
     await setOperator(process.env.OPERATOR_ACCOUNT_ID, process.env.OPERATOR_ACCOUNT_PRIVATE_KEY);
 
     // Generate a private key.
-    let response = await JSONRPCRequest("generatePrivateKey", {
+    let response = await JSONRPCRequest("generateKey", {
       type: "privateKey"
     });
     if (response.status === "NOT_IMPLEMENTED") this.skip();
