@@ -100,9 +100,15 @@ describe("AccountCreateTransaction", function () {
       const keyList = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
-          {},
-          {},
-          {}
+          {
+            "type": "ed25519PrivateKey"
+          },
+          {
+            "type": "ecdsaSecp256k1PublicKey"
+          },
+          {
+            "type": "ed25519PublicKey"
+          }
         ]
       });
       if (keyList.status === "NOT_IMPLEMENTED") this.skip();
@@ -125,22 +131,34 @@ describe("AccountCreateTransaction", function () {
           {
             type: "keyList",
             keys: [
-              {},
-              {}
+              {
+                "type": "ecdsaSecp256k1PublicKey"
+              },
+              {
+                "type": "ecdsaSecp256k1PrivateKey"
+              }
             ]
           },
           {
             type: "keyList",
             keys: [
-              {},
-              {}
+              {
+                "type": "ecdsaSecp256k1PublicKey"
+              },
+              {
+                "type": "ed25519PublicKey"
+              }
             ]
           },
           {
             type: "keyList",
             keys: [
-              {},
-              {}
+              {
+                "type": "ed25519PrivateKey"
+              },
+              {
+                "type": "ecdsaSecp256k1PublicKey"
+              }
             ]
           }
         ]
@@ -197,7 +215,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#1) Creates an account with an initial balance", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with an initial balance of 100 tinybars.
@@ -214,7 +234,9 @@ describe("AccountCreateTransaction", function () {
     
     it("(#2) Creates an account with no initial balance", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with an initial balance of 0 tinybars.
@@ -231,7 +253,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#3) Creates an account with a negative initial balance", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -256,7 +280,9 @@ describe("AccountCreateTransaction", function () {
       const operatorAccountBalance = Number(operatorBalanceData.balances[0].balance);
 
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -286,13 +312,13 @@ describe("AccountCreateTransaction", function () {
     it("(#1) Creates an account that requires a receiving signature", async function () {
       // Generate a valid private key for the account.
       const privateKey = await JSONRPCRequest("generateKey", {
-        type: "privateKey"
+        type: "ed25519PrivateKey"
       });
       if (privateKey.status === "NOT_IMPLEMENTED") this.skip();
       
       // Generate a valid public key from the generated private key.
       const publicKey = await JSONRPCRequest("generateKey", {
-        type: "publicKey",
+        type: "ed25519PublicKey",
         fromKey: privateKey.key
       });
       if (publicKey.status === "NOT_IMPLEMENTED") this.skip();
@@ -315,8 +341,10 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#2) Creates an account that doesn't require a receiving signature", async function () {
-      // Generate a valid private key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account that doesn't require a signature when receiving.
@@ -332,8 +360,10 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#3) Creates an account that requires a receiving signature but isn't signed by the account key", async function () {
-      // Generate a valid public key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -362,7 +392,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#1) Creates an account with an auto renew period set to 60 days (5,184,000 seconds)", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with an auto-renew period set to 60 days.
@@ -379,7 +411,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#2) Creates an account with an auto renew period set to -1 seconds", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -400,7 +434,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#3) Creates an account with an auto renew period set to the minimum period of 30 days (2,592,000 seconds)", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with an auto-renew period set to 30 days.
@@ -417,7 +453,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#4) Creates an account with an auto renew period set to the minimum period of 30 days minus one second (2,591,999 seconds)", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -438,7 +476,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#5) Creates an account with an auto renew period set to the maximum period of 8,000,001 seconds", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with an auto-renew period set to 90ish days.
@@ -455,7 +495,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#6) Creates an account with an auto renew period set to the maximum period plus one seconds (8,000,002 seconds)", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -484,7 +526,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#1) Creates an account with a valid memo", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with a memo set to "testmemo".
@@ -501,7 +545,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#2) Creates an account with an empty memo", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with an empty memo.
@@ -518,7 +564,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#3) Creates an account with a memo that is 100 characters", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with a memo set to the maximum length.
@@ -535,7 +583,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#4) Creates an account with a memo that exceeds 100 characters", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -564,7 +614,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#1) Creates an account with a max token association set to 100", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the max automatic token associations set to 100.
@@ -581,7 +633,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#2) Creates an account with a max token association set to 0", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the max automatic token associations set to 0.
@@ -598,7 +652,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#3) Creates an account with a max token association that is the maximum value", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the max automatic token associations set to the maximum value.
@@ -615,7 +671,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#4) Creates an account with a max token association that is the maximum value plus one", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -650,7 +708,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#1) Creates an account with the staked account ID set to the operators account ID", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the staked account ID set to the operator's account ID.
@@ -666,7 +726,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#2) Creates an account with the staked node ID set to a valid node ID", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       // Attempt to create an account with the staked node ID set to the node's node ID.
@@ -683,7 +745,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#3) Creates an account with the staked account ID set to an account ID that doesn't exist", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       try {
@@ -704,7 +768,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#4) Creates an account with the staked node ID set to a node ID that doesn't exist", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       try {
@@ -725,7 +791,9 @@ describe("AccountCreateTransaction", function () {
     
     it("(#5) Creates an account with the staked account ID set to an empty account ID", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       try {
@@ -746,7 +814,9 @@ describe("AccountCreateTransaction", function () {
     
     it("(#6) Creates an account with the staked node ID set to an invalid node ID", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
       
       try {
@@ -767,7 +837,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#7) Creates an account with a staked account ID and a staked node ID", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with a staked account ID and a staked node ID.
@@ -793,7 +865,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#1) Creates an account that declines staking rewards", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with that declines staking rewards.
@@ -810,7 +884,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#2) Creates an account that doesn't decline staking rewards", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Attempt to create an account with that doesn't decline staking rewards.
@@ -835,7 +911,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#1) Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Generate the ECDSAsecp256k1 private key of the alias for the account.
@@ -867,7 +945,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#2) Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key without a signature", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       // Generate the EVM address to be used as the alias for the account.
@@ -893,7 +973,9 @@ describe("AccountCreateTransaction", function () {
 
     it("(#3) Creates an account with an invalid alias", async function () {
       // Generate a valid key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        "type": "ed25519PublicKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
