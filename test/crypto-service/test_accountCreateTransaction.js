@@ -662,6 +662,9 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
         maxAutoTokenAssociations: maxAutoTokenAssociations,
+        commonTransactionParams: {
+          maxTransactionFee: 10000000000
+        }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -681,6 +684,9 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createAccount", {
           key: key.key,
           maxAutoTokenAssociations: 5001,
+          commonTransactionParams: {
+            maxTransactionFee: 10000000000
+          }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
