@@ -663,7 +663,7 @@ describe("AccountCreateTransaction", function () {
         key: key.key,
         maxAutoTokenAssociations: maxAutoTokenAssociations,
         commonTransactionParams: {
-          maxTransactionFee: 10000000000
+          maxTransactionFee: 100000000000
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -685,7 +685,7 @@ describe("AccountCreateTransaction", function () {
           key: key.key,
           maxAutoTokenAssociations: 5001,
           commonTransactionParams: {
-            maxTransactionFee: 10000000000
+            maxTransactionFee: 100000000000
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
