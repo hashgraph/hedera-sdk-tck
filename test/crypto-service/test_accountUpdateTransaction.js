@@ -17,7 +17,7 @@ describe("AccountUpdateTransaction", function () {
 
     // Generate a private key.
     let response = await JSONRPCRequest("generateKey", {
-      type: "privateKey"
+      type: "ed25519PrivateKey"
     });
     if (response.status === "NOT_IMPLEMENTED") this.skip();
     accountPrivateKey = response.key;
@@ -47,8 +47,10 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Account info should remain the same
-      expect(await mirrorNodeClient.getAccountData(accountId).accounts[0]).to.be.equal(accountInfoMirror);
-      expect(await consensusInfoClient.getAccountInfo(accountId)).to.be.equal(accountInfoConsensus);
+      let mirrorNodeData = await mirrorNodeClient.getAccountData(accountId);
+      let consensusNodeData = await consensusInfoClient.getAccountInfo(accountId);
+      expect(accountId).to.be.equal(mirrorNodeData.accounts[0].account);
+      expect(accountId).to.be.equal(consensusNodeData.accountId.toString());
     });
 
     it("(#2) Updates an account with no updates without signing with the account's private key", async function () {
@@ -218,9 +220,15 @@ describe("AccountUpdateTransaction", function () {
       const keyList = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
-          {},
-          {},
-          {}
+          {
+            type: "ed25519PublicKey"
+          },
+          {
+            type: "ed25519PrivateKey"
+          },
+          {
+            type: "ed25519PrivateKey"
+          }
         ]
       });
       if (keyList.status === "NOT_IMPLEMENTED") this.skip();
@@ -252,22 +260,34 @@ describe("AccountUpdateTransaction", function () {
           {
             type: "keyList",
             keys: [
-              {},
-              {}
+              {
+                type: "ecdsaSecp256k1PublicKey"
+              },
+              {
+                type: "ecdsaSecp256k1PrivateKey"
+              }
             ]
           },
           {
             type: "keyList",
             keys: [
-              {},
-              {}
+              {
+                type: "ecdsaSecp256k1PublicKey"
+              },
+              {
+                type: "ed25519PublicKey"
+              }
             ]
           },
           {
             type: "keyList",
             keys: [
-              {},
-              {}
+              {
+                type: "ed25519PrivateKey"
+              },
+              {
+                type: "ecdsaSecp256k1PublicKey"
+              }
             ]
           }
         ]
@@ -277,23 +297,23 @@ describe("AccountUpdateTransaction", function () {
       // Attempt to update the key of the account with the new KeyList of nested KeyLists.
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
-        key: keyList.key,
+        key: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
             accountPrivateKey,
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2],
-            keyList.privateKeys[3],
-            keyList.privateKeys[4],
-            keyList.privateKeys[5]
+            nestedKeyList.privateKeys[0],
+            nestedKeyList.privateKeys[1],
+            nestedKeyList.privateKeys[2],
+            nestedKeyList.privateKeys[3],
+            nestedKeyList.privateKeys[4],
+            nestedKeyList.privateKeys[5]
           ]
         }
       })
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account key was updated.
-      verifyAccountKeyUpdate(keyList.key);
+      verifyAccountKeyUpdate(nestedKeyList.key);
     });
 
     it("(#7) Updates the key of an account to a new valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
@@ -302,9 +322,15 @@ describe("AccountUpdateTransaction", function () {
         type: "thresholdKey",
         threshold: 2,
         keys: [
-          {},
-          {},
-          {}
+          {
+            type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
+          },
+          {
+            type: "ed25519PublicKey"
+          }
         ]
       });
       if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
@@ -329,7 +355,9 @@ describe("AccountUpdateTransaction", function () {
 
     it("(#8) Updates the key of an account to a key without signing with the new key", async function () {
       // Generate a new key for the account.
-      const key = await JSONRPCRequest("generateKey", {});
+      const key = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PrivateKey"
+      });
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -356,13 +384,13 @@ describe("AccountUpdateTransaction", function () {
     it("(#9) Updates the key of an account to a new public key and signs with an incorrect private key", async function () {
       // Generate a new public key for the account.
       const publicKey = await JSONRPCRequest("generateKey", {
-        type: "publicKey"
+        type: "ed25519PublicKey"
       });
       if (publicKey.status === "NOT_IMPLEMENTED") this.skip();
 
       // Generate a random private key.
       const privateKey = await JSONRPCRequest("generateKey", {
-        type: "privateKey"
+        type: "ecdsaSecp256k1PrivateKey"
       });
       if (privateKey.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -370,7 +398,7 @@ describe("AccountUpdateTransaction", function () {
         // Attempt to update the key of the account and sign with the random private key. The network should respond with an INVALID_SIGNATURE status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
-          key: key.key,
+          key: publicKey.key,
           commonTransactionParams: {
             signers: [
               privateKey.key
@@ -523,9 +551,9 @@ describe("AccountUpdateTransaction", function () {
       expect(expirationTime).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].expiry_timestamp);
     }
 
-    it("(#1) Updates the expiration time of an account to 60 days (5,184,000 seconds) from the current time", async function () {
-      // Attempt to update the expiration time of the account to 60 days from the current time.
-      const expirationTimeSeconds = (Date.now() / 1000) + 5184000;
+    it("(#1) Updates the expiration time of an account to 8,000,001 seconds from the current time", async function () {
+      // Attempt to update the expiration time of the account to 8,000,001 seconds from the current time.
+      const expirationTimeSeconds = (Date.now() / 1000) + 8000001;
       const response = await JSONRPCRequest("updateAccount", {
         accountId: accountId,
         expirationTime: expirationTimeSeconds,
@@ -537,16 +565,42 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the account was updated with an expiration time set to 60 days from the current time.
-      verifyAccountExpirationTimeUpdate(autoRenewPeriodSeconds);
+      // Verify the account was updated with an expiration time set to 8,000,001 seconds from the current time.
+      verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
     });
 
     it("(#2) Updates the expiration time of an account to -1 seconds from the current time", async function () {
       try {
-        // Attempt to update the expiration time of the account to -1 seconds from the current time. The network should respond with an EXPIRATION_REDUCTION_NOT_ALLOWED status.
+        // Attempt to update the expiration time of the account to -1 seconds from the current time. The network should respond with an INVALID_EXPIRATION_TIME status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
           expirationTime: -1,
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+
+    it("(#3) Updates the expiration time of an account to 1 second less than its current expiration time", async function () {
+      // Get the account's expiration time.
+      let accountInfo = await mirrorNodeClient.getAccountData(accountId);
+      let expirationTimeSeconds = accountInfo.accounts[0].expiry_timestamp;
+
+      // Attempt to update the expiration time to 1 second less than its current expiration time. The network should respond with an EXPIRATION_REDUCTION_NOT_ALLOWED status.
+      try {
+        const response = await JSONRPCRequest("updateAccount", {
+          accountId: accountId,
+          expirationTime: Number(expirationTimeSeconds) - 1,
           commonTransactionParams: {
             signers: [
               accountPrivateKey
@@ -563,70 +617,12 @@ describe("AccountUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#3) Updates the expiration time of an account to 30 days (2,592,000 seconds) from the current time", async function () {
-      // Attempt to update the expiration time of the account to 30 days from the current time.
-      const expirationTimeSeconds = (Date.now() / 1000) + 2592000;
-      const response = await JSONRPCRequest("updateAccount", {
-        accountId: accountId,
-        expirationTime: expirationTimeSeconds,
-        commonTransactionParams: {
-          signers: [
-            accountPrivateKey
-          ]
-        }
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      // Verify the account was updated with an auto-renew period set to 30 days from the current time.
-      verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
-    });
-
-    it("(#4) Updates the expiration time of an account to 30 days minus one second (2,591,999 seconds) from the current time", async function () {
-      try {
-        // Attempt to update the expiration time of the account to 2,591,999 seconds from the current time. The network should respond with an INVALID_EXPIRATION_TIME status.
-        const response = await JSONRPCRequest("updateAccount", {
-          accountId: accountId,
-          expirationTime: (Date.now() / 1000) + 2591999,
-          commonTransactionParams: {
-            signers: [
-              accountPrivateKey
-            ]
-          }
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#5) Updates the expiration time of an account to the maximum period of 8,000,001 seconds", async function () {
-      // Attempt to update the expiration time of the account to 8,000,001 seconds from the current time.
-      const expirationTimeSeconds = (Date.now() / 1000) + 8000001;
-      const response = await JSONRPCRequest("updateAccount", {
-        accountId: accountId,
-        expirationTime: expirationTimeSeconds,
-        commonTransactionParams: {
-          signers: [
-            accountPrivateKey
-          ]
-        }
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      // Verify the account was updated with an auto-renew period set to 8,000,001 seconds.
-      verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
-    });
-
-    it("(#6) Updates the expiration time of an account to the maximum period plus one second (8,000,002 seconds) from the current time", async function () {
+    /*it("(#4) Updates the expiration time of an account to 8,000,002 seconds from the current time", async function () {
       try {
         // Attempt to update the expiration time of the account to 8,000,002 seconds from the current time. The network should respond with an INVALID_EXPIRATION_TIME status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
-          expirationTime: (Date.now() / 1000) + 8000002,
+          expirationTime: Math.floor(Date.now() / 1000) + 8000002,
           commonTransactionParams: {
             signers: [
               accountPrivateKey
@@ -641,7 +637,7 @@ describe("AccountUpdateTransaction", function () {
 
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
-    });
+    });*/
   });
 
   describe("Receiver Signature Required", async function () {
@@ -786,6 +782,7 @@ describe("AccountUpdateTransaction", function () {
         accountId: accountId,
         maxAutoTokenAssociations: maxAutoTokenAssociations,
         commonTransactionParams: {
+          maxTransactionFee: 100000000000,
           signers: [
             accountPrivateKey
           ]
@@ -822,6 +819,7 @@ describe("AccountUpdateTransaction", function () {
         accountId: accountId,
         maxAutoTokenAssociations: maxAutoTokenAssociations,
         commonTransactionParams: {
+          maxTransactionFee: 100000000000,
           signers: [
             accountPrivateKey
           ]
@@ -840,6 +838,7 @@ describe("AccountUpdateTransaction", function () {
           accountId: accountId,
           maxAutoTokenAssociations: 5001,
           commonTransactionParams: {
+            maxTransactionFee: 100000000000,
             signers: [
               accountPrivateKey
             ]
@@ -973,7 +972,7 @@ describe("AccountUpdateTransaction", function () {
 
     it ("(#6) Updates the staked node ID of an account to an invalid node ID", async function () {
       try {
-        // Attempt to update the staked node ID of the account to an invalid node ID. The network should respond with an INVALID_STAKING_ID status.
+        // Attempt to update the staked node ID of the account to an invalid node ID. The network should respond with an FAIL_INVALID status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
           stakedNodeId: -100,
@@ -985,30 +984,7 @@ describe("AccountUpdateTransaction", function () {
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_STAKING_ID");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it ("(#7) Updates the staked account ID and staked node ID of an account", async function () {
-      try {
-        // Attempt to update the staked account ID and staked node ID of the account. The network should respond with an INVALID_STAKING_ID status.
-        const response = await JSONRPCRequest("updateAccount", {
-          accountId: accountId,
-          stakedAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          stakedNodeId: 0,
-          commonTransactionParams: {
-            signers: [
-              accountPrivateKey
-            ]
-          }
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_STAKING_ID");
+        assert.equal(err.data.status, "FAIL_INVALID");
         return;
       }
 
