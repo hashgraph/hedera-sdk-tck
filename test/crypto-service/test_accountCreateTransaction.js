@@ -603,6 +603,29 @@ describe("AccountCreateTransaction", function () {
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
+
+    it("(#5) Creates an account with an invalid memo", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      try {
+        // Attempt to create an account with an invalid memo. The network should respond with an INVALID_ZERO_BYTE_IN_STRING status.
+        const response = await JSONRPCRequest("createAccount", {
+          key: key.key,
+          memo: "This is an invalid memo!\0",
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_ZERO_BYTE_IN_STRING");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
   });
 
   describe("Max Automatic Token Associations", async function () {
