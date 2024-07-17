@@ -33,12 +33,38 @@ describe("AccountDeleteTransaction", function () {
     await JSONRPCRequest("reset");
   });
 
-  describe("DeleteAccountId", async function () {
-    it("(#1) Deletes an account without a transfer account", async function () {
+  describe("Delete Account Id", async function () {
+    it("(#1) Deletes an account", async function () {
+      // Attempt to delete the account and transfer its funds to the operator account.
+      const response = await JSONRPCRequest("deleteAccount", {
+        deleteAccountId: accountId,
+        transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        commonTransactionParams: {
+          signers: [
+            accountPrivateKey
+          ]
+        }
+      })
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      // Only look at the consensus node here because the mirror node data can be populated yet still take a couple seconds to fully update.
+      // AccountInfoQuery throws if the account is deleted, so catch that and verify the status code maps correctly.
       try {
-        // Attempt to delete the account without a transfer account. The network should respond with an ACCOUNT_ID_DOES_NOT_EXIST status.
+        let _ = await consensusInfoClient.getAccountInfo(accountId);
+      } catch (err) {
+        assert.equal(err.status._code, 72); // 72 maps to ACCOUNT_DELETED
+        return;
+      }
+      
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+
+    it("(#2) Deletes an account with no delete account", async function () {
+      try {
+        // Attempt to delete the account without a delete account. The network should respond with an ACCOUNT_ID_DOES_NOT_EXIST status.
         const response = await JSONRPCRequest("deleteAccount", {
-          deleteAccountId: accountId,
+          transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
           commonTransactionParams: {
             signers: [
               accountPrivateKey
@@ -55,53 +81,56 @@ describe("AccountDeleteTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#2) Deletes an account with no delete account ID", async function () {
+    it("(#3) Deletes an admin account", async function () {
       try {
-        // Attempt to delete the account without providing the account ID. The network should respond with an ACCOUNT_ID_DOES_NOT_EXIST status.
-        const response = await JSONRPCRequest("deleteAccount", {});
+        // Attempt to delete an admin account. The network should respond with an ENTITY_NOT_ALLOWED_TO_DELETE status.
+        const response = await JSONRPCRequest("deleteAccount", {
+          deleteAccountId: "0.0.2",
+          transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch(err) {
-        assert.equal(err.data.status, "ACCOUNT_ID_DOES_NOT_EXIST");
+        assert.equal(err.data.status, "ENTITY_NOT_ALLOWED_TO_DELETE");
         return;
       }
 
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
-  });
 
-  describe("TransferAccountId", async function () {
-    it("(#1) Deletes an account with a transfer account", async function () {
-      // Attempt to delete the account and transfer its funds to the operator account.
-      const response = await JSONRPCRequest("deleteAccount", {
-        deleteAccountId: accountId,
-        transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        commonTransactionParams: {
-          signers: [
-            accountPrivateKey
-          ]
-        }
-      })
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      // Only look at the consensus node here because the mirror node data can be populated yet still take a couple seconds to fully update.
+    it("(#4) Deletes an account that doesn't exist", async function () {
       try {
-        let _ = await consensusInfoClient.getAccountInfo(accountId);
-      } catch (err) {
-        assert.equal(err.status._code, 72); // 72 maps to ACCOUNT_DELETED
+        // Attempt to delete an account that doesn't exist. The network should respond with an INVALID_ACCOUNT_ID status.
+        const response = await JSONRPCRequest("deleteAccount", {
+          deleteAccountId: "123.456.789",
+          transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          commonTransactionParams: {
+            signers: [
+              accountPrivateKey
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch(err) {
+        assert.equal(err.data.status, "INVALID_ACCOUNT_ID");
         return;
       }
-      
+
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#2) Deletes an account without signing with the account's private key", async function () {
+    it("(#5) Deletes an account without signing with the account's private key", async function () {
       try {
         // Attempt to delete the account without signing with the account's private key. The network should respond with an INVALID_SIGNATURE status.
         const response = await JSONRPCRequest("deleteAccount", {
-            deleteAccountId: accountId,
-            transferAccountId: process.env.OPERATOR_ACCOUNT_ID
+          deleteAccountId: accountId,
+          transferAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch(err) {
@@ -113,7 +142,58 @@ describe("AccountDeleteTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#3) Deletes an account with a transfer account that is the deleted account", async function () {
+    it("(#6) Deletes an account but signs with an incorrect private key", async function () {
+      // Generate a private key.
+      let key = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      try {
+        // Attempt to delete the account and sign with an incorrect private key. The network should respond with an INVALID_SIGNATURE status.
+        const response = await JSONRPCRequest("deleteAccount", {
+          deleteAccountId: accountId,
+          transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          commonTransactionParams: {
+            signers: [
+              key.key
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch(err) {
+        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+  });
+
+  describe("Transfer Account Id", async function () {
+    it("(#1) Deletes an account with no transfer account", async function () {
+      try {
+        // Attempt to delete the account with no transfer account. The network should respond with an ACCOUNT_ID_DOES_NOT_EXIST status.
+        const response = await JSONRPCRequest("deleteAccount", {
+            deleteAccountId: accountId,
+            commonTransactionParams: {
+              signers: [
+                accountPrivateKey
+              ]
+            }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch(err) {
+        assert.equal(err.data.status, "ACCOUNT_ID_DOES_NOT_EXIST");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
+
+    it("(#2) Deletes an account with a transfer account that is the deleted account", async function () {
       try {
         // Attempt to delete the account with a transfer account that is the deleted account. The network should respond with an TRANSFER_ACCOUNT_SAME_AS_DELETE_ACCOUNT status.
         const response = await JSONRPCRequest("deleteAccount", {
@@ -135,12 +215,12 @@ describe("AccountDeleteTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#4) Deletes an account with a transfer account that is invalid/doesn't exist", async function () {
+    it("(#3) Deletes an account with a transfer account that is invalid/doesn't exist", async function () {
       try {
         // Attempt to delete the account with a transfer account that is the deleted account. The network should respond with an INVALID_TRANSFER_ACCOUNT_ID status.
         const response = await JSONRPCRequest("deleteAccount", {
           deleteAccountId: accountId,
-          transferAccountId: "1000000.0.0",
+          transferAccountId: "123.456.789",
           commonTransactionParams: {
             signers: [
               accountPrivateKey
