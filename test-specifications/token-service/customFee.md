@@ -33,7 +33,7 @@ Custom fees can be added to tokens that will be charged users automatically when
 |----------------|-------------|-------------------|------------------------------------------------------------------------------------------------------------|
 | numerator      | int64       | required          | The numerator of the fraction of the amount to be assessed as a fee.                                       |
 | denominator    | int64       | required          | The denominator of the fraction of the amount to be assessed as a fee.                                     |
-| fixedFee       | json object | optional          | The [fixed fee](#fixed-fee-object-definition) to assess to the receiver if no fungible value is exchanged. |
+| fallbackFee    | json object | optional          | The [fixed fee](#fixed-fee-object-definition) to assess to the receiver if no fungible value is exchanged. |
 
 ## Example Usage
 
