@@ -235,7 +235,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 
 ### **Treasury Account:**
 
-- The number of tokens to be created.
+- The account that will hold the token "treasury" and receive all minted tokens.
 
 | Test no | Name                                                                                   | Input                                                                                                                                       | Expected response                                                                                   | Implemented (Y/N) |
 |---------|----------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|-------------------|
