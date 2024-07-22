@@ -569,9 +569,9 @@ describe("AccountUpdateTransaction", function () {
       verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
     });
 
-    it("(#2) Updates the expiration time of an account to -1 seconds from the current time", async function () {
+    it("(#2) Updates the expiration time of an account to -1 seconds", async function () {
       try {
-        // Attempt to update the expiration time of the account to -1 seconds from the current time. The network should respond with an INVALID_EXPIRATION_TIME status.
+        // Attempt to update the expiration time of the account to -1 seconds. The network should respond with an INVALID_EXPIRATION_TIME status.
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
           expirationTime: -1,
