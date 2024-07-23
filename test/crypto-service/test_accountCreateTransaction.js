@@ -1,7 +1,7 @@
 import { JSONRPCRequest } from "../../client.js";
 import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
-import { setOperator, getNodeType } from "../../setup_Tests.js";
+import { setOperator } from "../../setup_Tests.js";
 import crypto from "crypto";
 import { assert, expect } from "chai";
 
