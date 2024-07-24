@@ -298,7 +298,7 @@ describe("AccountDeleteTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
-        // Attempt to delete the account again. The network should respond with an ACCOUNT_DELETED status.
+        // Attempt to delete the account with the deleted account as the transfer account. The network should respond with an ACCOUNT_DELETED status.
         response = await JSONRPCRequest("deleteAccount", {
           deleteAccountId: accountId,
           transferAccountId: deletedAccountId,
