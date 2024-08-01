@@ -687,10 +687,7 @@ describe("AccountCreateTransaction", function () {
       const maxAutoTokenAssociations = 5000;
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
-        maxAutoTokenAssociations: maxAutoTokenAssociations,
-        commonTransactionParams: {
-          maxTransactionFee: 100000000000
-        }
+        maxAutoTokenAssociations: maxAutoTokenAssociations
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -706,17 +703,14 @@ describe("AccountCreateTransaction", function () {
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
-        // Attempt to create an account with the max automatic token associations over the maximum value. The network should respond with an REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT status.
+        // Attempt to create an account with the max automatic token associations over the maximum value. The network should respond with an INVALID_MAX_AUTO_ASSOCIATIONS status.
         const response = await JSONRPCRequest("createAccount", {
           key: key.key,
-          maxAutoTokenAssociations: 5001,
-          commonTransactionParams: {
-            maxTransactionFee: 100000000000
-          }
+          maxAutoTokenAssociations: 5001
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT");
+        assert.equal(err.data.status, "INVALID_MAX_AUTO_ASSOCIATIONS");
         return;
       }
       
