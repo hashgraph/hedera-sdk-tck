@@ -1,7 +1,7 @@
 import { JSONRPCRequest } from "../../client.js";
 import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
-import { setOperator, getNodeType } from "../../setup_Tests.js";
+import { setOperator } from "../../setup_Tests.js";
 import crypto from "crypto";
 import { assert, expect } from "chai";
 
@@ -603,6 +603,29 @@ describe("AccountCreateTransaction", function () {
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
+
+    it("(#5) Creates an account with an invalid memo", async function () {
+      // Generate a valid key for the account.
+      const key = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (key.status === "NOT_IMPLEMENTED") this.skip();
+
+      try {
+        // Attempt to create an account with an invalid memo. The network should respond with an INVALID_ZERO_BYTE_IN_STRING status.
+        const response = await JSONRPCRequest("createAccount", {
+          key: key.key,
+          memo: "This is an invalid memo!\0",
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_ZERO_BYTE_IN_STRING");
+        return;
+      }
+
+      // The test failed, no error was thrown.
+      assert.fail("Should throw an error");
+    });
   });
 
   describe("Max Automatic Token Associations", async function () {
@@ -624,6 +647,9 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
         maxAutoTokenAssociations: maxAutoTokenAssociations,
+        commonTransactionParams: {
+          maxTransactionFee: 100000000000
+        }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -661,10 +687,7 @@ describe("AccountCreateTransaction", function () {
       const maxAutoTokenAssociations = 5000;
       const response = await JSONRPCRequest("createAccount", {
         key: key.key,
-        maxAutoTokenAssociations: maxAutoTokenAssociations,
-        commonTransactionParams: {
-          maxTransactionFee: 100000000000
-        }
+        maxAutoTokenAssociations: maxAutoTokenAssociations
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -680,17 +703,14 @@ describe("AccountCreateTransaction", function () {
       if (key.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
-        // Attempt to create an account with the max automatic token associations over the maximum value. The network should respond with an REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT status.
+        // Attempt to create an account with the max automatic token associations over the maximum value. The network should respond with an INVALID_MAX_AUTO_ASSOCIATIONS status.
         const response = await JSONRPCRequest("createAccount", {
           key: key.key,
-          maxAutoTokenAssociations: 5001,
-          commonTransactionParams: {
-            maxTransactionFee: 100000000000
-          }
+          maxAutoTokenAssociations: 5001
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "REQUESTED_NUM_AUTOMATIC_ASSOCIATIONS_EXCEEDS_ASSOCIATION_LIMIT");
+        assert.equal(err.data.status, "INVALID_MAX_AUTO_ASSOCIATIONS");
         return;
       }
       
@@ -988,7 +1008,7 @@ describe("AccountCreateTransaction", function () {
         // Attempt to create an account with an invalid alias. The network should respond with an INVALID_SIGNATURE status.
         const response = await JSONRPCRequest("createAccount", {
           key: key.key,
-          alias: crypto.randomBytes(20).toString('hex').toUpperCase()
+          alias: "0x" + crypto.randomBytes(20).toString('hex').toUpperCase()
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
