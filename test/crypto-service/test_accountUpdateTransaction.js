@@ -227,7 +227,10 @@ describe("AccountUpdateTransaction", function () {
             type: "ed25519PrivateKey"
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
