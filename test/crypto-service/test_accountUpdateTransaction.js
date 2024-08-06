@@ -71,11 +71,11 @@ describe("AccountUpdateTransaction", function () {
 
     it("(#3) Updates an account with no account ID", async function () {
       try {
-        // Attempt to update the account without providing the account ID. The network should respond with an INVALID_ACCOUNT_ID status.
+        // Attempt to update the account without providing the account ID. The network should respond with an ACCOUNT_ID_DOES_NOT_EXIST status.
         const response = await JSONRPCRequest("updateAccount", {});
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch(err) {
-        assert.equal(err.data.status, "INVALID_ACCOUNT_ID");
+        assert.equal(err.data.status, "ACCOUNT_ID_DOES_NOT_EXIST");
         return;
       }
 

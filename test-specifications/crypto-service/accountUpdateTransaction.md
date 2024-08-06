@@ -60,11 +60,11 @@ The tests contained in this specification will assume that a valid account was a
 
 - The ID of the account to update.
 
-| Test no | Name                                                                              | Input                                                                                              | Expected response                                                                   | Implemented (Y/N) |
-|---------|-----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|-------------------|
-| 1       | Updates an account with no updates                                                | accountId=<CREATED_ACCOUNT_ID>, commonTransactionParams.signers=[<PRIVATE_KEY_OF_CREATED_ACCOUNT>] | The account update succeeds.                                                        | Y                 |
-| 2       | Updates an account with no updates without signing with the account's private key | accountId=<CREATED_ACCOUNT_ID>                                                                     | The account update fails with an INVALID_SIGNATURE response code from the network.  | Y                 |
-| 3       | Updates an account with no account ID                                             |                                                                                                    | The account update fails with an INVALID_ACCOUNT_ID response code from the network. | Y                 |
+| Test no | Name                                                                              | Input                                                                                              | Expected response                                                                          | Implemented (Y/N) |
+|---------|-----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|-------------------|
+| 1       | Updates an account with no updates                                                | accountId=<CREATED_ACCOUNT_ID>, commonTransactionParams.signers=[<PRIVATE_KEY_OF_CREATED_ACCOUNT>] | The account update succeeds.                                                               | Y                 |
+| 2       | Updates an account with no updates without signing with the account's private key | accountId=<CREATED_ACCOUNT_ID>                                                                     | The account update fails with an INVALID_SIGNATURE response code from the network.         | Y                 |
+| 3       | Updates an account with no account ID                                             |                                                                                                    | The account update fails with an ACCOUNT_ID_DOES_NOT_EXIST response code from the network. | Y                 |
 
 #### JSON Request Example
 
