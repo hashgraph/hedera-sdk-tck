@@ -36,7 +36,7 @@ Install packages with npm
 
 Run specific test file
 
-    npm run test test/account/test_CreateAccount.js
+    npm run test test/account/test_accountCreateTransaction.js
 
 Run all tests
 
