@@ -243,7 +243,10 @@ describe("AccountUpdateTransaction", function () {
         commonTransactionParams: {
           signers: [
             accountPrivateKey,
-            keyList.privateKeys[0],
+   keyList.privateKeys[0],
+   keyList.privateKeys[1],
+   keyList.privateKeys[2],
+   keyList.privateKeys[3],
             keyList.privateKeys[1],
             keyList.privateKeys[2]
           ]
