@@ -33,7 +33,7 @@ describe("AccountUpdateTransaction", function () {
     await JSONRPCRequest("reset");
   });
 
-  /*describe("AccountId", async function () {
+  describe("AccountId", async function () {
     it("(#1) Updates an account with no updates", async function () {
       // Attempt to update the account.
       const response = await JSONRPCRequest("updateAccount", {
@@ -546,7 +546,7 @@ describe("AccountUpdateTransaction", function () {
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
-  });*/
+  });
 
   describe("Expiration Time", async function () {
     async function verifyAccountExpirationTimeUpdate(expirationTime) {
