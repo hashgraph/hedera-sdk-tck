@@ -16,6 +16,11 @@ class MirrorNodeClient {
     return this.retryUntilData(url, 'balances');
   }
 
+  async getTokenData(tokenId) {
+    const url = `${this.mirrorNodeRestUrl}/api/v1/tokens?token.id=${tokenId}`;
+    return this.retryUntilData(url, 'tokens');
+  }
+
   async retryUntilData(url, dataKey) {
     const maxRetries = Math.floor(this.NODE_TIMEOUT / 1000); // retry once per second
     let retries = 0;
