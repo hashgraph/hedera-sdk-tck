@@ -4,13 +4,13 @@ Custom fees can be added to tokens that will be charged users automatically when
 
 ## Custom Fee Object Definition
 
-| Parameter Name      | Type        | Required/Optional | Description/Notes                                                                                                                                      |
-|---------------------|-------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| feeCollectorAccount | string      | required          | The ID of the account to which all fees will be sent when assessed.                                                                                    |
-| feeCollectorsExempt | bool        | required          | Should all fee collector accounts of any fee for this token be exempt from being charged fees when transferring this token?                            |
-| fixedFee            | json object | optional          | MUST be provided if `fractionalFee` and `royaltyFee` are not provided. The parameters of the [Fixed Fee](#fixed-fee-object-definition) to assess.      |
-| fractionalFee       | json object | optional          | MUST be provided if `fixedFee` and `royaltyFee` are not provided. The parameters of the [Fractional Fee](#fractional-fee-object-definition) to assess. |
-| royaltyFee          | json object | optional          | MUST be provided if `fixedFee` and `fractionalFee` are not provided. The parameters of the [Royalty Fee](#royalty-fee-object-definition) to assess.    |
+| Parameter Name      | Type        | Required/Optional | Description/Notes                                                                                                                              |
+|---------------------|-------------|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
+| feeCollectorAccount | string      | required          | The ID of the account to which all fees will be sent when assessed.                                                                            |
+| feeCollectorsExempt | bool        | required          | Should all fee collector accounts of any fee for this token be exempt from being charged fees when transferring this token?                    |
+| fixedFee            | json object | optional          | REQUIRED if `fractionalFee` and `royaltyFee` are not provided. The parameters of the [Fixed Fee](#fixed-fee-object-definition) to assess.      |
+| fractionalFee       | json object | optional          | REQUIRED if `fixedFee` and `royaltyFee` are not provided. The parameters of the [Fractional Fee](#fractional-fee-object-definition) to assess. |
+| royaltyFee          | json object | optional          | REQUIRED if `fixedFee` and `fractionalFee` are not provided. The parameters of the [Royalty Fee](#royalty-fee-object-definition) to assess.    |
 
 ### Fixed Fee Object Definition
 
