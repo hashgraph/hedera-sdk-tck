@@ -4,11 +4,13 @@ Custom fees can be added to tokens that will be charged users automatically when
 
 ## Custom Fee Object Definition
 
-| Parameter Name      | Type         | Required/Optional | Description/Notes                                                                                                                                                                                                                                                                          |
-|---------------------|--------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| feeCollectorAccount | string       | required          | The ID of the account to which all fees will be sent when assessed.                                                                                                                                                                                                                        |
-| feeCollectorsExempt | bool         | required          | Should all fee collector accounts of any fee for this token be exempt from being charged fees when transferring this token?                                                                                                                                                                |
-| fee                 | json object  | required          | The parameters of the fee to assess. It MUST be one of the structures described in [Fixed Fee Object Definition](#fixed-fee-object-definition), [Fractional Fee Object Definition](#fractional-fee-object-definition), or [Royalty Fee Object Definition](#royalty-fee-object-definition). |
+| Parameter Name      | Type        | Required/Optional | Description/Notes                                                                                                                                      |
+|---------------------|-------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| feeCollectorAccount | string      | required          | The ID of the account to which all fees will be sent when assessed.                                                                                    |
+| feeCollectorsExempt | bool        | required          | Should all fee collector accounts of any fee for this token be exempt from being charged fees when transferring this token?                            |
+| fixedFee            | json object | optional          | MUST be provided if `fractionalFee` and `royaltyFee` are not provided. The parameters of the [Fixed Fee](#fixed-fee-object-definition) to assess.      |
+| fractionalFee       | json object | optional          | MUST be provided if `fixedFee` and `royaltyFee` are not provided. The parameters of the [Fractional Fee](#fractional-fee-object-definition) to assess. |
+| royaltyFee          | json object | optional          | MUST be provided if `fixedFee` and `fractionalFee` are not provided. The parameters of the [Royalty Fee](#royalty-fee-object-definition) to assess.    |
 
 ### Fixed Fee Object Definition
 
@@ -33,25 +35,57 @@ Custom fees can be added to tokens that will be charged users automatically when
 |----------------|-------------|-------------------|------------------------------------------------------------------------------------------------------------|
 | numerator      | int64       | required          | The numerator of the fraction of the amount to be assessed as a fee.                                       |
 | denominator    | int64       | required          | The denominator of the fraction of the amount to be assessed as a fee.                                     |
-| fallbackFee    | json object | optional          | The [fixed fee](#fixed-fee-object-definition) to assess to the receiver if no fungible value is exchanged. |
+| fallbackFee    | json object | optional          | The [Fixed Fee](#fixed-fee-object-definition) to assess to the receiver if no fungible value is exchanged. |
 
 ## Example Usage
 
-If the `createAccount` method were to contain this object and name it `"commonTransactionParams"`, its usage would look like:
+If the `createToken` method were to contain a custom fee of each type, its usage would look like:
 
 ```json
 {
   "jsonrpc": "2.0",
   "id": 99232,
-  "method": "createAccount",
+  "method": "createToken",
   "params": {
-    "key": "302a300506032b6570032100e9a0f9c81b3a2bb81a4af5fe05657aa849a3b9b0705da1fb52f331f42cf4b496",
-    "receiverSignatureRequired": true,
-    "commonTransactionParams": {
-      "signers": [
-        "302e020100300506032b65700422042031f8eb3e77a04ebe599c51570976053009e619414f26bdd39676a5d3b2782a1d"
-      ]
-    }
+    "name": "name",
+    "symbol": "symbol",
+    "treasureAccountId": "0.0.547295",
+    "tokenType": "ft",
+    "customFees": [
+      {
+        "feeCollectorAccount": "0.0.9931",
+        "feeCollectorsExempt": true,
+        "fixedFee": {
+          "amount": 10,
+          "denominatingTokenId": "0.0.8228"
+        }
+      },
+      {
+        "feeCollectorAccount": "0.0.3467294",
+        "feeCollectorsExempt": false,
+        "fractionalFee": {
+          "numerator": 12,
+          "denominator": 29,
+          "minimumAmount": 50,
+          "maximumAmount": 5000,
+          "assessmentMethod": "inclusive"
+        }
+      },
+      {
+        "feeCollectorAccount": "0.0.437195",
+        "feeCollectorsExempt": true,
+        "royaltyFee": {
+          "numerator": 1,
+          "denominator": 94,
+          "fallbackFee": {
+            "amount": 25,
+            "denominatingTokenId": "0.0.67932"
+          }
+        }
+      }
+    ]
   }
 }
 ```
+
+**NOTE**: This example here is to demonstrate only how the fees would look in a JSON-RPC request. This request would not actually execute on the network as a royalty fee cannot be added to a fungible token.
