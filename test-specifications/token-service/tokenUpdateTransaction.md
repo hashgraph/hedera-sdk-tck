@@ -12,7 +12,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/sdks/token-service/update-a-token
 
 **TokenUpdate protobufs:**
 
-https://github.com/hashgraph/hedera-protobufs/blob/main/services/token_create.proto
+https://github.com/hashgraph/hedera-protobufs/blob/main/services/token_update.proto
 
 **Response codes:**
 
