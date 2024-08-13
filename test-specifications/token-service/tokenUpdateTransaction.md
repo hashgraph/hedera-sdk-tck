@@ -235,7 +235,7 @@ The tests contained in this specification will assume that two valid token were 
 {
   "jsonrpc": "2.0",
   "id": 12,
-  "method": "createToken",
+  "method": "updateToken",
   "params": {
     "tokenId": "0.0.6438",
     "adminKey": "302a300506032b6570032100e9a0f9c81b3a2bb81a4af5fe05657aa849a3b9b0705da1fb52f331f42cf4b496",
