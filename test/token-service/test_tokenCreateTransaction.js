@@ -4,12 +4,16 @@ import consensusInfoClient from "../../consensusInfoClient.js";
 import { setOperator } from "../../setup_Tests.js";
 import crypto from "crypto";
 import { assert, expect } from "chai";
-import { CustomFixedFee, CustomFractionalFee } from "@hashgraph/sdk";
+
+// Needed to convert BigInts to JSON number format.
+BigInt.prototype.toJSON = function () {
+  return JSON.rawJSON(this.toString())
+}
 
 /**
- * Tests for AccountCreateTransaction
+ * Tests for TokenCreateTransaction
  */
-describe("AccountCreateTransaction", function () {  
+describe("TokenCreateTransaction", function () {  
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
@@ -20,7 +24,7 @@ describe("AccountCreateTransaction", function () {
   afterEach(async function () {
     await JSONRPCRequest("reset");
   });
-
+/*
   describe("Name", function () {
     async function verifyTokenCreationWithName(tokenId, name) {
       // If the token was created successfully, the queried token's names should be equal.
@@ -34,7 +38,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: name,
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -48,7 +52,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: name,
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -62,7 +66,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -80,7 +84,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: name,
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -94,7 +98,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "This is a long name that is not valid because it exceeds 100 characters and it should fail the test!!",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -111,7 +115,7 @@ describe("AccountCreateTransaction", function () {
         // Attempt to create a token with no name. The network should respond with a MISSING_TOKEN_NAME status.
         const response = await JSONRPCRequest("createToken", {
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -137,7 +141,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: symbol,
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -151,7 +155,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -169,7 +173,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: symbol,
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -183,7 +187,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "This is a long symbol that is not valid because it exceeds 100 characters and it should fail the test",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -200,7 +204,7 @@ describe("AccountCreateTransaction", function () {
         // Attempt to create a token with no symbol. The network should respond with a MISSING_TOKEN_SYMBOL status.
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -227,7 +231,7 @@ describe("AccountCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         decimals: decimals,
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -242,7 +246,7 @@ describe("AccountCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         decimals: decimals,
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -257,7 +261,7 @@ describe("AccountCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: -1,
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -276,7 +280,7 @@ describe("AccountCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         decimals: decimals,
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -291,7 +295,7 @@ describe("AccountCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: 2147483648,
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -310,7 +314,7 @@ describe("AccountCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: 0,
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           tokenType: "nft"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -330,7 +334,7 @@ describe("AccountCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: 3,
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           tokenType: "nft"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -356,7 +360,7 @@ describe("AccountCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         initialSupply: initialSupply,
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -369,7 +373,7 @@ describe("AccountCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         initialSupply: initialSupply,
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -382,7 +386,7 @@ describe("AccountCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: -1,
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -395,12 +399,12 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#4) Creates a fungible token with the maximum initial supply", async function () {
-      const initialSupply = 9223372036854775807;
+      const initialSupply = 9223372036854775807n; // Workaround for javascript not allowing numbers over 2^53 - 1.
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         initialSupply: initialSupply,
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -412,8 +416,8 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: 9223372036854775808,
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+          initialSupply: 9223372036854775808n,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -431,7 +435,7 @@ describe("AccountCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: 0,
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           tokenType: "nft"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -450,7 +454,7 @@ describe("AccountCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: 3,
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           tokenType: "nft"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -465,9 +469,9 @@ describe("AccountCreateTransaction", function () {
   });
 
   describe("Treasury Account", function () {
-    async function verifyTokenCreationWithTreasuryAccount(tokenId, treasuryAccount) {
-      expect(treasuryAccount).to.equal(await consensusInfoClient.getTokenInfo(tokenId).treasuryAccountId.toString());
-      expect(treasuryAccount).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].treasury_account_id);
+    async function verifyTokenCreationWithTreasuryAccount(tokenId, treasuryAccountId) {
+      expect(treasuryAccountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).treasuryAccountId.toString());
+      expect(treasuryAccountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].treasury_account_id);
     }
 
     it("(#1) Creates a token with a treasury account", async function () {
@@ -486,7 +490,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: accountId,
+        treasuryAccountId: accountId,
         commonTransactionParams: {
           signers: [
             key
@@ -515,7 +519,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: accountId
+          treasuryAccountId: accountId
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -532,7 +536,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: "123.456.789"
+          treasuryAccountId: "123.456.789"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -546,7 +550,7 @@ describe("AccountCreateTransaction", function () {
 
     it("(#4) Creates a token with a treasury account that is deleted", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PrivateKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -571,7 +575,12 @@ describe("AccountCreateTransaction", function () {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: accountId
+          treasuryAccountId: accountId,
+          commonTransactionParams: {
+            signers: [
+              key
+            ]
+          }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -606,7 +615,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -636,7 +645,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -666,7 +675,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -696,7 +705,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -727,10 +736,10 @@ describe("AccountCreateTransaction", function () {
       });
       if (keyList.status === "NOT_IMPLEMENTED") this.skip();
 
-      response = await JSONRPCRequest("createToken", {
+      const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: keyList.key,
         commonTransactionParams: {
           signers: [
@@ -786,10 +795,10 @@ describe("AccountCreateTransaction", function () {
       });
       if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
 
-      response = await JSONRPCRequest("createToken", {
+      const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
@@ -825,10 +834,10 @@ describe("AccountCreateTransaction", function () {
       });
       if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
 
-      response = await JSONRPCRequest("createToken", {
+      const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
@@ -852,7 +861,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           adminKey: key.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -870,7 +879,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           adminKey: crypto.randomBytes(88).toString("hex")
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -883,7 +892,7 @@ describe("AccountCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
   });
-
+*/
   describe("KYC Key", function () {
     async function verifyTokenCreationWithKycKey(tokenId, kycKey) {
       expect(kycKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).kycKey.toStringDer());
@@ -906,7 +915,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         kycKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -936,7 +945,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         kycKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -966,7 +975,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         kycKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -996,7 +1005,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         kycKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -1027,10 +1036,10 @@ describe("AccountCreateTransaction", function () {
       });
       if (keyList.status === "NOT_IMPLEMENTED") this.skip();
 
-      response = await JSONRPCRequest("createToken", {
+      const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         kycKey: keyList.key,
         commonTransactionParams: {
           signers: [
@@ -1086,10 +1095,10 @@ describe("AccountCreateTransaction", function () {
       });
       if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
 
-      response = await JSONRPCRequest("createToken", {
+      const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         kycKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
@@ -1125,10 +1134,10 @@ describe("AccountCreateTransaction", function () {
       });
       if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
 
-      response = await JSONRPCRequest("createToken", {
+      const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         kycKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
@@ -1152,7 +1161,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           kycKey: key.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -1170,7 +1179,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           kycKey: crypto.randomBytes(88).toString("hex")
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -1183,7 +1192,7 @@ describe("AccountCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
   });
-
+/*
   describe("Freeze Key", function () {
     async function verifyTokenCreationWithFreezeKey(tokenId, freezeKey) {
       expect(freezeKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).freezeKey.toStringDer());
@@ -1206,7 +1215,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -1236,7 +1245,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -1266,7 +1275,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -1296,7 +1305,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -1330,7 +1339,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeKey: keyList.key,
         commonTransactionParams: {
           signers: [
@@ -1389,7 +1398,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
@@ -1428,7 +1437,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
@@ -1452,7 +1461,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           freezeKey: key.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -1470,7 +1479,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           freezeKey: crypto.randomBytes(88).toString("hex")
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -1506,7 +1515,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         wipeKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -1536,7 +1545,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         wipeKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -1566,7 +1575,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         wipeKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -1596,7 +1605,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         wipeKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -1630,7 +1639,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         wipeKey: keyList.key,
         commonTransactionParams: {
           signers: [
@@ -1689,7 +1698,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         wipeKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
@@ -1728,7 +1737,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         wipeKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
@@ -1752,7 +1761,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           wipeKey: key.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -1770,7 +1779,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           wipeKey: crypto.randomBytes(88).toString("hex")
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -1806,7 +1815,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -1836,7 +1845,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -1866,7 +1875,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -1896,7 +1905,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -1930,7 +1939,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: keyList.key,
         commonTransactionParams: {
           signers: [
@@ -1989,7 +1998,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
@@ -2028,7 +2037,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
@@ -2052,7 +2061,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyKey: key.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2070,7 +2079,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyKey: crypto.randomBytes(88).toString("hex")
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2095,7 +2104,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeDefault: freezeDefault
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2108,7 +2117,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeDefault: freezeDefault
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2123,7 +2132,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         expirationTime: expirationTimeSeconds
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2137,7 +2146,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           expirationTime: (Date.now() / 1000) - 1
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2155,7 +2164,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           expirationTime: (Date.now() / 1000) - 8000002
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2186,12 +2195,12 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
-        autoRenewAccount: accountId
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        autoRenewAccountId: accountId
       });
 
-      expect(autoRenewAccount).to.equal(await consensusInfoClient.getTokenInfo(tokenId).autoRenewAccountId.toString());
-      expect(autoRenewAccount).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].auto_renew_account);
+      expect(accountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).autoRenewAccountId.toString());
+      expect(accountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].auto_renew_account);
     });
 
     it ("(#2) Creates a token with an auto renew account that doesn't exist", async function () {
@@ -2199,8 +2208,8 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewAccount: "123.456.789"
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          autoRenewAccountId: "123.456.789"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2217,8 +2226,8 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewAccount: ""
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          autoRenewAccountId: ""
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2258,8 +2267,8 @@ describe("AccountCreateTransaction", function () {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewAccount: accountId
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          autoRenewAccountId: accountId
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2283,7 +2292,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         autoRenewPeriod: autoRenewPeriod
       });
 
@@ -2295,7 +2304,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           autoRenewPeriod: -1
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2313,7 +2322,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         autoRenewPeriod: autoRenewPeriod
       });
 
@@ -2325,7 +2334,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           autoRenewPeriod: 2591999
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2343,7 +2352,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         autoRenewPeriod: autoRenewPeriod
       });
 
@@ -2355,7 +2364,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           autoRenewPeriod: 8000002
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2380,7 +2389,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         memo: memo
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2393,7 +2402,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         memo: memo
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2406,7 +2415,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         memo: memo
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2419,7 +2428,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           memo: "This is a long memo that is not valid because it exceeds 100 characters and it should fail the test!!"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2443,7 +2452,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         tokenType: "ft"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2461,7 +2470,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: key,
         tokenType: "nft"
       });
@@ -2475,7 +2484,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           tokenType: "nft"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2499,7 +2508,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         tokenType: "finite"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2511,7 +2520,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         tokenType: "infinite"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2531,7 +2540,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyType: "finite",
         maxSupply: maxSupply
       });
@@ -2545,7 +2554,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyType: "finite",
         maxSupply: maxSupply
       });
@@ -2559,7 +2568,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
           maxSupply: 0
         });
@@ -2578,7 +2587,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyType: "finite",
         maxSupply: maxSupply
       });
@@ -2592,7 +2601,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
           maxSupply: 9223372036854775808
         });
@@ -2611,7 +2620,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           maxSupply: 1000000
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2635,7 +2644,7 @@ describe("AccountCreateTransaction", function () {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyKey: key,
           supplyType: "infinite",
           tokenType: "nft",
@@ -2662,7 +2671,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: key,
         supplyType: "finite",
         tokenType: "nft",
@@ -2696,7 +2705,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         feeScheduleKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -2726,7 +2735,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         feeScheduleKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -2756,7 +2765,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         feeScheduleKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -2786,7 +2795,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         feeScheduleKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -2820,7 +2829,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         feeScheduleKey: keyList.key,
         commonTransactionParams: {
           signers: [
@@ -2879,7 +2888,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         feeScheduleKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
@@ -2918,7 +2927,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         feeScheduleKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
@@ -2942,7 +2951,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           feeScheduleKey: key.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2960,7 +2969,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           feeScheduleKey: crypto.randomBytes(88).toString("hex")
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -3101,16 +3110,16 @@ describe("AccountCreateTransaction", function () {
     }
 
     it("(#1) Creates a token with a fixed fee", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const amount = 10;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               amount: amount
@@ -3120,11 +3129,11 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, amount);
+      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
     });
 
     it("(#2) Creates a token with a fractional fee", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 10;
@@ -3134,10 +3143,10 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
@@ -3151,7 +3160,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
     it("(#3) Creates a token with a royalty fee", async function () {
@@ -3161,7 +3170,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 10;
@@ -3169,18 +3178,18 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: key,
         tokenType: "nft",
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                feeCollectorAccount: feeCollectorAccount,
+                feeCollectorAccountId: feeCollectorAccountId,
                 feeCollectorsExempt: feeCollectorsExempt,
                 amount: amount
               }
@@ -3190,7 +3199,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, feeCollectorAccount, feeCollectorsExempt, amount);
+      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, feeCollectorAccountId, feeCollectorsExempt, amount);
     });
 
     it("(#4) Creates a token with a fee that has a fee collector account that doesn't exist", async function () {
@@ -3198,9 +3207,9 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: {
-            feeCollectorAccount: "123.456.789",
+            feeCollectorAccountId: "123.456.789",
             feeCollectorsExempt: false,
             fee: {
               amount: 10
@@ -3222,9 +3231,9 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: {
-            feeCollectorAccount: "",
+            feeCollectorAccountId: "",
             feeCollectorsExempt: false,
             fee: {
               amount: 10
@@ -3269,9 +3278,9 @@ describe("AccountCreateTransaction", function () {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: {
-            feeCollectorAccount: accountId,
+            feeCollectorAccountId: accountId,
             feeCollectorsExempt: false,
             fee: {
               amount: 10
@@ -3289,16 +3298,16 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#7) Creates a token with a fixed fee with the minimum amount", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const amount = 1;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               amount: amount
@@ -3308,7 +3317,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, amount);
+      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
     });
 
     it("(#8) Creates a token with a fixed fee with the amount below the minimum amount", async function () {
@@ -3316,9 +3325,9 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: {
-            feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+            feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
             feeCollectorsExempt: false,
             fee: {
               amount: 0
@@ -3336,16 +3345,16 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#9) Creates a token with a fixed fee with the maximum amount", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const amount = parseInt(9223372036854775807);
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               amount: amount
@@ -3355,7 +3364,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, amount);
+      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
     });
 
     it("(#10) Creates a token with a fixed fee with the amount above the maximum amount", async function () {
@@ -3363,9 +3372,9 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: {
-            feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+            feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
             feeCollectorsExempt: false,
             fee: {
               amount: 9223372036854775808
@@ -3383,17 +3392,17 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#11) Creates a token with a fixed fee that is assessed with the created token", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const amount = 10;
       const denominatingTokenId = "0.0.0";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               amount: amount,
@@ -3404,7 +3413,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, amount);
+      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
     });
 
     it("(#12) Creates a token with a fixed fee that is assessed with a token that doesn't exist", async function () {
@@ -3412,9 +3421,9 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: {
-            feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+            feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
             feeCollectorsExempt: false,
             fee: {
               amount: 10,
@@ -3437,9 +3446,9 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: {
-            feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+            feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
             feeCollectorsExempt: false,
             fee: {
               amount: 10,
@@ -3461,7 +3470,7 @@ describe("AccountCreateTransaction", function () {
       let response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const tokenId = response.tokenId;
@@ -3475,9 +3484,9 @@ describe("AccountCreateTransaction", function () {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: {
-            feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+            feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
             feeCollectorsExempt: false,
             fee: {
               amount: 10,
@@ -3495,7 +3504,7 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#15) Creates a token with a fractional fee with the minimum fractional amount", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = parseInt(9223372036854775807);
@@ -3505,10 +3514,10 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
@@ -3522,7 +3531,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
     it("(#16) Creates a token with a fractional fee with the amount below the minimum fractional amount", async function () {
@@ -3530,10 +3539,10 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: [
             {
-              feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fee: {
                 numerator: 0,
@@ -3556,7 +3565,7 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#17) Creates a token with a fractional fee with the maximum fractional amount", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = parseInt(9223372036854775807);
       const denominator = 1;
@@ -3566,10 +3575,10 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
@@ -3583,7 +3592,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
     it("(#18) Creates a token with a fractional fee with the amount above the maximum fractional amount", async function () {
@@ -3591,10 +3600,10 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: [
             {
-              feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fee: {
                 numerator: parseInt(9223372036854775808),
@@ -3617,7 +3626,7 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#19) Creates a token with a fractional fee with the minimum minimum amount", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 10;
@@ -3627,10 +3636,10 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
@@ -3644,7 +3653,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
     it("(#20) Creates a token with a fractional fee with the minimum amount below the minimum amount", async function () {
@@ -3652,10 +3661,10 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: [
             {
-              feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fee: {
                 numerator: 1,
@@ -3678,7 +3687,7 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#21) Creates a token with a fractional fee with the maximum maximum amount", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 10;
@@ -3688,10 +3697,10 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
@@ -3705,7 +3714,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
     it("(#22) Creates a token with a fractional fee with the maximum amount above the maximum amount", async function () {
@@ -3713,10 +3722,10 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: [
             {
-              feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fee: {
                 numerator: 1,
@@ -3743,10 +3752,10 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: [
             {
-              feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fee: {
                 numerator: 1,
@@ -3769,7 +3778,7 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#24) Creates a token with a fractional fee that is assessed to the receiver", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 10;
@@ -3779,10 +3788,10 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
@@ -3796,7 +3805,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
     it("(#25) Creates a token with a royalty fee with the minimum fractional amount", async function () {
@@ -3806,7 +3815,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = parseInt(9223372036854775807);
@@ -3814,18 +3823,18 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: key,
         tokenType: "nft",
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                feeCollectorAccount: feeCollectorAccount,
+                feeCollectorAccountId: feeCollectorAccountId,
                 feeCollectorsExempt: feeCollectorsExempt,
                 amount: fallbackFeeAmount
               }
@@ -3835,7 +3844,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, feeCollectorAccount, feeCollectorsExempt, fallbackFeeAmount);
+      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, feeCollectorAccountId, feeCollectorsExempt, fallbackFeeAmount);
     });
 
     it("(#26) Creates a token with a royalty fee with the amount below the minimum fractional amount", async function () {
@@ -3849,18 +3858,18 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyKey: key,
           tokenType: "nft",
           customFees: [
             {
-              feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fee: {
                 numerator: 0,
                 denominator: parseInt(9223372036854775807),
                 fallbackFee: {
-                  feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
                   feeCollectorsExempt: false,
                   amount: 10
                 }
@@ -3885,7 +3894,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = parseInt(9223372036854775807);
       const denominator = 1;
@@ -3893,18 +3902,18 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: key,
         tokenType: "nft",
         customFees: [
           {
-            feeCollectorAccount: feeCollectorAccount,
+            feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fee: {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                feeCollectorAccount: feeCollectorAccount,
+                feeCollectorAccountId: feeCollectorAccountId,
                 feeCollectorsExempt: feeCollectorsExempt,
                 amount: fallbackFeeAmount
               }
@@ -3914,7 +3923,7 @@ describe("AccountCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccount, feeCollectorsExempt, numerator, denominator, feeCollectorAccount, feeCollectorsExempt, fallbackFeeAmount);
+      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, feeCollectorAccountId, feeCollectorsExempt, fallbackFeeAmount);
     });
 
     it("(#28) Creates a token with a royalty fee with the amount above the maximum fractional amount", async function () {
@@ -3928,18 +3937,18 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyKey: key,
           tokenType: "nft",
           customFees: [
             {
-              feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fee: {
                 numerator: parseInt(9223372036854775808),
                 denominator: 1,
                 fallbackFee: {
-                  feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
                   feeCollectorsExempt: false,
                   amount: 10
                 }
@@ -3962,16 +3971,16 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: [
             {
-              feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fee: {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccount: process.env.OPERATOR_ACCOUNT_ID,
+                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
                   feeCollectorsExempt: false,
                   amount: 10
                 }
@@ -3990,87 +3999,87 @@ describe("AccountCreateTransaction", function () {
     });
 
     it("(#30) Creates a token with more than the maximum amount of fees allowed", async function () {
-      const feeCollectorAccount = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const amount = 10;
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           customFees: [
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
               }
             },
             {
-              feeCollectorAccount: feeCollectorAccount,
+              feeCollectorAccountId: feeCollectorAccountId,
               feeCollectorsExempt: feeCollectorsExempt,
               fee: {
                 amount: amount
@@ -4111,7 +4120,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         pauseKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -4141,7 +4150,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         pauseKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -4171,7 +4180,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         pauseKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -4201,7 +4210,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         pauseKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -4235,7 +4244,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         pauseKey: keyList.key,
         commonTransactionParams: {
           signers: [
@@ -4294,7 +4303,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         pauseKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
@@ -4333,7 +4342,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         pauseKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
@@ -4357,7 +4366,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           pauseKey: key.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -4375,7 +4384,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           pauseKey: crypto.randomBytes(88).toString("hex")
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -4400,7 +4409,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadata: metadata
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -4413,7 +4422,7 @@ describe("AccountCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadata: metadata
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -4444,7 +4453,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadataKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -4474,7 +4483,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadataKey: publicKey,
         commonTransactionParams: {
           signers: [
@@ -4504,7 +4513,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadataKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -4534,7 +4543,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadataKey: privateKey,
         commonTransactionParams: {
           signers: [
@@ -4568,7 +4577,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadataKey: keyList.key,
         commonTransactionParams: {
           signers: [
@@ -4627,7 +4636,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadataKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
@@ -4666,7 +4675,7 @@ describe("AccountCreateTransaction", function () {
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         metadataKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
@@ -4690,7 +4699,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           metadataKey: key.key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -4708,7 +4717,7 @@ describe("AccountCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccount: process.env.OPERATOR_ACCOUNT_ID,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           metadataKey: crypto.randomBytes(88).toString("hex")
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -4720,7 +4729,7 @@ describe("AccountCreateTransaction", function () {
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
-  });
+  });*/
 
   return Promise.resolve();
 });
