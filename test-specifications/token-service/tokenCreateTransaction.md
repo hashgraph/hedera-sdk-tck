@@ -504,10 +504,10 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 
 - Should accounts be initially frozen relative to this token?
 
-| Test no | Name                                            | Input                                                                                              | Expected response                                                         | Implemented (Y/N) |
-|---------|-------------------------------------------------|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|-------------------|
-| 1       | Creates a token with a frozen default status    | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, freezeDefault=true  | The token creation succeeds and the token has a frozen default status.    | N                 |
-| 2       | Creates a token with an unfrozen default status | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, freezeDefault=false | The token creation succeeds and the token has an unfrozen default status. | N                 |
+| Test no | Name                                            | Input                                                                                                                    | Expected response                                                         | Implemented (Y/N) |
+|---------|-------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|-------------------|
+| 1       | Creates a token with a frozen default status    | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, freezeKey=<VALID_KEY>, freezeDefault=true | The token creation succeeds and the token has a frozen default status.    | N                 |
+| 2       | Creates a token with an unfrozen default status | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, freezeDefault=false                       | The token creation succeeds and the token has an unfrozen default status. | N                 |
 
 #### JSON Request Example
 
@@ -520,6 +520,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
     "name": "testname",
     "symbol": "testsymbol",
     "treasuryAccountId": "0.0.2",
+    "freezeKey": "302a300506032b6570032100e9a0f9c81b3a2bb81a4af5fe05657aa849a3b9b0705da1fb52f331f42cf4b496",
     "freezeDefault": true
   }
 }
