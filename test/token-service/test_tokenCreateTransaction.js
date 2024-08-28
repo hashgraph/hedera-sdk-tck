@@ -24,7 +24,7 @@ describe("TokenCreateTransaction", function () {
   afterEach(async function () {
     await JSONRPCRequest("reset");
   });
-/*
+
   describe("Name", function () {
     async function verifyTokenCreationWithName(tokenId, name) {
       // If the token was created successfully, the queried token's names should be equal.
@@ -892,7 +892,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
   });
-*/
+
   describe("KYC Key", function () {
     async function verifyTokenCreationWithKycKey(tokenId, kycKey) {
       expect(kycKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).kycKey.toStringDer());
@@ -1011,7 +1011,7 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithKycKey(response.tokenId, keyList.key);
+      verifyTokenCreationWithKycKey(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its KYC key", async function () {
@@ -1064,7 +1064,7 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithKycKey(response.tokenId, nestedKeyList.key);
+      verifyTokenCreationWithKycKey(response.tokenId, nestedKeyList);
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its KYC key", async function () {
@@ -1094,33 +1094,10 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithKycKey(response.tokenId, thresholdKey.key);
+      verifyTokenCreationWithKycKey(response.tokenId, thresholdKey);
     });
 
-    it("(#8) Creates a token with a valid key as its KYC key but doesn't sign with it", async function () {
-      const key = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
-      });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
-
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          kycKey: key.key
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#9) Creates a token with an invalid key as its KYC key", async function () {
+    it("(#8) Creates a token with an invalid key as its KYC key", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -1138,7 +1115,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
   });
-/*
+
   describe("Freeze Key", function () {
     async function verifyTokenCreationWithFreezeKey(tokenId, freezeKey) {
       expect(freezeKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).freezeKey.toStringDer());
@@ -1147,14 +1124,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#1) Creates a token with a valid ED25519 public key as its freeze key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey",
-        fromKey: privateKey
+        type: "ed25519PublicKey"
       });
       const publicKey = response.key;
 
@@ -1162,12 +1132,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        freezeKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1177,14 +1142,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its freeze key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        type: "ecdsaSecp256k1PublicKey"
       });
       const publicKey = response.key;
 
@@ -1192,12 +1150,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        freezeKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1222,12 +1175,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        freezeKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1252,12 +1200,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        freezeKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1266,7 +1209,7 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its freeze key", async function () {
-      const keyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -1280,28 +1223,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const keyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: keyList.key,
-        commonTransactionParams: {
-          signers: [
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2]
-          ]
-        }
+        freezeKey: keyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFreezeKey(response.tokenId, keyList.key);
+      verifyTokenCreationWithFreezeKey(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its freeze key", async function () {
-      const nestedKeyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -1339,31 +1276,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const nestedKeyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: nestedKeyList.key,
-        commonTransactionParams: {
-          signers: [
-            nestedKeyList.privateKeys[0],
-            nestedKeyList.privateKeys[1],
-            nestedKeyList.privateKeys[2],
-            nestedKeyList.privateKeys[3],
-            nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
-          ]
-        }
+        freezeKey: nestedKeyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFreezeKey(response.tokenId, nestedKeyList.key);
+      verifyTokenCreationWithFreezeKey(response.tokenId, nestedKeyList);
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its freeze key", async function () {
-      const thresholdKey = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "thresholdKey",
         threshold: 2,
         keys: [
@@ -1378,49 +1306,21 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const thresholdKey = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: thresholdKey.key,
-        commonTransactionParams: {
-          signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
-          ]
-        }
+        freezeKey: thresholdKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFreezeKey(response.tokenId, thresholdKey.key);
+      verifyTokenCreationWithFreezeKey(response.tokenId, thresholdKey);
     });
 
-    it("(#8) Creates a token with a valid key as its freeze key but doesn't sign with it", async function () {
-      const key = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
-      });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
-
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          freezeKey: key.key
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#9) Creates a token with an invalid key as its freeze key", async function () {
+    it("(#8) Creates a token with an invalid key as its freeze key", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -1447,14 +1347,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#1) Creates a token with a valid ED25519 public key as its wipe key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey",
-        fromKey: privateKey
+        type: "ed25519PublicKey"
       });
       const publicKey = response.key;
 
@@ -1462,12 +1355,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        wipeKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1477,14 +1365,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its wipe key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        type: "ecdsaSecp256k1PublicKey"
       });
       const publicKey = response.key;
 
@@ -1492,12 +1373,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        wipeKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1522,12 +1398,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        wipeKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1552,12 +1423,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        wipeKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1566,7 +1432,7 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its wipe key", async function () {
-      const keyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -1580,28 +1446,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const keyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: keyList.key,
-        commonTransactionParams: {
-          signers: [
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2]
-          ]
-        }
+        wipeKey: keyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithWipeKey(response.tokenId, keyList.key);
+      verifyTokenCreationWithWipeKey(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its wipe key", async function () {
-      const nestedKeyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -1639,31 +1499,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const nestedKeyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: nestedKeyList.key,
-        commonTransactionParams: {
-          signers: [
-            nestedKeyList.privateKeys[0],
-            nestedKeyList.privateKeys[1],
-            nestedKeyList.privateKeys[2],
-            nestedKeyList.privateKeys[3],
-            nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
-          ]
-        }
+        wipeKey: nestedKeyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithWipeKey(response.tokenId, nestedKeyList.key);
+      verifyTokenCreationWithWipeKey(response.tokenId, nestedKeyList);
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its wipe key", async function () {
-      const thresholdKey = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "thresholdKey",
         threshold: 2,
         keys: [
@@ -1678,49 +1529,21 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const thresholdKey = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: thresholdKey.key,
-        commonTransactionParams: {
-          signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
-          ]
-        }
+        wipeKey: thresholdKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithWipeKey(response.tokenId, thresholdKey.key);
+      verifyTokenCreationWithWipeKey(response.tokenId, thresholdKey);
     });
 
-    it("(#8) Creates a token with a valid key as its wipe key but doesn't sign with it", async function () {
-      const key = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
-      });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
-
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          wipeKey: key.key
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#9) Creates a token with an invalid key as its wipe key", async function () {
+    it("(#8) Creates a token with an invalid key as its wipe key", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -1747,14 +1570,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#1) Creates a token with a valid ED25519 public key as its supply key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey",
-        fromKey: privateKey
+        type: "ed25519PublicKey"
       });
       const publicKey = response.key;
 
@@ -1762,12 +1578,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        supplyKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1777,14 +1588,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its supply key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        type: "ecdsaSecp256k1PublicKey"
       });
       const publicKey = response.key;
 
@@ -1792,12 +1596,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        supplyKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1822,12 +1621,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        supplyKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1852,12 +1646,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        supplyKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -1866,7 +1655,7 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its supply key", async function () {
-      const keyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -1880,28 +1669,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const keyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: keyList.key,
-        commonTransactionParams: {
-          signers: [
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2]
-          ]
-        }
+        supplyKey: keyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSupplyKey(response.tokenId, keyList.key);
+      verifyTokenCreationWithSupplyKey(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its supply key", async function () {
-      const nestedKeyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -1939,31 +1722,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const nestedKeyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: nestedKeyList.key,
-        commonTransactionParams: {
-          signers: [
-            nestedKeyList.privateKeys[0],
-            nestedKeyList.privateKeys[1],
-            nestedKeyList.privateKeys[2],
-            nestedKeyList.privateKeys[3],
-            nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
-          ]
-        }
+        supplyKey: nestedKeyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSupplyKey(response.tokenId, nestedKeyList.key);
+      verifyTokenCreationWithSupplyKey(response.tokenId, nestedKeyList);
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its supply key", async function () {
-      const thresholdKey = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "thresholdKey",
         threshold: 2,
         keys: [
@@ -1978,49 +1752,21 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const thresholdKey = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: thresholdKey.key,
-        commonTransactionParams: {
-          signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
-          ]
-        }
+        supplyKey: thresholdKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       verifyTokenCreationWithSupplyKey(response.tokenId, thresholdKey.key);
     });
 
-    it("(#8) Creates a token with a valid key as its supply key but doesn't sign with it", async function () {
-      const key = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
-      });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
-
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          supplyKey: key.key
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#9) Creates a token with an invalid key as its supply key", async function () {
+    it("(#8) Creates a token with an invalid key as its supply key", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -2637,14 +2383,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#1) Creates a token with a valid ED25519 public key as its fee schedule key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey",
-        fromKey: privateKey
+        type: "ed25519PublicKey"
       });
       const publicKey = response.key;
 
@@ -2652,12 +2391,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        feeScheduleKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -2667,14 +2401,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its fee schedule key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        type: "ecdsaSecp256k1PublicKey"
       });
       const publicKey = response.key;
 
@@ -2682,12 +2409,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        feeScheduleKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -2712,12 +2434,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        feeScheduleKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -2742,12 +2459,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        feeScheduleKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -2756,7 +2468,7 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its fee schedule key", async function () {
-      const keyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -2770,28 +2482,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const keyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: keyList.key,
-        commonTransactionParams: {
-          signers: [
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2]
-          ]
-        }
+        feeScheduleKey: keyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, keyList.key);
+      verifyTokenCreationWithFeeScheduleKey(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its fee schedule key", async function () {
-      const nestedKeyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -2829,31 +2535,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const nestedKeyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: nestedKeyList.key,
-        commonTransactionParams: {
-          signers: [
-            nestedKeyList.privateKeys[0],
-            nestedKeyList.privateKeys[1],
-            nestedKeyList.privateKeys[2],
-            nestedKeyList.privateKeys[3],
-            nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
-          ]
-        }
+        feeScheduleKey: nestedKeyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, nestedKeyList.key);
+      verifyTokenCreationWithFeeScheduleKey(response.tokenId, nestedKeyList);
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its fee schedule key", async function () {
-      const thresholdKey = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "thresholdKey",
         threshold: 2,
         keys: [
@@ -2868,49 +2565,21 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const thresholdKey = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: thresholdKey.key,
-        commonTransactionParams: {
-          signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
-          ]
-        }
+        feeScheduleKey: thresholdKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, thresholdKey.key);
+      verifyTokenCreationWithFeeScheduleKey(response.tokenId, thresholdKey);
     });
 
-    it("(#8) Creates a token with a valid key as its fee schedule key but doesn't sign with it", async function () {
-      const key = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
-      });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
-
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          feeScheduleKey: key.key
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#9) Creates a token with an invalid key as its fee schedule key", async function () {
+    it("(#8) Creates a token with an invalid key as its fee schedule key", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4052,14 +3721,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#1) Creates a token with a valid ED25519 public key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey",
-        fromKey: privateKey
+        type: "ed25519PublicKey"
       });
       const publicKey = response.key;
 
@@ -4067,12 +3729,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        pauseKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -4082,14 +3739,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        type: "ecdsaSecp256k1PublicKey"
       });
       const publicKey = response.key;
 
@@ -4097,12 +3747,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: publicKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        pauseKey: publicKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -4127,12 +3772,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        pauseKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -4157,12 +3797,7 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: privateKey,
-        commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+        pauseKey: privateKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -4171,7 +3806,7 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its pause key", async function () {
-      const keyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -4185,28 +3820,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const keyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: keyList.key,
-        commonTransactionParams: {
-          signers: [
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2]
-          ]
-        }
+        pauseKey: keyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithPauseKey(response.tokenId, keyList.key);
+      verifyTokenCreationWithPauseKey(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its pause key", async function () {
-      const nestedKeyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -4244,31 +3873,22 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const nestedKeyList = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: nestedKeyList.key,
-        commonTransactionParams: {
-          signers: [
-            nestedKeyList.privateKeys[0],
-            nestedKeyList.privateKeys[1],
-            nestedKeyList.privateKeys[2],
-            nestedKeyList.privateKeys[3],
-            nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
-          ]
-        }
+        pauseKey: nestedKeyList
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithPauseKey(response.tokenId, nestedKeyList.key);
+      verifyTokenCreationWithPauseKey(response.tokenId, nestedKeyList);
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its pause key", async function () {
-      const thresholdKey = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "thresholdKey",
         threshold: 2,
         keys: [
@@ -4283,49 +3903,21 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const thresholdKey = response.key;
 
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: thresholdKey.key,
-        commonTransactionParams: {
-          signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
-          ]
-        }
+        pauseKey: thresholdKey
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithPauseKey(response.tokenId, thresholdKey.key);
+      verifyTokenCreationWithPauseKey(response.tokenId, thresholdKey);
     });
 
-    it("(#8) Creates a token with a valid key as its pause key but doesn't sign with it", async function () {
-      const key = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
-      });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
-
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          pauseKey: key.key
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#9) Creates a token with an invalid key as its pause key", async function () {
+    it("(#8) Creates a token with an invalid key as its pause key", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4675,7 +4267,7 @@ describe("TokenCreateTransaction", function () {
       // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
-  });*/
+  });
 
   return Promise.resolve();
 });
