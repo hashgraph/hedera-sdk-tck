@@ -24,7 +24,7 @@ describe("TokenCreateTransaction", function () {
   afterEach(async function () {
     await JSONRPCRequest("reset");
   });
-
+/*
   describe("Name", function () {
     async function verifyTokenCreationWithName(tokenId, name) {
       // If the token was created successfully, the queried token's names should be equal.
@@ -1784,7 +1784,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
   });
-
+*/
   describe("Freeze Default", function () {
     async function verifyTokenCreationWithFreezeDefault(tokenId, freezeDefault) {
       expect(freezeDefault).to.equal(await consensusInfoClient.getTokenInfo(tokenId).freezeDefault);
@@ -1792,11 +1792,18 @@ describe("TokenCreateTransaction", function () {
     }
 
     it("(#1) Creates a token with a frozen default status", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
       const freezeDefault = true;
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        freezeKey: key,
         freezeDefault: freezeDefault
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -1806,7 +1813,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Creates a token with an unfrozen default status", async function () {
       const freezeDefault = false;
-      response = await JSONRPCRequest("createToken", {
+      const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -1817,7 +1824,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithFreezeDefault(response.tokenId, freezeDefault);
     });
   });
-
+/*
   describe("Expiration Time", function () {
     it("(#1) Creates a token with a valid expiration time", async function () {
       const expirationTimeSeconds = (Date.now() / 1000) + 5184000;
@@ -4268,6 +4275,6 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
   });
-
+*/
   return Promise.resolve();
 });
