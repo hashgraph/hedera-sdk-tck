@@ -27,13 +27,11 @@ describe("TokenCreateTransaction", function () {
 
   describe("Name", function () {
     async function verifyTokenCreationWithName(tokenId, name) {
-      // If the token was created successfully, the queried token's names should be equal.
       expect(name).to.equal(await consensusInfoClient.getTokenInfo(tokenId).name);
       expect(name).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].name);
     }
 
     it("(#1) Creates a token with a name that is a valid length", async function () {
-      // Attempt to create a token with a name that is a valid length.
       const name = "testname";
       const response = await JSONRPCRequest("createToken", {
         name: name,
@@ -42,12 +40,10 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the token was created.
       verifyTokenCreationWithName(response.tokenId, name);
     });
 
     it("(#2) Creates a token with a name that is the minimum length", async function () {
-      // Attempt to create a token with a name that is the minimum length.
       const name = "t";
       const response = await JSONRPCRequest("createToken", {
         name: name,
@@ -56,13 +52,11 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the token was created.
       verifyTokenCreationWithName(response.tokenId, name);
     });
 
     it("(#3) Creates a token with a name that is empty", async function () {
       try {
-        // Attempt to create a token with a name that is empty. The network should respond with a MISSING_TOKEN_NAME status.
         const response = await JSONRPCRequest("createToken", {
           name: "",
           symbol: "testsymbol",
@@ -74,12 +68,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
     it("(#4) Creates a token with a name that is the maximum length", async function () {
-      // Attempt to create a token with a name that is the maximum length.
       const name = "This is a really long name but it is still valid because it is 100 characters exactly on the money!!"
       const response = await JSONRPCRequest("createToken", {
         name: name,
@@ -88,13 +80,11 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the token was created.
       verifyTokenCreationWithName(response.tokenId, name);
     });
 
     it("(#5) Creates a token with a name that exceeds the maximum length", async function () {
       try {
-        // Attempt to create a token with a name that exceeds the maximum length. The network should respond with a TOKEN_NAME_TOO_LONG status.
         const response = await JSONRPCRequest("createToken", {
           name: "This is a long name that is not valid because it exceeds 100 characters and it should fail the test!!",
           symbol: "testsymbol",
@@ -106,13 +96,11 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
     it("(#6) Creates a token with no name", async function () {
       try {
-        // Attempt to create a token with no name. The network should respond with a MISSING_TOKEN_NAME status.
         const response = await JSONRPCRequest("createToken", {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
@@ -123,20 +111,17 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
 
   describe("Symbol", function () {
     async function verifyTokenCreationWithSymbol(tokenId, symbol) {
-      // If the token was created successfully, the queried token's symbols should be equal.
       expect(symbol).to.equal(await consensusInfoClient.getTokenInfo(tokenId).symbol);
       expect(symbol).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].symbol);
     }
 
     it("(#1) Creates a token with a symbol that is the minimum length", async function () {
-      // Attempt to create a token with a symbol that is the minimum length.
       const symbol = "t";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -145,13 +130,11 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the token was created.
       verifyTokenCreationWithSymbol(response.tokenId, symbol);
     });
 
     it("(#2) Creates a token with a symbol that is empty", async function () {
       try {
-        // Attempt to create a token with a symbol that is empty. The network should respond with a MISSING_TOKEN_SYMBOL status.
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "",
@@ -163,12 +146,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
     it("(#3) Creates a token with a symbol that is the maximum length", async function () {
-      // Attempt to create a token with a symbol that is the maximum length.
       const symbol = "This is a really long symbol but it is still valid because it is 100 characters exactly on the money";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -177,13 +158,11 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the token was created.
       verifyTokenCreationWithSymbol(response.tokenId, symbol);
     });
 
     it("(#4) Creates a token with a symbol that exceeds the maximum length", async function () {
       try {
-        // Attempt to create a token with a symbol that exceeds the maximum length. The network should respond with a TOKEN_SYMBOL_TOO_LONG status.
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "This is a long symbol that is not valid because it exceeds 100 characters and it should fail the test",
@@ -195,13 +174,11 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
     it("(#5) Creates a token with no symbol", async function () {
       try {
-        // Attempt to create a token with no symbol. The network should respond with a MISSING_TOKEN_SYMBOL status.
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
@@ -212,20 +189,17 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
 
   describe("Decimals", function () {
     async function verifyTokenCreationWithDecimals(tokenId, decimals) {
-      // If the token was created successfully, the queried token's decimals should be equal.
       expect(decimals).to.equal(await consensusInfoClient.getTokenInfo(tokenId).decimals);
       expect(decimals).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].decimals);
     }
 
     it("(#1) Creates a fungible token with a valid amount of decimals", async function () {
-      // Attempt to create a token with a valid amount of decimals.
       const decimals = 3;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -235,12 +209,10 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the token was created.
       verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
     it("(#2) Creates a fungible token with the minimum amount of decimals", async function () {
-      // Attempt to create a token with the minimum amount of decimals.
       const decimals = 0;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -250,13 +222,11 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the token was created.
       verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
     it("(#3) Creates a fungible token with a decimal amount below the minimum amount", async function () {
       try {
-        // Attempt to create a token with a decimal amount below the minimum amount. The network should respond with a INVALID_TOKEN_DECIMALS status.
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
@@ -269,12 +239,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
     it("(#4) Creates a fungible token with the maximum amount of decimals", async function () {
-      // Attempt to create a token with the maximum amount of decimals.
       const decimals = 2147483647;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -284,13 +252,11 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      // Verify the token was created.
       verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
     it("(#5) Creates a fungible token with a decimal amount that exceeds the maximum amount", async function () {
       try {
-        // Attempt to create a token with a decimal amount that exceeds the maximum amount. The network should respond with a INVALID_TOKEN_DECIMALS status.
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
@@ -303,33 +269,32 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
     it("(#6) Creates an NFT with a decimal amount of zero", async function () {
-      try {
-        // Attempt to create an NFT with a decimal amount of zero. The network should respond with a TOKEN_HAS_NO_SUPPLY_KEY status.
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          decimals: 0,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          tokenType: "nft"
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "TOKEN_HAS_NO_SUPPLY_KEY");
-        return;
-      }
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
 
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
+      const decimals = 0;
+      response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        decimals: decimals,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        supplyKey: key,
+        tokenType: "nft"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      
+      verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
     it("(#7) Creates an NFT with a nonzero decimal amount", async function () {
       try {
-        // Attempt to create an NFT with a nonzero decimal amount. The network should respond with a INVALID_TOKEN_DECIMALS status.
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
@@ -367,7 +332,37 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
     });
 
-    it("(#2) Creates a fungible token with the minimum initial supply", async function () {
+    it("(#2) Creates a fungible token with a valid initial supply and decimals", async function () {
+      const decimals = 2;
+      const initialSupply = 1000000;
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        decimals: decimals,
+        initialSupply: initialSupply,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply / (10 ** decimals));
+    });
+
+    it("(#3) Creates a fungible token with a valid initial supply and more decimals", async function () {
+      const decimals = 6;
+      const initialSupply = 1000000;
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        decimals: decimals,
+        initialSupply: initialSupply,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply / (10 ** decimals));
+    });
+
+    it("(#4) Creates a fungible token with the minimum initial supply", async function () {
       const initialSupply = 0;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -380,7 +375,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
     });
 
-    it("(#3) Creates a fungible token with an initial supply below the minimum amount", async function () {
+    it("(#5) Creates a fungible token with an initial supply below the minimum amount", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -398,8 +393,8 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#4) Creates a fungible token with the maximum initial supply", async function () {
-      const initialSupply = 9223372036854775807n; // Workaround for javascript not allowing numbers over 2^53 - 1.
+    it("(#6) Creates a fungible token with the maximum initial supply", async function () {
+      const initialSupply = 9223372036854775807n;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -411,7 +406,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
     });
 
-    it("(#5) Creates a fungible token with an initial supply that exceeds the maximum amount", async function () {
+    it("(#7) Creates a fungible token with an initial supply that exceeds the maximum amount", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -429,7 +424,28 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#6) Creates an NFT with an initial supply of zero", async function () {
+    it("(#8) Creates an NFT with an initial supply of zero", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      const initialSupply = 0;
+      response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        initialSupply: initialSupply,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        supplyKey: key,
+        tokenType: "nft"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      
+      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
+    });
+
+    it("(#9) Creates an NFT with an initial supply of zero without a supply key", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -448,7 +464,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#7) Creates an NFT with a nonzero initial supply", async function () {
+    it("(#10) Creates an NFT with a nonzero initial supply", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -570,6 +586,7 @@ describe("TokenCreateTransaction", function () {
           ]
         }
       });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
         response = await JSONRPCRequest("createToken", {
@@ -731,6 +748,9 @@ describe("TokenCreateTransaction", function () {
           },
           {
             type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
@@ -745,7 +765,8 @@ describe("TokenCreateTransaction", function () {
           signers: [
             keyList.privateKeys[0],
             keyList.privateKeys[1],
-            keyList.privateKeys[2]
+            keyList.privateKeys[2],
+            keyList.privateKeys[3]
           ]
         }
       });
@@ -852,17 +873,18 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#8) Creates a token with a valid key as its admin key but doesn't sign with it", async function () {
-      const key = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
 
       try {
-        const response = await JSONRPCRequest("createToken", {
+        response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          adminKey: key.key
+          adminKey: key
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -870,7 +892,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -888,7 +909,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -997,6 +1017,9 @@ describe("TokenCreateTransaction", function () {
           },
           {
             type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
@@ -1220,6 +1243,9 @@ describe("TokenCreateTransaction", function () {
           },
           {
             type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
@@ -1334,7 +1360,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -1443,6 +1468,9 @@ describe("TokenCreateTransaction", function () {
           },
           {
             type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
@@ -1557,7 +1585,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -1666,6 +1693,9 @@ describe("TokenCreateTransaction", function () {
           },
           {
             type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
@@ -1780,7 +1810,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -1811,7 +1840,24 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithFreezeDefault(response.tokenId, freezeDefault);
     });
 
-    it("(#2) Creates a token with an unfrozen default status", async function () {
+    it("(#2) Creates a token with a frozen default status and no freeze key", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          freezeDefault: true
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "TOKEN_HAS_NO_FREEZE_KEY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#3) Creates a token with an unfrozen default status", async function () {
       const freezeDefault = false;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -1855,7 +1901,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -1865,7 +1910,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: (Date.now() / 1000) - 8000002
+          expirationTime: (Date.now() / 1000) + 8000002
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1873,7 +1918,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -1910,7 +1954,36 @@ describe("TokenCreateTransaction", function () {
       expect(accountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].auto_renew_account);
     });
 
-    it ("(#2) Creates a token with an auto renew account that doesn't exist", async function () {
+    it ("(#2) Creates a token with an auto renew account without signing with the account's key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      response = await JSONRPCRequest("createAccount", {
+        key: key,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const accountId = response.accountId;
+
+      try {
+        response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          autoRenewAccountId: accountId
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it ("(#3) Creates a token with an auto renew account that doesn't exist", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -1924,11 +1997,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it ("(#3) Creates a token with an empty auto renew account", async function () {
+    it ("(#4) Creates a token with an empty auto renew account", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -1946,7 +2018,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it ("(#4) Creates a token with an auto renew account that is deleted", async function () {
+    it ("(#5) Creates a token with an auto renew account that is deleted", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -2025,7 +2097,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2055,7 +2126,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2085,7 +2155,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -2149,7 +2218,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -2205,7 +2273,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -2291,7 +2358,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2324,7 +2390,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2342,7 +2407,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2369,7 +2433,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2500,6 +2563,9 @@ describe("TokenCreateTransaction", function () {
           },
           {
             type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
@@ -2614,7 +2680,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -2860,7 +2925,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2886,7 +2950,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2935,7 +2998,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -2984,7 +3046,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -3033,7 +3094,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -3084,7 +3144,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -3094,14 +3153,15 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          customFees: [ {
-            feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-            feeCollectorsExempt: false,
-            fixedFee: {
-              amount: 10,
-              denominatingTokenId: ""
+          customFees: [
+            {
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorsExempt: false,
+              fixedFee: {
+                amount: 10,
+                denominatingTokenId: ""
+              }
             }
-          }
           ]
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -3110,7 +3170,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -3149,7 +3208,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -3210,7 +3268,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
@@ -3271,11 +3328,39 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#19) Creates a token with a fractional fee with the minimum minimum amount", async function () {
+    it("(#19) Creates a token with a fractional fee with a 0 denominator", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          customFees: [
+            {
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorsExempt: false,
+              fractionalFee: {
+                numerator: 1,
+                denominator: 0,
+                minimumAmount: 1,
+                maximumAmount: 10,
+                assessmentMethod: "inclusive"
+              }
+            }
+          ]
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "FRACTION_DIVIDES_BY_ZERO");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#20) Creates a token with a fractional fee with the minimum minimum amount", async function () {
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -3306,7 +3391,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
-    it("(#20) Creates a token with a fractional fee with the minimum amount below the minimum amount", async function () {
+    it("(#21) Creates a token with a fractional fee with the minimum amount below the minimum amount", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -3332,11 +3417,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#21) Creates a token with a fractional fee with the maximum maximum amount", async function () {
+    it("(#22) Creates a token with a fractional fee with the maximum maximum amount", async function () {
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -3367,7 +3451,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
-    it("(#22) Creates a token with a fractional fee with the maximum amount above the maximum amount", async function () {
+    it("(#23) Creates a token with a fractional fee with the maximum amount above the maximum amount", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -3393,11 +3477,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#23) Creates a token with a fractional fee with the minimum amount higher than the maximum amount", async function () {
+    it("(#24) Creates a token with a fractional fee with the minimum amount higher than the maximum amount", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -3423,11 +3506,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#24) Creates a token with a fractional fee that is assessed to the receiver", async function () {
+    it("(#25) Creates a token with a fractional fee that is assessed to the receiver", async function () {
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -3458,7 +3540,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
     });
 
-    it("(#25) Creates a token with a royalty fee with the minimum fractional amount", async function () {
+    it("(#26) Creates a token with a royalty fee with the minimum fractional amount", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey"
       })
@@ -3497,7 +3579,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, feeCollectorAccountId, feeCollectorsExempt, fallbackFeeAmount);
     });
 
-    it("(#26) Creates a token with a royalty fee with the amount below the minimum fractional amount", async function () {
+    it("(#27) Creates a token with a royalty fee with the amount below the minimum fractional amount", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -3533,11 +3615,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#27) Creates a token with a royalty fee with the maximum fractional amount", async function () {
+    it("(#28) Creates a token with a royalty fee with the maximum fractional amount", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey"
       })
@@ -3573,11 +3654,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#28) Creates a token with a royalty fee with the amount above the maximum fractional amount", async function () {
+    it("(#29) Creates a token with a royalty fee with the amount above the maximum fractional amount", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -3613,11 +3693,49 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#29) Creates a fungible token with a royalty fee", async function () {
+    it("(#30) Creates a token with a royalty fee with a 0 denominator", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyKey: key,
+          tokenType: "nft",
+          customFees: [
+            {
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorsExempt: false,
+              royaltyFee: {
+                numerator: 1,
+                denominator: 0,
+                fallbackFee: {
+                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
+                  feeCollectorsExempt: false,
+                  amount: 10
+                }
+              }
+            }
+          ]
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "FRACTION_DIVIDES_BY_ZERO");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#31) Creates a fungible token with a royalty fee", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -3645,11 +3763,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#30) Creates a token with more than the maximum amount of fees allowed", async function () {
+    it("(#32) Creates a token with more than the maximum amount of fees allowed", async function () {
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const amount = 10;
@@ -3744,7 +3861,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -3853,6 +3969,9 @@ describe("TokenCreateTransaction", function () {
           },
           {
             type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
@@ -3967,7 +4086,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -4109,6 +4227,9 @@ describe("TokenCreateTransaction", function () {
           },
           {
             type: "ed25519PrivateKey"
+          },
+          {
+            type: "ecdsaSecp256k1PublicKey"
           }
         ]
       });
@@ -4223,7 +4344,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
