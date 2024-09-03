@@ -386,8 +386,8 @@ describe("TokenCreateTransaction", function () {
       expect(initialSupply).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].initial_supply);
     }
 
-    it("(#1) Creates a fungible token with a valid initial supply", async function () {
-      const initialSupply = 1000000;
+    it("(#1) Creates a fungible token with 0 initial supply", async function () {
+      const initialSupply = 0;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -399,7 +399,135 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
     });
 
-    it("(#2) Creates a fungible token with a valid initial supply and decimals", async function () {
+    it("(#2) Creates a fungible token with -1 initial supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          initialSupply: -1,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#3) Creates a fungible token with 9,223,372,036,854,775,807 (int64 max) initial supply", async function () {
+      const initialSupply = 9223372036854775807n;
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        initialSupply: initialSupply,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
+    });
+
+    it("(#4) Creates a fungible token with 9,223,372,036,854,775,806 (int64 max - 1) initial supply", async function () {
+      const initialSupply = 9223372036854775806n;
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        initialSupply: initialSupply,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
+    });
+
+    it("(#5) Creates a fungible token with 9,223,372,036,854,775,808 (int64 max + 1) initial supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          initialSupply: 9223372036854775808n,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#6) Creates a fungible token with 18,446,744,073,709,551,615 (uint64 max) initial supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          initialSupply: 18446744073709551615n,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#7) Creates a fungible token with 18,446,744,073,709,551,614 (uint64 max - 1) initial supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          initialSupply: 18446744073709551614n,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#8) Creates a fungible token with -9,223,372,036,854,775,808 (int64 min) initial supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          initialSupply: -9223372036854775808n,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#9) Creates a fungible token with -9,223,372,036,854,775,807 (int64 min + 1) initial supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          initialSupply: -9223372036854775807n,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#10) Creates a fungible token with a valid initial supply and decimals", async function () {
       const decimals = 2;
       const initialSupply = 1000000;
       const response = await JSONRPCRequest("createToken", {
@@ -414,7 +542,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply / (10 ** decimals));
     });
 
-    it("(#3) Creates a fungible token with a valid initial supply and more decimals", async function () {
+    it("(#11) Creates a fungible token with a valid initial supply and more decimals", async function () {
       const decimals = 6;
       const initialSupply = 1000000;
       const response = await JSONRPCRequest("createToken", {
@@ -429,69 +557,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply / (10 ** decimals));
     });
 
-    it("(#4) Creates a fungible token with the minimum initial supply", async function () {
-      const initialSupply = 0;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
-    });
-
-    it("(#5) Creates a fungible token with an initial supply below the minimum amount", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: -1,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#6) Creates a fungible token with the maximum initial supply", async function () {
-      const initialSupply = 9223372036854775807n;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
-    });
-
-    it("(#7) Creates a fungible token with an initial supply that exceeds the maximum amount", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: 9223372036854775808n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      // The test failed, no error was thrown.
-      assert.fail("Should throw an error");
-    });
-
-    it("(#8) Creates an NFT with an initial supply of zero", async function () {
+    it("(#12) Creates an NFT with an initial supply of zero", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -512,7 +578,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
     });
 
-    it("(#9) Creates an NFT with an initial supply of zero without a supply key", async function () {
+    it("(#13) Creates an NFT with an initial supply of zero without a supply key", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -527,11 +593,10 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#10) Creates an NFT with a nonzero initial supply", async function () {
+    it("(#14) Creates an NFT with a nonzero initial supply", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -546,7 +611,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
@@ -1939,28 +2003,18 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Expiration Time", function () {
-    it("(#1) Creates a token with a valid expiration time", async function () {
-      const expirationTimeSeconds = parseInt((Date.now() / 1000) + 5184000);
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        expirationTime: expirationTimeSeconds
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const tokenId = response.tokenId;
+    async function verifyTokenCreationWithExpirationTime(tokenId, expirationTime) {
+      expect(expirationTime).to.equal(await consensusInfoClient.getTokenInfo(tokenId).expirationTime);
+      expect(expirationTime).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].expiry_timestamp);
+    }
 
-      expect(expirationTimeSeconds).to.equal(await consensusInfoClient.getTokenInfo(tokenId).expirationTime);
-      expect(expirationTimeSeconds).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].expiry_timestamp);
-    });
-
-    it("(#2) Creates a token with an expiration time of one less than the current time", async function () {
+    it("(#1) Creates a token with an expiration time of 0 seconds", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: (Date.now() / 1000) - 1
+          expirationTime: 0
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1971,7 +2025,199 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#3) Creates a token with an expiration time 8,000,002 seconds from the current time", async function () {
+    it("(#2) Creates a token with an expiration time of -1 seconds", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          expirationTime: -1
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#3) Creates a token with an expiration time of 9,223,372,036,854,775,807 (int64 max) seconds", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          expirationTime: 9223372036854775807n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#4) Creates a token with an expiration time of 9,223,372,036,854,775,806 (int64 max - 1) seconds", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          expirationTime: 9223372036854775806n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#5) Creates a token with an expiration time of 9,223,372,036,854,775,808 (int64 max + 1) seconds", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          expirationTime: 9223372036854775808n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#6) Creates a token with an expiration time of 18,446,744,073,709,551,615 (uint64 max) seconds", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          expirationTime: 18446744073709551615n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#7) Creates a token with an expiration time of 18,446,744,073,709,551,614 (uint64 max - 1) seconds", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          expirationTime: 18446744073709551614n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#8) Creates a token with an expiration time of -9,223,372,036,854,775,808 (int64 min) seconds", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          expirationTime: -9223372036854775808n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#9) Creates a token with an expiration time of -9,223,372,036,854,775,807 (int64 min + 1) seconds", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          expirationTime: -9223372036854775807n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#10) Creates a token with an expiration time of 60 days (5,184,000 seconds) from the current time", async function () {
+      const expirationTime = parseInt((Date.now() / 1000) + 5184000);
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        expirationTime: expirationTime
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      
+      verifyTokenCreationWithExpirationTime(response.tokenId, expirationTime);
+    });
+
+    it("(#11) Creates a token with an expiration time of 30 days (2,592,000 seconds) from the current time", async function () {
+      const expirationTime = parseInt((Date.now() / 1000) + 2592000);
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        expirationTime: expirationTime
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      
+      verifyTokenCreationWithExpirationTime(response.tokenId, expirationTime);
+    });
+
+    //it("(#12) Creates a token with an expiration time of 30 days minus one second (2,591,999 seconds) from the current time", async function () {
+    //  try {
+    //    const response = await JSONRPCRequest("createToken", {
+    //      name: "testname",
+    //      symbol: "testsymbol",
+    //      treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+    //      expirationTime: (Date.now() / 1000) + 2591999
+    //    });
+    //    if (response.status === "NOT_IMPLEMENTED") this.skip();
+    //  } catch (err) {
+    //    assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
+    //    return;
+    //  }
+    //
+    //  assert.fail("Should throw an error");
+    //});
+
+    it("(#13) Creates a token with an expiration time of 8,000,001 seconds from the current time", async function () {
+      const expirationTime = parseInt((Date.now() / 1000) + 8000001);
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        expirationTime: expirationTime
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      
+      verifyTokenCreationWithExpirationTime(response.tokenId, expirationTime);
+    });
+
+    it("(#14) Creates a token with an expiration time of 8,000,002 seconds from the current time", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -2382,35 +2628,7 @@ describe("TokenCreateTransaction", function () {
       expect(maxSupply).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].max_supply);
     }
 
-    it("(#1) Creates a fungible token with a valid max supply", async function () {
-      const maxSupply = 1000000;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyType: "finite",
-        maxSupply: maxSupply
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
-    });
-
-    it("(#2) Creates a fungible token with the minimum max supply", async function () {
-      const maxSupply = 1;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyType: "finite",
-        maxSupply: maxSupply
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
-    });
-
-    it("(#3) Creates a fungible token with a max supply below the minimum amount", async function () {
+    it("(#1) Creates a token with 0 max supply", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -2428,7 +2646,25 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#4) Creates a fungible token with the maximum max supply", async function () {
+    it("(#2) Creates a token with -1 max supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyType: "finite",
+          maxSupply: -1
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_MAX_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#3) Creates a token with 9,223,372,036,854,775,807 (int64 max) max supply", async function () {
       const maxSupply = 9223372036854775807n;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -2442,7 +2678,21 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
     });
 
-    it("(#5) Creates a fungible token with a max supply that exceeds the maximum amount", async function () {
+    it("(#4) Creates a token with 9,223,372,036,854,775,806 (int64 max - 1) max supply", async function () {
+      const maxSupply = 9223372036854775806n;
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        supplyType: "finite",
+        maxSupply: maxSupply
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
+    });
+
+    it("(#5) Creates a token with 9,223,372,036,854,775,808 (int64 max + 1) max supply", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -2460,12 +2710,85 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#6) Creates a fungible token with a max supply and an infinite supply type", async function () {
+    it("(#6) Creates a token with 18,446,744,073,709,551,615 (uint64 max) max supply", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyType: "finite",
+          maxSupply: 18446744073709551615n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_MAX_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#7) Creates a token with 18,446,744,073,709,551,614 (uint64 max) max supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyType: "finite",
+          maxSupply: 18446744073709551614n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_MAX_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#8) Creates a token with -9,223,372,036,854,775,808 (int64 min) max supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyType: "finite",
+          maxSupply: -9223372036854775808n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_MAX_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#9) Creates a token with -9,223,372,036,854,775,807 (int64 min) max supply", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyType: "finite",
+          maxSupply: -9223372036854775807n
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_MAX_SUPPLY");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#10) Creates a token with a max supply and an infinite supply type", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyType: "infinite",
           maxSupply: 1000000
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -2475,54 +2798,6 @@ describe("TokenCreateTransaction", function () {
       }
 
       assert.fail("Should throw an error");
-    });
-
-    it("(#7) Creates an NFT with a max supply of zero", async function () {
-      let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const key = response.key;
-
-      try {
-        response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          supplyKey: key,
-          supplyType: "finite",
-          tokenType: "nft",
-          maxSupply: 0
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_MAX_SUPPLY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#8) Creates an NFT with a nonzero max supply", async function () {
-      let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const key = response.key;
-
-      const maxSupply = 1000000;
-      response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: key,
-        supplyType: "finite",
-        tokenType: "nft",
-        maxSupply: maxSupply
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
     });
   });
 
