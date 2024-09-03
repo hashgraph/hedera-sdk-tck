@@ -199,20 +199,7 @@ describe("TokenCreateTransaction", function () {
       expect(decimals).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].decimals);
     }
 
-    it("(#1) Creates a fungible token with a valid amount of decimals", async function () {
-      const decimals = 3;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        decimals: decimals,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
-    });
-
-    it("(#2) Creates a fungible token with the minimum amount of decimals", async function () {
+    it("(#1) Creates a fungible token with 0 decimals", async function () {
       const decimals = 0;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -225,7 +212,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
-    it("(#3) Creates a fungible token with a decimal amount below the minimum amount", async function () {
+    it("(#2) Creates a fungible token with -1 decimals", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -242,7 +229,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#4) Creates a fungible token with the maximum amount of decimals", async function () {
+    it("(#3) Creates a fungible token with 2,147,483,647 (int32 max) decimals", async function () {
       const decimals = 2147483647;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
@@ -255,7 +242,20 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
-    it("(#5) Creates a fungible token with a decimal amount that exceeds the maximum amount", async function () {
+    it("(#4) Creates a fungible token with 2,147,483,646 (int32 max - 1) decimals", async function () {
+      const decimals = 2147483646;
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        decimals: decimals,
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenCreationWithDecimals(response.tokenId, decimals);
+    });
+
+    it("(#5) Creates a fungible token with 2,147,483,648 (int32 max + 1) decimals", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -272,7 +272,75 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#6) Creates an NFT with a decimal amount of zero", async function () {
+    it("(#6) Creates a fungible token with 4,294,967,295 (uint32 max) decimals", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          decimals: 4294967295,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#7) Creates a fungible token with 4,294,967,294 (uint32 max - 1) decimals", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          decimals: 4294967294,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#8) Creates a fungible token with -2,147,483,648 (int32 min) decimals", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          decimals: -2147483648,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#9) Creates a fungible token with -2,147,483,647 (int32 min + 1) decimals", async function () {
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          decimals: -2147483647,
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
+        return;
+      }
+
+      assert.fail("Should throw an error");
+    });
+
+    it("(#10) Creates an NFT with a decimal amount of zero", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey"
       });
@@ -293,7 +361,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
-    it("(#7) Creates an NFT with a nonzero decimal amount", async function () {
+    it("(#11) Creates an NFT with a nonzero decimal amount", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -308,7 +376,6 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
   });
