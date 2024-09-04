@@ -3046,11 +3046,11 @@ describe("TokenCreateTransaction", function () {
              assessmentMethod === customFractionalFee.assessmentMethod.toString().toLowerCase();
     }
 
-    async function consensusNodeFeeEqualsCustomRoyaltyFee(customRoyaltyFee, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeCollectorAccountId, fixedFeeCollectorsExempt, fixedFeeAmount) {
+    async function consensusNodeFeeEqualsCustomRoyaltyFee(customRoyaltyFee, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeAmount) {
       return consensusNodeFeeEqualsCustomFee(customRoyaltyFee, feeCollectorAccountId, feeCollectorsExempt) &&
              numerator === customRoyaltyFee.numerator &&
              denominator === customRoyaltyFee.denominator &&
-             consensusNodeFeeEqualsCustomFixedFee(customRoyaltyFee.fallbackFee, fixedFeeCollectorAccountId, fixedFeeCollectorsExempt, fixedFeeAmount);
+             fixedFeeAmount === customRoyaltyFee.fixedFeeAmount;
     }
 
     async function mirrorNodeFeeEqualsCustomFixedFee(customFixedFee, feeCollectorAccountId, amount) {
@@ -3126,7 +3126,7 @@ describe("TokenCreateTransaction", function () {
       expect(foundMirrorNodeFee).to.be.true;
     }
 
-    async function verifyTokenCreationWithRoyaltyFee(tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeCollectorAccountId, fixedFeeCollectorsExempt, fixedFeeAmount) {
+    async function verifyTokenCreationWithRoyaltyFee(tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeAmount) {
       const consensusNodeInfo = await consensusInfoClient.getTokenInfo(tokenId);
       const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId).tokens[0];
 
@@ -3135,7 +3135,7 @@ describe("TokenCreateTransaction", function () {
 
       for (let i = 0; i < consensusNodeInfo.customFees.size(); i++) {
         if (consensusNodeInfo.customFees[i] instanceof CustomRoyaltyFee &&
-            consensusNodeFeeEqualsCustomRoyaltyFee(consensusNodeInfo.customFees[i], feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeCollectorAccountId, fixedFeeCollectorsExempt, fixedFeeAmount)) {
+            consensusNodeFeeEqualsCustomRoyaltyFee(consensusNodeInfo.customFees[i], feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeAmount)) {
             foundConsensusNodeFee = true;
             break;
         }
@@ -3432,61 +3432,65 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#12) Creates a token with a fractional fee with a numerator of 9,223,372,036,854,775,807 (int64 max)", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          customFees: [
-            {
-              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-              feeCollectorsExempt: false,
-              fractionalFee: {
-                numerator: 9223372036854775807n,
-                denominator: 10,
-                minimumAmount: 1,
-                maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorsExempt = false;
+      const numerator = 9223372036854775807n;
+      const denominator = 10;
+      const minimumAmount = 1;
+      const maximumAmount = 10;
+      const assessmentMethod = "inclusive";
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        customFees: [
+          {
+            feeCollectorAccountId: feeCollectorAccountId,
+            feeCollectorsExempt: feeCollectorsExempt,
+            fractionalFee: {
+              numerator: numerator,
+              denominator: denominator,
+              minimumAmount: minimumAmount,
+              maximumAmount: maximumAmount,
+              assessmentMethod: assessmentMethod
             }
-          ]
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "CUSTOM_FEE_MUST_BE_POSITIVE");
-        return;
-      }
+          }
+        ]
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      assert.fail("Should throw an error");
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
     });
 
-    it("(#13) Creates a token with a fractional fee with a numerator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          customFees: [
-            {
-              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-              feeCollectorsExempt: false,
-              fractionalFee: {
-                numerator: 9223372036854775806n,
-                denominator: 10,
-                minimumAmount: 1,
-                maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
+    it("(#12) Creates a token with a fractional fee with a numerator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorsExempt = false;
+      const numerator = 9223372036854775806n;
+      const denominator = 10;
+      const minimumAmount = 1;
+      const maximumAmount = 10;
+      const assessmentMethod = "inclusive";
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        customFees: [
+          {
+            feeCollectorAccountId: feeCollectorAccountId,
+            feeCollectorsExempt: feeCollectorsExempt,
+            fractionalFee: {
+              numerator: numerator,
+              denominator: denominator,
+              minimumAmount: minimumAmount,
+              maximumAmount: maximumAmount,
+              assessmentMethod: assessmentMethod
             }
-          ]
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "CUSTOM_FEE_MUST_BE_POSITIVE");
-        return;
-      }
+          }
+        ]
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      assert.fail("Should throw an error");
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
     });
 
     it("(#14) Creates a token with a fractional fee with a numerator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -3960,65 +3964,61 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#30) Creates a token with a fractional fee with a minimum amount of 9,223,372,036,854,775,807 (int64 max)", async function () {
-      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
-      const feeCollectorsExempt = false;
-      const numerator = 1;
-      const denominator = 10;
-      const minimumAmount = 9223372036854775807n;
-      const maximumAmount = 10;
-      const assessmentMethod = "inclusive";
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        customFees: [
-          {
-            feeCollectorAccountId: feeCollectorAccountId,
-            feeCollectorsExempt: feeCollectorsExempt,
-            fractionalFee: {
-              numerator: numerator,
-              denominator: denominator,
-              minimumAmount: minimumAmount,
-              maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          customFees: [
+            {
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorsExempt: false,
+              fractionalFee: {
+                numerator: 1,
+                denominator: 10,
+                minimumAmount: 9223372036854775807n,
+                maximumAmount: 10,
+                assessmentMethod: "inclusive"
+              }
             }
-          }
-        ]
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+          ]
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "FRACTIONAL_FEE_MAX_AMOUNT_LESS_THAN_MIN_AMOUNT");
+        return;
+      }
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      assert.fail("Should throw an error");
     });
 
     it("(#31) Creates a token with a fractional fee with a minimum amount of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
-      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
-      const feeCollectorsExempt = false;
-      const numerator = 1;
-      const denominator = 10;
-      const minimumAmount = 9223372036854775806n;
-      const maximumAmount = 10;
-      const assessmentMethod = "inclusive";
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        customFees: [
-          {
-            feeCollectorAccountId: feeCollectorAccountId,
-            feeCollectorsExempt: feeCollectorsExempt,
-            fractionalFee: {
-              numerator: numerator,
-              denominator: denominator,
-              minimumAmount: minimumAmount,
-              maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
+      try {
+        const response = await JSONRPCRequest("createToken", {
+          name: "testname",
+          symbol: "testsymbol",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          customFees: [
+            {
+              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
+              feeCollectorsExempt: false,
+              fractionalFee: {
+                numerator: 1,
+                denominator: 10,
+                minimumAmount: 9223372036854775806n,
+                maximumAmount: 10,
+                assessmentMethod: "inclusive"
+              }
             }
-          }
-        ]
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+          ]
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "FRACTIONAL_FEE_MAX_AMOUNT_LESS_THAN_MIN_AMOUNT");
+        return;
+      }
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      assert.fail("Should throw an error");
     });
 
     it("(#32) Creates a token with a fractional fee with a minimum amount of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -4167,32 +4167,34 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#37) Creates a token with a fractional fee with a maximum amount of 0", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          customFees: [
-            {
-              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-              feeCollectorsExempt: false,
-              fractionalFee: {
-                numerator: 1,
-                denominator: 10,
-                minimumAmount: 1,
-                maximumAmount: 0,
-                assessmentMethod: "inclusive"
-              }
+      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
+      const feeCollectorsExempt = false;
+      const numerator = 1;
+      const denominator = 10;
+      const minimumAmount = 1;
+      const maximumAmount = 0;
+      const assessmentMethod = "inclusive";
+      const response = await JSONRPCRequest("createToken", {
+        name: "testname",
+        symbol: "testsymbol",
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        customFees: [
+          {
+            feeCollectorAccountId: feeCollectorAccountId,
+            feeCollectorsExempt: feeCollectorsExempt,
+            fractionalFee: {
+              numerator: numerator,
+              denominator: denominator,
+              minimumAmount: minimumAmount,
+              maximumAmount: maximumAmount,
+              assessmentMethod: "inclusive"
             }
-          ]
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "FRACTIONAL_FEE_MAX_AMOUNT_LESS_THAN_MIN_AMOUNT");
-        return;
-      }
+          }
+        ]
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      assert.fail("Should throw an error");
+      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
     });
 
     it("(#38) Creates a token with a fractional fee with a maximum amount of -1", async function () {
@@ -4453,8 +4455,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 0,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4492,8 +4492,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: -1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4531,8 +4529,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 9223372036854775807n,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4570,8 +4566,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 9223372036854775806n,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4609,8 +4603,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 9223372036854775808n,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4648,8 +4640,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 18446744073709551615n,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4687,8 +4677,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 18446744073709551614n,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4726,8 +4714,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: -9223372036854775808n,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4765,8 +4751,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: -9223372036854775807n,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4804,8 +4788,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 0,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4814,7 +4796,7 @@ describe("TokenCreateTransaction", function () {
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "FRACTIONAL_FEE_MAX_AMOUNT_LESS_THAN_MIN_AMOUNT");
+        assert.equal(err.data.status, "FRACTION_DIVIDES_BY_ZERO");
         return;
       }
 
@@ -4843,8 +4825,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: -1,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4882,12 +4862,10 @@ describe("TokenCreateTransaction", function () {
           {
             feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
-            fractionalFee: {
+            royaltyFee: {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                feeCollectorAccountId: feeCollectorAccountId,
-                feeCollectorsExempt: feeCollectorsExempt,
                 amount: fallbackFeeAmount
               }
             }
@@ -4921,12 +4899,10 @@ describe("TokenCreateTransaction", function () {
           {
             feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
-            fractionalFee: {
+            royaltyFee: {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                feeCollectorAccountId: feeCollectorAccountId,
-                feeCollectorsExempt: feeCollectorsExempt,
                 amount: fallbackFeeAmount
               }
             }
@@ -4960,8 +4936,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 9223372036854775808n,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -4999,8 +4973,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 18446744073709551615n,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -5038,8 +5010,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 18446744073709551614n,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -5077,8 +5047,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: -9223372036854775808n,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -5116,8 +5084,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: -9223372036854775807n,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -5155,8 +5121,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 0
                 }
               }
@@ -5194,8 +5158,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: -1
                 }
               }
@@ -5233,12 +5195,10 @@ describe("TokenCreateTransaction", function () {
           {
             feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
-            fractionalFee: {
+            royaltyFee: {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                feeCollectorAccountId: feeCollectorAccountId,
-                feeCollectorsExempt: feeCollectorsExempt,
                 amount: fallbackFeeAmount
               }
             }
@@ -5272,12 +5232,10 @@ describe("TokenCreateTransaction", function () {
           {
             feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
-            fractionalFee: {
+            royaltyFee: {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                feeCollectorAccountId: feeCollectorAccountId,
-                feeCollectorsExempt: feeCollectorsExempt,
                 amount: fallbackFeeAmount
               }
             }
@@ -5311,8 +5269,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 9223372036854775808n
                 }
               }
@@ -5350,8 +5306,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 18446744073709551615n
                 }
               }
@@ -5389,8 +5343,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 18446744073709551614n
                 }
               }
@@ -5428,8 +5380,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: -9223372036854775808n
                 }
               }
@@ -5467,8 +5417,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: -9223372036854775807n
                 }
               }
@@ -5538,12 +5486,20 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#75) Creates a token with a royalty fee with a fee collector account that doesn't exist", async function () {      
+    it("(#75) Creates a token with a royalty fee with a fee collector account that doesn't exist", async function () {     
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+       
       try {
-        const response = await JSONRPCRequest("createToken", {
+        response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyKey: key,
+          tokenType: "nft",
           customFees: [
             {
               feeCollectorAccountId: "123.456.789",
@@ -5552,8 +5508,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -5569,38 +5523,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#76) Creates a token with a royalty fee with fallback fee with a fee collector account that doesn't exist", async function () {      
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          customFees: [
-            {
-              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-              feeCollectorsExempt: false,
-              royaltyFee: {
-                numerator: 1,
-                denominator: 10,
-                fallbackFee: {
-                  feeCollectorAccountId: "123.456.789",
-                  feeCollectorsExempt: false,
-                  amount: 10
-                }
-              }
-            }
-          ]
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_CUSTOM_FEE_COLLECTOR");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#77) Creates a token with a fixed fee with an empty fee collector account", async function () {      
+    it("(#76) Creates a token with a fixed fee with an empty fee collector account", async function () {      
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5625,7 +5548,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#78) Creates a token with a fractional with an empty fee collector account", async function () {      
+    it("(#77) Creates a token with a fractional with an empty fee collector account", async function () {      
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5654,12 +5577,20 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#79) Creates a token with a royalty fee with an empty fee collector account", async function () {      
+    it("(#78) Creates a token with a royalty fee with an empty fee collector account", async function () {    
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ecdsaSecp256k1PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+        
       try {
-        const response = await JSONRPCRequest("createToken", {
+        response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyKey: key,
+          tokenType: "nft",
           customFees: [
             {
               feeCollectorAccountId: "",
@@ -5668,8 +5599,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -5685,38 +5614,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#80) Creates a token with a royalty fee with fallback fee with an empty fee collector account", async function () {      
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          customFees: [
-            {
-              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-              feeCollectorsExempt: false,
-              royaltyFee: {
-                numerator: 1,
-                denominator: 10,
-                fallbackFee: {
-                  feeCollectorAccountId: "",
-                  feeCollectorsExempt: false,
-                  amount: 10
-                }
-              }
-            }
-          ]
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.code, -32603);
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#81) Creates a token with a fixed fee with a deleted fee collector account", async function () {
+    it("(#79) Creates a token with a fixed fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -5769,7 +5667,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#82) Creates a token with a fractional fee with a deleted fee collector account", async function () {
+    it("(#80) Creates a token with a fractional fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -5826,7 +5724,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#83) Creates a token with a royalty fee with a deleted fee collector account", async function () {
+    it("(#81) Creates a token with a royalty fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -5855,6 +5753,8 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          supplyKey: key,
+          tokenType: "nft",
           customFees: [
             {
               feeCollectorAccountId: accountId,
@@ -5863,8 +5763,6 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-                  feeCollectorsExempt: false,
                   amount: 10
                 }
               }
@@ -5885,66 +5783,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#84) Creates a token with a royalty fee with a fallback fee with a deleted fee collector account", async function () {
-      let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const key = response.key;
-
-      response = await JSONRPCRequest("createAccount", {
-        key: key
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const accountId = response.accountId;
-
-      response = await JSONRPCRequest("deleteAccount", {
-        deleteAccountId: accountId,
-        transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
-      })
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      try {
-        response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          customFees: [
-            {
-              feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
-              feeCollectorsExempt: false,
-              royaltyFee: {
-                numerator: 1,
-                denominator: 10,
-                fallbackFee: {
-                  feeCollectorAccountId: accountId,
-                  feeCollectorsExempt: false,
-                  amount: 10
-                }
-              }
-            }
-          ],
-          commonTransactionParams: {
-            signers: [
-              key
-            ]
-          }
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_CUSTOM_FEE_COLLECTOR");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#85) Creates a token with a fixed fee that is assessed with the created token", async function () {
+    it("(#82) Creates a token with a fixed fee that is assessed with the created token", async function () {
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const fixedFeeAmount = 10;
@@ -5969,7 +5808,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, fixedFeeAmount);
     });
 
-    it("(#86) Creates a token with a fixed fee that is assessed with a token that doesn't exist", async function () {      
+    it("(#83) Creates a token with a fixed fee that is assessed with a token that doesn't exist", async function () {      
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5995,7 +5834,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#87) Creates a token with a fixed fee that is assessed with an empty token", async function () {      
+    it("(#84) Creates a token with a fixed fee that is assessed with an empty token", async function () {      
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -6021,7 +5860,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#88) Creates a token with a fixed fee that is assessed with a deleted token", async function () {   
+    it("(#85) Creates a token with a fixed fee that is assessed with a deleted token", async function () {   
       let response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -6059,7 +5898,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#89) Creates a token with a fractional fee that is assessed to the receiver", async function () {
+    it("(#86) Creates a token with a fractional fee that is assessed to the receiver", async function () {
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -6090,7 +5929,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
     });
 
-    it("(#90) Creates a fungible token with a royalty fee", async function () {      
+    it("(#87) Creates a fungible token with a royalty fee", async function () {      
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -6121,7 +5960,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#91) Creates an NFT with a fractional fee", async function () {
+    it("(#88) Creates an NFT with a fractional fee", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey"
       });
@@ -6129,7 +5968,7 @@ describe("TokenCreateTransaction", function () {
       const key = response.key;
 
       try {
-        const response = await JSONRPCRequest("createToken", {
+        response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -6158,7 +5997,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#92) Creates a token with more than the maximum amount of fees allowed", async function () {
+    it("(#89) Creates a token with more than the maximum amount of fees allowed", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -6252,6 +6091,7 @@ describe("TokenCreateTransaction", function () {
 
       assert.fail("Should throw an error");
     });
+
   });
 
   describe("Pause Key", function () {
