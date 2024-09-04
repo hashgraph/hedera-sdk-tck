@@ -3462,7 +3462,7 @@ describe("TokenCreateTransaction", function () {
       verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
     });
 
-    it("(#12) Creates a token with a fractional fee with a numerator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
+    it("(#13) Creates a token with a fractional fee with a numerator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 9223372036854775806n;
