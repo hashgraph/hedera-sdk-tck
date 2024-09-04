@@ -6091,7 +6091,6 @@ describe("TokenCreateTransaction", function () {
 
       assert.fail("Should throw an error");
     });
-
   });
 
   describe("Pause Key", function () {
