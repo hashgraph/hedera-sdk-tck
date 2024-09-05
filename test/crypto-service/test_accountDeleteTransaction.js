@@ -1,7 +1,6 @@
 import { JSONRPCRequest } from "../../client.js";
-import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
-import { expect, assert } from "chai";
+import { assert } from "chai";
 import { setOperator } from "../../setup_Tests.js";
 
 describe("AccountDeleteTransaction", function () {
