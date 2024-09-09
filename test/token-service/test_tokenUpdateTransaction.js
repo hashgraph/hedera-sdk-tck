@@ -211,11 +211,11 @@ describe("TokenCreateTransaction", function () {
       expect(name).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].name);
     }
 
-    it("(#1) Updates an immutable token with a symbol", async function () {
+    it("(#1) Updates an immutable token with a name", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           tokenId: immutableTokenId,
-          symbol: "t"
+          name: "t"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -226,11 +226,11 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#2) Updates a mutable token with a symbol that is the minimum length", async function () {
-      const symbol = "t";
+    it("(#2) Updates a mutable token with a name that is the minimum length", async function () {
+      const name = "t";
       const response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        symbol: symbol,
+        name: name,
         commonTransactionParams: {
           signers: [
             mutableTokenAdminKey
@@ -239,30 +239,30 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenSymbolUpdate(response.tokenId, symbol);
+      verifyTokenNameUpdate(response.tokenId, name);
     });
 
-    it("(#3) Updates a mutable token with a symbol that is empty", async function () {
-        const response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId,
-          symbol: "",
-          commonTransactionParams: {
-            signers: [
-              mutableTokenAdminKey
-            ]
-          }
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+    it("(#3) Updates a mutable token with a name that is empty", async function () {
+      const response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
+        name: "",
+        commonTransactionParams: {
+          signers: [
+            mutableTokenAdminKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
   
-        // Symbol shouldn't change and should still remain as "testsymbol".
-        verifyTokenSymbolUpdate(response.tokenId, "testsymbol");
+      // Name shouldn't change and should still remain as "testname".
+      verifyTokenNameUpdate(response.tokenId, "testname");
     });
 
-    it("(#4) Updates a mutable token with a symbol that is the maximum length", async function () {
-      const symbol = "This is a really long symbol but it is still valid because it is 100 characters exactly on the money"
+    it("(#4) Updates a mutable token with a name that is the maximum length", async function () {
+      const name = "This is a really long name but it is still valid because it is 100 characters exactly on the money!!"
       const response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        symbol: symbol,
+        name: name,
         commonTransactionParams: {
           signers: [
             mutableTokenAdminKey
@@ -271,14 +271,14 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenSymbolUpdate(response.tokenId, symbol);
+      verifyTokenNameUpdate(response.tokenId, name);
     });
 
-    it("(#5) Updates a mutable token with a symbol that exceeds the maximum length", async function () {
+    it("(#5) Updates a mutable token with a name that exceeds the maximum length", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
-          symbol: "This is a long symbol that is not valid because it exceeds 100 characters and it should fail the test",
+          name: "This is a long name that is not valid because it exceeds 100 characters and it should fail the test!!",
           commonTransactionParams: {
             signers: [
               mutableTokenAdminKey
@@ -287,18 +287,18 @@ describe("TokenCreateTransaction", function () {
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "TOKEN_SYMBOL_TOO_LONG");
+        assert.equal(err.data.status, "TOKEN_NAME_TOO_LONG");
         return;
       }
 
       assert.fail("Should throw an error");
     });
 
-    it("(#6) Updates a mutable token with a valid symbol without signing with the token's admin key", async function () {
+    it("(#6) Updates a mutable token with a valid name without signing with the token's admin key", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
-          symbol: "t"
+          name: "t"
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
