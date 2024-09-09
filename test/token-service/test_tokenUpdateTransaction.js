@@ -17,6 +17,12 @@ describe("TokenCreateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
+  // Initial token parameters.
+  const initialTokenName = "testname";
+  const initialTokenSymbol = "testsymbol";
+  const initialTreasuryAccountId = process.env.OPERATOR_ACCOUNT_ID;
+  const initialSupply = 1000000;
+
   // Two tokens should be created. One immutable token (no admin key) and another mutable.
   let immutableTokenId, mutableTokenId, mutableTokenAdminKey;
 
@@ -25,10 +31,10 @@ describe("TokenCreateTransaction", function () {
     setOperator(process.env.OPERATOR_ACCOUNT_ID, process.env.OPERATOR_ACCOUNT_PRIVATE_KEY);
   
     let response = JSONRPCRequest("createToken", {
-      name: "testname",
-      symbol: "testsymbol",
-      treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-      initialSupply: 1000000,
+      name: initialTokenName,
+      symbol: initialTokenSymbol,
+      treasuryAccountId: initialTreasuryAccountId,
+      initialSupply: initialSupply,
       tokenType: "ft"
     });
     if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -45,11 +51,11 @@ describe("TokenCreateTransaction", function () {
     mutableTokenAdminKey = response.key;
 
     response = await JSONRPCRequest("createToken", {
-      name: "testname",
-      symbol: "testsymbol",
-      treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-      admin: mutableTokenAdminKey,
-      initialSupply: 1000000,
+      name: initialTokenName,
+      symbol: initialTokenSymbol,
+      treasuryAccountId: initialTreasuryAccountId,
+      adminKey: mutableTokenAdminKey,
+      initialSupply: initialSupply,
       tokenType: "ft"
     });
     if (response.status === "NOT_IMPLEMENTED") this.skip();
@@ -149,8 +155,8 @@ describe("TokenCreateTransaction", function () {
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
   
-        // Symbol shouldn't change and should still remain as "testsymbol".
-        verifyTokenSymbolUpdate(response.tokenId, "testsymbol");
+        // Symbol shouldn't change and should still remain as its initial value.
+        verifyTokenSymbolUpdate(response.tokenId, initialTokenSymbol);
     });
 
     it("(#4) Updates a mutable token with a symbol that is the maximum length", async function () {
@@ -254,8 +260,8 @@ describe("TokenCreateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
   
-      // Name shouldn't change and should still remain as "testname".
-      verifyTokenNameUpdate(response.tokenId, "testname");
+      // Name shouldn't change and should still remain as its initial value.
+      verifyTokenNameUpdate(response.tokenId, initialTokenName);
     });
 
     it("(#4) Updates a mutable token with a name that is the maximum length", async function () {
@@ -310,435 +316,23 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe("Decimals", function () {
-    async function verifyTokenCreationWithDecimals(tokenId, decimals) {
-      expect(decimals).to.equal(await consensusInfoClient.getTokenInfo(tokenId).decimals);
-      expect(decimals).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].decimals);
-    }
-
-    it("(#1) Creates a fungible token with 0 decimals", async function () {
-      const decimals = 0;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        decimals: decimals,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
-    });
-
-    it("(#2) Creates a fungible token with -1 decimals", async function () {
+  describe("Treasury Account ID", function () {
+    it("(#1) Updates an immutable token with a treasury account", async function () {
       try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          decimals: -1,
+        const response = await JSONRPCRequest("updateToken", {
+          tokenId: immutableTokenId,
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
+        assert.equal(err.data.status, "TOKEN_IS_IMMUTABLE");
         return;
       }
 
       assert.fail("Should throw an error");
     });
 
-    it("(#3) Creates a fungible token with 2,147,483,647 (int32 max) decimals", async function () {
-      const decimals = 2147483647;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        decimals: decimals,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
-    });
-
-    it("(#4) Creates a fungible token with 2,147,483,646 (int32 max - 1) decimals", async function () {
-      const decimals = 2147483646;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        decimals: decimals,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
-    });
-
-    it("(#5) Creates a fungible token with 2,147,483,648 (int32 max + 1) decimals", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          decimals: 2147483648,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#6) Creates a fungible token with 4,294,967,295 (uint32 max) decimals", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          decimals: 4294967295,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#7) Creates a fungible token with 4,294,967,294 (uint32 max - 1) decimals", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          decimals: 4294967294,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#8) Creates a fungible token with -2,147,483,648 (int32 min) decimals", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          decimals: -2147483648,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#9) Creates a fungible token with -2,147,483,647 (int32 min + 1) decimals", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          decimals: -2147483647,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#10) Creates an NFT with a decimal amount of zero", async function () {
-      let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const key = response.key;
-
-      const decimals = 0;
-      response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        decimals: decimals,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: key,
-        tokenType: "nft"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
-    });
-
-    it("(#11) Creates an NFT with a nonzero decimal amount", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          decimals: 3,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          tokenType: "nft"
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_DECIMALS");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-  });
-
-  describe("Initial Supply", function () {
-    async function verifyTokenCreationWithInitialSupply(tokenId, initialSupply) {
-      expect(initialSupply).to.equal(await consensusInfoClient.getTokenInfo(tokenId).totalSupply);
-      expect(initialSupply).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].initial_supply);
-    }
-
-    it("(#1) Creates a fungible token with 0 initial supply", async function () {
-      const initialSupply = 0;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
-    });
-
-    it("(#2) Creates a fungible token with -1 initial supply", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: -1,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#3) Creates a fungible token with 9,223,372,036,854,775,807 (int64 max) initial supply", async function () {
-      const initialSupply = 9223372036854775807n;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
-    });
-
-    it("(#4) Creates a fungible token with 9,223,372,036,854,775,806 (int64 max - 1) initial supply", async function () {
-      const initialSupply = 9223372036854775806n;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
-    });
-
-    it("(#5) Creates a fungible token with 9,223,372,036,854,775,808 (int64 max + 1) initial supply", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: 9223372036854775808n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#6) Creates a fungible token with 18,446,744,073,709,551,615 (uint64 max) initial supply", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: 18446744073709551615n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#7) Creates a fungible token with 18,446,744,073,709,551,614 (uint64 max - 1) initial supply", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: 18446744073709551614n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#8) Creates a fungible token with -9,223,372,036,854,775,808 (int64 min) initial supply", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: -9223372036854775808n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#9) Creates a fungible token with -9,223,372,036,854,775,807 (int64 min + 1) initial supply", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: -9223372036854775807n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#10) Creates a fungible token with a valid initial supply and decimals", async function () {
-      const decimals = 2;
-      const initialSupply = 1000000;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        decimals: decimals,
-        initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply / (10 ** decimals));
-    });
-
-    it("(#11) Creates a fungible token with a valid initial supply and more decimals", async function () {
-      const decimals = 6;
-      const initialSupply = 1000000;
-      const response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        decimals: decimals,
-        initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply / (10 ** decimals));
-    });
-
-    it("(#12) Creates an NFT with an initial supply of zero", async function () {
-      let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const key = response.key;
-
-      const initialSupply = 0;
-      response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
-        initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: key,
-        tokenType: "nft"
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
-    });
-
-    it("(#13) Creates an NFT with an initial supply of zero without a supply key", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: 0,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          tokenType: "nft"
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "TOKEN_HAS_NO_SUPPLY_KEY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-
-    it("(#14) Creates an NFT with a nonzero initial supply", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          initialSupply: 3,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          tokenType: "nft"
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_TOKEN_INITIAL_SUPPLY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
-  });
-
-  describe("Treasury Account", function () {
-    async function verifyTokenCreationWithTreasuryAccount(tokenId, treasuryAccountId) {
-      expect(treasuryAccountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).treasuryAccountId.toString());
-      expect(treasuryAccountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].treasury_account_id);
-    }
-
-    it("(#1) Creates a token with a treasury account", async function () {
+    it("(#2) Updates a mutable token with a treasury account", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -751,28 +345,39 @@ describe("TokenCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const accountId = response.accountId;
 
-      response = await JSONRPCRequest("createToken", {
-        name: "testname",
-        symbol: "testsymbol",
+      response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
         treasuryAccountId: accountId,
         commonTransactionParams: {
           signers: [
+            mutableTokenAdminKey,
             key
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithTreasuryAccount(response.tokenId, accountId);
+      expect(accountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).treasuryAccountId.toString());
+      expect(accountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].treasury_account_id);
+
+      // Make sure the tokens were transferred from the initial treasury account to the new treasury account.
+      const initialTreasuryAccountBalance = await consensusInfoClient.getBalance(process.env.OPERATOR_ACCOUNT_ID);
+      const newTreasuryAccountBalance = await consensusInfoClient.getBalance(accountId);
+
+      assert(initialTreasuryAccountBalance.tokens.has(mutableTokenId)).is.true;
+      assert(newTreasuryAccountBalance.tokens.has(mutableTokenId)).is.true;
+
+      expect(initialTreasuryAccountBalance.tokens.get(mutableTokenId).size).to.equal(0);
+      expect(newTreasuryAccountBalance.tokens.get(mutableTokenId).size).to.equal(initialSupply);
     });
 
-    it("(#2) Creates a token with a treasury account without signing with the account's private key", async function () {
+    it("(#3) Updates a mutable token with a treasury account without signing with the account's private key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PrivateKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-
+  
       response = await JSONRPCRequest("createAccount", {
         key: key,
       });
@@ -780,27 +385,34 @@ describe("TokenCreateTransaction", function () {
       const accountId = response.accountId;
 
       try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: accountId
+        const response = await JSONRPCRequest("updateToken", {
+          tokenId: mutableTokenAdminKey,
+          treasuryAccountId: accountId,
+          commonTransactionParams: {
+            signers: [
+                mutableTokenAdminKey
+            ]
+          }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
         assert.equal(err.data.status, "INVALID_SIGNATURE");
         return;
       }
-
-      // The test failed, no error was thrown.
+  
       assert.fail("Should throw an error");
     });
 
-    it("(#3) Creates a token with a treasury account that doesn't exist", async function () {
+    it("(#4) Updates a mutable token with a treasury account that doesn't exist", async function () {
       try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: "123.456.789"
+        const response = await JSONRPCRequest("updateToken", {
+          tokenId: mutableTokenId,
+          treasuryAccountId: "123.456.789",
+          commonTransactionParams: {
+            signers: [
+                mutableTokenAdminKey
+            ]
+          }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -808,52 +420,82 @@ describe("TokenCreateTransaction", function () {
         return;
       }
 
-      // The test failed, no error was thrown.
       assert.fail("Should throw an error");
     });
 
-    it("(#4) Creates a token with a treasury account that is deleted", async function () {
+    it("(#5) Updates a mutable token with a treasury account that is deleted", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
+  
+      response = await JSONRPCRequest("createAccount", {
+        key: key,
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const accountId = response.accountId;
+  
+      response = await JSONRPCRequest("deleteAccount", {
+        deleteAccountId: accountId,
+        transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        commonTransactionParams: {
+            signers: [
+                key
+            ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      try {
+        const response = await JSONRPCRequest("updateToken", {
+          tokenId: mutableTokenAdminKey,
+          treasuryAccountId: accountId,
+          commonTransactionParams: {
+            signers: [
+                mutableTokenAdminKey,
+                key
+            ]
+          }
+        });
+        if (response.status === "NOT_IMPLEMENTED") this.skip();
+      } catch (err) {
+        assert.equal(err.data.status, "ACCOUNT_DELETED");
+        return;
+      }
+  
+      assert.fail("Should throw an error");
+    });
+
+    it("(#6) Updates a mutable token with a treasury account without signing with the token's admin key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+  
       response = await JSONRPCRequest("createAccount", {
         key: key,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const accountId = response.accountId;
 
-      response = await JSONRPCRequest("deleteAccount", {
-        deleteAccountId: accountId,
-        transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
       try {
-        response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
+        const response = await JSONRPCRequest("updateToken", {
+          tokenId: mutableTokenAdminKey,
           treasuryAccountId: accountId,
           commonTransactionParams: {
             signers: [
-              key
+                key
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_TREASURY_ACCOUNT_FOR_TOKEN");
+        assert.equal(err.data.status, "INVALID_SIGNATURE");
         return;
       }
-
-      // The test failed, no error was thrown.
+  
       assert.fail("Should throw an error");
     });
   });
