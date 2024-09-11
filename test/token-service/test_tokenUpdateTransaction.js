@@ -4,6 +4,7 @@ import consensusInfoClient from "../../consensusInfoClient.js";
 import { setOperator } from "../../setup_Tests.js";
 import crypto from "crypto";
 import { assert, expect } from "chai";
+import { JSONRPC } from "json-rpc-2.0";
 
 // Needed to convert BigInts to JSON number format.
 BigInt.prototype.toJSON = function () {
@@ -13,7 +14,7 @@ BigInt.prototype.toJSON = function () {
 /**
  * Tests for TokenUpdateTransaction
  */
-describe("TokenCreateTransaction", function () {  
+describe("TokenUpdateTransaction", function () {  
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
@@ -24,13 +25,13 @@ describe("TokenCreateTransaction", function () {
   const initialSupply = 1000000;
 
   // Two tokens should be created. One immutable token (no admin key) and another mutable.
-  let immutableTokenId, mutableTokenId, mutableTokenAdminKey;
+  let immutableTokenId, mutableTokenId, mutableTokenKey;
 
-  // Some tests require an immutable token. Since it's immutable only one needs to be created.
   before(async function () {
-    setOperator(process.env.OPERATOR_ACCOUNT_ID, process.env.OPERATOR_ACCOUNT_PRIVATE_KEY);
+    await setOperator(process.env.OPERATOR_ACCOUNT_ID, process.env.OPERATOR_ACCOUNT_PRIVATE_KEY);
   
-    let response = JSONRPCRequest("createToken", {
+    // Generate an immutable key.
+    const response = await JSONRPCRequest("createToken", {
       name: initialTokenName,
       symbol: initialTokenSymbol,
       treasuryAccountId: initialTreasuryAccountId,
@@ -39,6 +40,8 @@ describe("TokenCreateTransaction", function () {
     });
     if (response.status === "NOT_IMPLEMENTED") this.skip();
     immutableTokenId = response.tokenId;
+
+    await JSONRPCRequest("reset");
   });
 
   beforeEach(async function () {
@@ -48,15 +51,27 @@ describe("TokenCreateTransaction", function () {
       type: "ecdsaSecp256k1PrivateKey"
     });
     if (response.status === "NOT_IMPLEMENTED") this.skip();
-    mutableTokenAdminKey = response.key;
+    mutableTokenKey = response.key;
 
     response = await JSONRPCRequest("createToken", {
       name: initialTokenName,
       symbol: initialTokenSymbol,
       treasuryAccountId: initialTreasuryAccountId,
-      adminKey: mutableTokenAdminKey,
+      adminKey: mutableTokenKey,
+      kycKey: mutableTokenKey,
+      freezeKey: mutableTokenKey,
+      wipeKey: mutableTokenKey,
+      supplyKey: mutableTokenKey,
       initialSupply: initialSupply,
-      tokenType: "ft"
+      tokenType: "ft",
+      feeScheduleKey: mutableTokenKey,
+      pauseKey: mutableTokenKey,
+      metadataKey: mutableTokenKey,
+      commonTransactionParams: {
+        signers: [
+          mutableTokenKey
+        ]
+      }
     });
     if (response.status === "NOT_IMPLEMENTED") this.skip();
     mutableTokenId = response.tokenId;
@@ -93,9 +108,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#3) Updates a token with no token ID", async function () {
       try {
-        const response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId
-        });
+        const response = await JSONRPCRequest("updateToken", {});
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
         assert.equal(err.data.status, "INVALID_TOKEN_ID");
@@ -114,7 +127,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#1) Updates an immutable token with a symbol", async function () {
       try {
-        const response = await JSONRPCRequest("createToken", {
+        const response = await JSONRPCRequest("updateToken", {
           tokenId: immutableTokenId,
           symbol: "t"
         });
@@ -134,7 +147,7 @@ describe("TokenCreateTransaction", function () {
         symbol: symbol,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -149,7 +162,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "",
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -166,7 +179,7 @@ describe("TokenCreateTransaction", function () {
         symbol: symbol,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -182,7 +195,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "This is a long symbol that is not valid because it exceeds 100 characters and it should fail the test",
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -219,7 +232,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#1) Updates an immutable token with a name", async function () {
       try {
-        const response = await JSONRPCRequest("createToken", {
+        const response = await JSONRPCRequest("updateToken", {
           tokenId: immutableTokenId,
           name: "t"
         });
@@ -239,7 +252,7 @@ describe("TokenCreateTransaction", function () {
         name: name,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -254,7 +267,7 @@ describe("TokenCreateTransaction", function () {
         name: "",
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -271,7 +284,7 @@ describe("TokenCreateTransaction", function () {
         name: name,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -287,7 +300,7 @@ describe("TokenCreateTransaction", function () {
           name: "This is a long name that is not valid because it exceeds 100 characters and it should fail the test!!",
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -339,8 +352,10 @@ describe("TokenCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
+      // Create with 1 auto token association in order to automatically associate with the created token.
       response = await JSONRPCRequest("createAccount", {
         key: key,
+        maxAutoTokenAssociations: 1
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const accountId = response.accountId;
@@ -350,25 +365,25 @@ describe("TokenCreateTransaction", function () {
         treasuryAccountId: accountId,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             key
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      expect(accountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).treasuryAccountId.toString());
-      expect(accountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].treasury_account_id);
+      const tokenInfo = await consensusInfoClient.getTokenInfo(mutableTokenId);
+      expect(accountId).to.equal(tokenInfo.treasuryAccountId.toString());
 
       // Make sure the tokens were transferred from the initial treasury account to the new treasury account.
       const initialTreasuryAccountBalance = await consensusInfoClient.getBalance(process.env.OPERATOR_ACCOUNT_ID);
       const newTreasuryAccountBalance = await consensusInfoClient.getBalance(accountId);
 
-      assert(initialTreasuryAccountBalance.tokens.has(mutableTokenId)).is.true;
-      assert(newTreasuryAccountBalance.tokens.has(mutableTokenId)).is.true;
+      assert(initialTreasuryAccountBalance.tokens._map.has(mutableTokenId));
+      assert(newTreasuryAccountBalance.tokens._map.has(mutableTokenId));
 
-      expect(initialTreasuryAccountBalance.tokens.get(mutableTokenId).size).to.equal(0);
-      expect(newTreasuryAccountBalance.tokens.get(mutableTokenId).size).to.equal(initialSupply);
+      expect(initialTreasuryAccountBalance.tokens._map.get(mutableTokenId).toString()).to.equal("0");
+      expect(newTreasuryAccountBalance.tokens._map.get(mutableTokenId).toString()).to.equal(initialSupply.toString());
     });
 
     it("(#3) Updates a mutable token with a treasury account without signing with the account's private key", async function () {
@@ -386,11 +401,11 @@ describe("TokenCreateTransaction", function () {
 
       try {
         const response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenAdminKey,
+          tokenId: mutableTokenId,
           treasuryAccountId: accountId,
           commonTransactionParams: {
             signers: [
-                mutableTokenAdminKey
+                mutableTokenKey
             ]
           }
         });
@@ -410,7 +425,7 @@ describe("TokenCreateTransaction", function () {
           treasuryAccountId: "123.456.789",
           commonTransactionParams: {
             signers: [
-                mutableTokenAdminKey
+                mutableTokenKey
             ]
           }
         });
@@ -449,11 +464,11 @@ describe("TokenCreateTransaction", function () {
 
       try {
         const response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenAdminKey,
+          tokenId: mutableTokenId,
           treasuryAccountId: accountId,
           commonTransactionParams: {
             signers: [
-                mutableTokenAdminKey,
+                mutableTokenKey,
                 key
             ]
           }
@@ -482,7 +497,7 @@ describe("TokenCreateTransaction", function () {
 
       try {
         const response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenAdminKey,
+          tokenId: mutableTokenId,
           treasuryAccountId: accountId,
           commonTransactionParams: {
             signers: [
@@ -545,7 +560,7 @@ describe("TokenCreateTransaction", function () {
         adminKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             privateKey
           ]
         }
@@ -574,7 +589,7 @@ describe("TokenCreateTransaction", function () {
         adminKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             privateKey
           ]
         }
@@ -603,7 +618,7 @@ describe("TokenCreateTransaction", function () {
         adminKey: privateKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             privateKey
           ]
         }
@@ -632,6 +647,7 @@ describe("TokenCreateTransaction", function () {
         adminKey: privateKey,
         commonTransactionParams: {
           signers: [
+            mutableTokenKey,
             privateKey
           ]
         }
@@ -667,7 +683,7 @@ describe("TokenCreateTransaction", function () {
         adminKey: keyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             keyList.privateKeys[0],
             keyList.privateKeys[1],
             keyList.privateKeys[2],
@@ -726,7 +742,7 @@ describe("TokenCreateTransaction", function () {
         adminKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             nestedKeyList.privateKeys[0],
             nestedKeyList.privateKeys[1],
             nestedKeyList.privateKeys[2],
@@ -764,6 +780,7 @@ describe("TokenCreateTransaction", function () {
         adminKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
+            mutableTokenKey,
             thresholdKey.privateKeys[0],
             thresholdKey.privateKeys[1]
           ]
@@ -787,7 +804,7 @@ describe("TokenCreateTransaction", function () {
           adminKey: key,
           commonTransactionParams: {
             signers: [
-                mutableTokenAdminKey
+                mutableTokenKey
             ]
           }
         });
@@ -807,7 +824,7 @@ describe("TokenCreateTransaction", function () {
           adminKey: crypto.randomBytes(88).toString("hex"),
           commonTransactionParams: {
             signers: [
-                mutableTokenAdminKey
+                mutableTokenKey
             ]
           }
         });
@@ -850,60 +867,46 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Updates a mutable token with a valid ED25519 public key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey",
-        fromKey: privateKey
-      });
-      const publicKey = response.key;
+      const key = response.key;
 
       response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        kycKey: publicKey,
+        kycKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenKycKeyUpdate(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      verifyTokenKycKeyUpdate(response.tokenId, String(key).substring(24).toLowerCase());
     });
 
     it("(#3) Updates a mutable token with a valid ECDSAsecp256k1 public key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
-      });
-      const publicKey = response.key;
+      const key = response.key;
 
       response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        kycKey: publicKey,
+        kycKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenKycKeyUpdate(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      verifyTokenKycKeyUpdate(response.tokenId, String(key).substring(28).toLowerCase());
     });
 
     it("(#4) Updates a mutable token with a valid ED25519 private key as its KYC key", async function () {
@@ -924,7 +927,7 @@ describe("TokenCreateTransaction", function () {
         kycKey: privateKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             privateKey
           ]
         }
@@ -953,7 +956,7 @@ describe("TokenCreateTransaction", function () {
         kycKey: privateKey,
         commonTransactionParams: {
           signers: [
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -988,7 +991,7 @@ describe("TokenCreateTransaction", function () {
         kycKey: keyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             keyList.privateKeys[0],
             keyList.privateKeys[1],
             keyList.privateKeys[2],
@@ -1047,7 +1050,7 @@ describe("TokenCreateTransaction", function () {
         kycKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             nestedKeyList.privateKeys[0],
             nestedKeyList.privateKeys[1],
             nestedKeyList.privateKeys[2],
@@ -1085,6 +1088,7 @@ describe("TokenCreateTransaction", function () {
         kycKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
+            mutableTokenKey,
             thresholdKey.privateKeys[0],
             thresholdKey.privateKeys[1]
           ]
@@ -1095,30 +1099,46 @@ describe("TokenCreateTransaction", function () {
       verifyTokenKycKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token with a valid key as its KYC key but doesn't sign with it", async function () {
+    it("(#9) Updates a mutable token that doesn't have a KYC key with a valid key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
+      response = await JSONRPCRequest("createToken", {
+        name: initialTokenName,
+        symbol: initialTokenSymbol,
+        treasuryAccountId: initialTreasuryAccountId,
+        adminKey: mutableTokenKey,
+        initialSupply: initialSupply,
+        tokenType: "ft",
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      const tokenId = response.tokenId;
+
       try {
         response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId,
+          tokenId: tokenId,
           kycKey: key,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        assert.equal(err.data.status, "TOKEN_HAS_NO_KYC_KEY");
         return;
       }
 
       assert.fail("Should throw an error");
+
     });
 
     it("(#10) Updates a mutable token with an invalid key as its KYC key", async function () {
@@ -1128,7 +1148,7 @@ describe("TokenCreateTransaction", function () {
           kycKey: crypto.randomBytes(88).toString("hex"),
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -1187,8 +1207,7 @@ describe("TokenCreateTransaction", function () {
         freezeKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1216,8 +1235,7 @@ describe("TokenCreateTransaction", function () {
         freezeKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1245,8 +1263,7 @@ describe("TokenCreateTransaction", function () {
         freezeKey: privateKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1274,7 +1291,7 @@ describe("TokenCreateTransaction", function () {
         freezeKey: privateKey,
         commonTransactionParams: {
           signers: [
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1309,7 +1326,7 @@ describe("TokenCreateTransaction", function () {
         freezeKey: keyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             keyList.privateKeys[0],
             keyList.privateKeys[1],
             keyList.privateKeys[2],
@@ -1368,7 +1385,7 @@ describe("TokenCreateTransaction", function () {
         freezeKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             nestedKeyList.privateKeys[0],
             nestedKeyList.privateKeys[1],
             nestedKeyList.privateKeys[2],
@@ -1406,6 +1423,7 @@ describe("TokenCreateTransaction", function () {
         freezeKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
+            mutableTokenKey,
             thresholdKey.privateKeys[0],
             thresholdKey.privateKeys[1]
           ]
@@ -1416,26 +1434,41 @@ describe("TokenCreateTransaction", function () {
       verifyTokenFreezeKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token with a valid key as its freeze key but doesn't sign with it", async function () {
+    it("(#9) Updates a mutable token that doesn't have a freeze key with a valid key as its freeze key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
+      response = await JSONRPCRequest("createToken", {
+        name: initialTokenName,
+        symbol: initialTokenSymbol,
+        treasuryAccountId: initialTreasuryAccountId,
+        adminKey: mutableTokenKey,
+        initialSupply: initialSupply,
+        tokenType: "ft",
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      const tokenId = response.tokenId;
+
       try {
         response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId,
+          tokenId: tokenId,
           freezeKey: key,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        assert.equal(err.data.status, "TOKEN_HAS_NO_FREEZE_KEY");
         return;
       }
 
@@ -1449,7 +1482,7 @@ describe("TokenCreateTransaction", function () {
           freezeKey: crypto.randomBytes(88).toString("hex"),
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -1508,8 +1541,7 @@ describe("TokenCreateTransaction", function () {
         wipeKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1537,8 +1569,7 @@ describe("TokenCreateTransaction", function () {
         wipeKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1566,8 +1597,7 @@ describe("TokenCreateTransaction", function () {
         wipeKey: privateKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1595,7 +1625,7 @@ describe("TokenCreateTransaction", function () {
         wipeKey: privateKey,
         commonTransactionParams: {
           signers: [
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1630,7 +1660,7 @@ describe("TokenCreateTransaction", function () {
         wipeKey: keyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             keyList.privateKeys[0],
             keyList.privateKeys[1],
             keyList.privateKeys[2],
@@ -1689,7 +1719,7 @@ describe("TokenCreateTransaction", function () {
         wipeKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             nestedKeyList.privateKeys[0],
             nestedKeyList.privateKeys[1],
             nestedKeyList.privateKeys[2],
@@ -1727,6 +1757,7 @@ describe("TokenCreateTransaction", function () {
         wipeKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
+            mutableTokenKey,
             thresholdKey.privateKeys[0],
             thresholdKey.privateKeys[1]
           ]
@@ -1737,26 +1768,41 @@ describe("TokenCreateTransaction", function () {
       verifyTokenWipeKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token with a valid key as its wipe key but doesn't sign with it", async function () {
+    it("(#9) Updates a mutable token that doesn't have a wipe key with a valid key as its wipe key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
+      response = await JSONRPCRequest("createToken", {
+        name: initialTokenName,
+        symbol: initialTokenSymbol,
+        treasuryAccountId: initialTreasuryAccountId,
+        adminKey: mutableTokenKey,
+        initialSupply: initialSupply,
+        tokenType: "ft",
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      const tokenId = response.tokenId;
+
       try {
         response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId,
+          tokenId: tokenId,
           wipeKey: key,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        assert.equal(err.data.status, "TOKEN_HAS_NO_WIPE_KEY");
         return;
       }
 
@@ -1770,7 +1816,7 @@ describe("TokenCreateTransaction", function () {
           wipeKey: crypto.randomBytes(88).toString("hex"),
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -1829,8 +1875,7 @@ describe("TokenCreateTransaction", function () {
         supplyKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1858,8 +1903,7 @@ describe("TokenCreateTransaction", function () {
         supplyKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1887,8 +1931,7 @@ describe("TokenCreateTransaction", function () {
         supplyKey: privateKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1916,7 +1959,7 @@ describe("TokenCreateTransaction", function () {
         supplyKey: privateKey,
         commonTransactionParams: {
           signers: [
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -1951,7 +1994,7 @@ describe("TokenCreateTransaction", function () {
         supplyKey: keyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             keyList.privateKeys[0],
             keyList.privateKeys[1],
             keyList.privateKeys[2],
@@ -2010,7 +2053,7 @@ describe("TokenCreateTransaction", function () {
         supplyKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             nestedKeyList.privateKeys[0],
             nestedKeyList.privateKeys[1],
             nestedKeyList.privateKeys[2],
@@ -2048,6 +2091,7 @@ describe("TokenCreateTransaction", function () {
         supplyKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
+            mutableTokenKey,
             thresholdKey.privateKeys[0],
             thresholdKey.privateKeys[1]
           ]
@@ -2058,26 +2102,41 @@ describe("TokenCreateTransaction", function () {
       verifyTokenSupplyKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token with a valid key as its supply key but doesn't sign with it", async function () {
+    it("(#9) Updates a mutable token that doesn't have a supply key with a valid key as its supply key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
+      response = await JSONRPCRequest("createToken", {
+        name: initialTokenName,
+        symbol: initialTokenSymbol,
+        treasuryAccountId: initialTreasuryAccountId,
+        adminKey: mutableTokenKey,
+        initialSupply: initialSupply,
+        tokenType: "ft",
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      const tokenId = response.tokenId;
+
       try {
         response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId,
+          tokenId: tokenId,
           supplyKey: key,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        assert.equal(err.data.status, "TOKEN_HAS_NO_SUPPLY_KEY");
         return;
       }
 
@@ -2091,7 +2150,7 @@ describe("TokenCreateTransaction", function () {
           supplyKey: crypto.randomBytes(88).toString("hex"),
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2139,16 +2198,15 @@ describe("TokenCreateTransaction", function () {
         autoRenewAccountId: accountId,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
+            mutableTokenKey,
             key
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      const tokenId = response.tokenId;
-      expect(accountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).autoRenewAccountId.toString());
-      expect(accountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].auto_renew_account);
+      const tokenInfo = await consensusInfoClient.getTokenInfo(mutableTokenId);
+      expect(accountId).to.equal(tokenInfo.autoRenewAccountId.toString());
     });
 
     it("(#3) Updates a mutable token with an auto renew account without signing with the account's private key", async function () {
@@ -2170,7 +2228,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewAccountId: accountId,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2190,7 +2248,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewAccountId: "123.456.789",
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2210,7 +2268,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewAccountId: "",
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2253,7 +2311,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewAccountId: accountId,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey,
+              mutableTokenKey,
               key
             ]
           }
@@ -2282,7 +2340,7 @@ describe("TokenCreateTransaction", function () {
 
       try {
         const response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenAdminKey,
+          tokenId: mutableTokenId,
           autoRenewAccountId: accountId,
           commonTransactionParams: {
             signers: [
@@ -2328,7 +2386,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: 0,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2348,7 +2406,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: -1,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2368,7 +2426,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: 9223372036854775807n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2388,7 +2446,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: 9223372036854775806n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2408,7 +2466,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: 9223372036854775808n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2428,7 +2486,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: 18446744073709551615n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2448,7 +2506,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: 18446744073709551614n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2468,7 +2526,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: -9223372036854775808n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2488,7 +2546,7 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: -9223372036854775807n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2508,7 +2566,7 @@ describe("TokenCreateTransaction", function () {
         autoRenewPeriod: autoRenewPeriod,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -2523,7 +2581,7 @@ describe("TokenCreateTransaction", function () {
         autoRenewPeriod: autoRenewPeriod,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -2538,13 +2596,13 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: 2591999,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
+        assert.equal(err.data.status, "INVALID_RENEWAL_PERIOD");
         return;
       }
 
@@ -2558,7 +2616,7 @@ describe("TokenCreateTransaction", function () {
         autoRenewPeriod: autoRenewPeriod,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -2573,13 +2631,13 @@ describe("TokenCreateTransaction", function () {
           autoRenewPeriod: 8000002,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
+        assert.equal(err.data.status, "INVALID_RENEWAL_PERIOD");
         return;
       }
 
@@ -2593,20 +2651,20 @@ describe("TokenCreateTransaction", function () {
       expect(expirationTime).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].expiry_timestamp);
     }
     
-    it("(#1) Updates an immutable token with a valid expiration time", async function () {  
-      try {
-        const response = await JSONRPCRequest("updateToken", {
-          tokenId: immutableTokenId,
-          expirationTime: parseInt((Date.now() / 1000) + 5184000)
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "TOKEN_IS_IMMUTABLE");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
+    //it("(#1) Updates an immutable token with a valid expiration time", async function () {  
+    //  try {
+    //    const response = await JSONRPCRequest("updateToken", {
+    //      tokenId: immutableTokenId,
+    //      expirationTime: parseInt((Date.now() / 1000) + 5184000)
+    //    });
+    //    if (response.status === "NOT_IMPLEMENTED") this.skip();
+    //  } catch (err) {
+    //    assert.equal(err.data.status, "TOKEN_IS_IMMUTABLE");
+    //    return;
+    //  }
+    //
+    //  assert.fail("Should throw an error");
+    //});
 
     it("(#2) Updates a mutable token to an expiration time of 0", async function () {
       try {
@@ -2615,7 +2673,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: 0,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2635,7 +2693,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: -1,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2655,7 +2713,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: 9223372036854775807n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2675,7 +2733,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: 9223372036854775806n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2695,7 +2753,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: 9223372036854775808n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2715,7 +2773,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: 18446744073709551615n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2735,7 +2793,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: 18446744073709551614n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2755,7 +2813,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: -9223372036854775808n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2775,7 +2833,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: -9223372036854775807n,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2788,37 +2846,37 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#11) Updates a mutable token to an expiration time of 60 days (5,184,000 seconds) from the current time", async function () {
-      const expirationTime = parseInt((Date.now() / 1000) + 5184000);
-      const response = await JSONRPCRequest("updateToken", {
-        tokenId: mutableTokenId,
-        expirationTime: expirationTime,
-        commonTransactionParams: {
-          signers: [
-            mutableTokenAdminKey
-          ]
-        }
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenExpirationTimeUpdate(response.tokenId, expirationTime);
-    });
+    //it("(#11) Updates a mutable token to an expiration time of 60 days (5,184,000 seconds) from the current time", async function () {
+    //  const expirationTime = parseInt((Date.now() / 1000) + 5184000);
+    //  const response = await JSONRPCRequest("updateToken", {
+    //    tokenId: mutableTokenId,
+    //    expirationTime: expirationTime,
+    //    commonTransactionParams: {
+    //      signers: [
+    //        mutableTokenKey
+    //      ]
+    //    }
+    //  });
+    //  if (response.status === "NOT_IMPLEMENTED") this.skip();
+    //  
+    //  verifyTokenExpirationTimeUpdate(response.tokenId, expirationTime);
+    //});
 
-    it("(#12) Updates a mutable token to an expiration time of 30 days (2,592,000 seconds) from the current time", async function () {
-      const expirationTime = parseInt((Date.now() / 1000) + 2592000);
-      const response = await JSONRPCRequest("updateToken", {
-        tokenId: mutableTokenId,
-        expirationTime: expirationTime,
-        commonTransactionParams: {
-          signers: [
-            mutableTokenAdminKey
-          ]
-        }
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenExpirationTimeUpdate(response.tokenId, expirationTime);
-    });
+    //it("(#12) Updates a mutable token to an expiration time of 30 days (2,592,000 seconds) from the current time", async function () {
+    //  const expirationTime = parseInt((Date.now() / 1000) + 2592000);
+    //  const response = await JSONRPCRequest("updateToken", {
+    //    tokenId: mutableTokenId,
+    //    expirationTime: expirationTime,
+    //    commonTransactionParams: {
+    //      signers: [
+    //        mutableTokenKey
+    //      ]
+    //    }
+    // });
+    //  if (response.status === "NOT_IMPLEMENTED") this.skip();
+    //  
+    //  verifyTokenExpirationTimeUpdate(response.tokenId, expirationTime);
+    //});
 
     it("(#13) Creates a token with an expiration time of 30 days minus one second (2,591,999 seconds) from the current time", async function () {
       try {
@@ -2827,7 +2885,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: parseInt((Date.now() / 1000) + 2591999),
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2847,7 +2905,7 @@ describe("TokenCreateTransaction", function () {
         expirationTime: expirationTime,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -2863,7 +2921,7 @@ describe("TokenCreateTransaction", function () {
           expirationTime: 8000002,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -2905,7 +2963,7 @@ describe("TokenCreateTransaction", function () {
         memo: memo,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -2921,7 +2979,7 @@ describe("TokenCreateTransaction", function () {
         memo: memo,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -2937,7 +2995,7 @@ describe("TokenCreateTransaction", function () {
         memo: memo,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -2953,7 +3011,7 @@ describe("TokenCreateTransaction", function () {
           memo: "This is a long memo that is not valid because it exceeds 100 characters and it should fail the test!!",
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -3012,8 +3070,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -3041,8 +3098,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: publicKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -3070,8 +3126,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: privateKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -3099,7 +3154,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: privateKey,
         commonTransactionParams: {
           signers: [
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -3134,11 +3189,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: keyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2],
-            keyList.privateKeys[3]
+            mutableTokenKey
           ]
         }
       });
@@ -3193,13 +3244,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: nestedKeyList.key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            nestedKeyList.privateKeys[0],
-            nestedKeyList.privateKeys[1],
-            nestedKeyList.privateKeys[2],
-            nestedKeyList.privateKeys[3],
-            nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
+            mutableTokenKey
           ]
         }
       });
@@ -3231,8 +3276,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: thresholdKey.key,
         commonTransactionParams: {
           signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
+            mutableTokenKey
           ]
         }
       });
@@ -3241,26 +3285,41 @@ describe("TokenCreateTransaction", function () {
       verifyTokenFeeScheduleKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token with a valid key as its fee schedule key but doesn't sign with it", async function () {
+    it("(#9) Updates a mutable token that doesn't have a fee schedule key with a valid key as its fee schedule key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
+      response = await JSONRPCRequest("createToken", {
+        name: initialTokenName,
+        symbol: initialTokenSymbol,
+        treasuryAccountId: initialTreasuryAccountId,
+        adminKey: mutableTokenKey,
+        initialSupply: initialSupply,
+        tokenType: "ft",
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      const tokenId = response.tokenId;
+
       try {
         response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId,
+          tokenId: tokenId,
           feeScheduleKey: key,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        assert.equal(err.data.status, "TOKEN_HAS_NO_FEE_SCHEDULE_KEY");
         return;
       }
 
@@ -3274,7 +3333,7 @@ describe("TokenCreateTransaction", function () {
           feeScheduleKey: crypto.randomBytes(88).toString("hex"),
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -3317,60 +3376,44 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Updates a mutable token with a valid ED25519 public key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PublicKey"
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey",
-        fromKey: privateKey
-      });
-      const publicKey = response.key;
+      const key = response.key;
 
       response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        feeScheduleKey: publicKey,
+        feeScheduleKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenPauseKeyUpdate(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      verifyTokenPauseKeyUpdate(response.tokenId, String(key).substring(24).toLowerCase());
     });
 
     it("(#3) Updates a mutable token with a valid ECDSAsecp256k1 public key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PublicKey"
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
-      });
-      const publicKey = response.key;
+      const key = response.key;
 
       response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        feeScheduleKey: publicKey,
+        feeScheduleKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenPauseKeyUpdate(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      verifyTokenPauseKeyUpdate(response.tokenId, String(key).substring(28).toLowerCase());
     });
 
     it("(#4) Updates a mutable token with a valid ED25519 private key as its pause key", async function () {
@@ -3391,8 +3434,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: privateKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -3420,7 +3462,7 @@ describe("TokenCreateTransaction", function () {
         feeScheduleKey: privateKey,
         commonTransactionParams: {
           signers: [
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -3431,7 +3473,7 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#6) Updates a mutable token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its pause key", async function () {
-      const keyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -3448,28 +3490,25 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
 
-      const response = await JSONRPCRequest("updateToken", {
+      response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        feeScheduleKey: keyList.key,
+        feeScheduleKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2],
-            keyList.privateKeys[3]
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenPauseKeyUpdate(response.tokenId, keyList.key);
+      verifyTokenPauseKeyUpdate(response.tokenId, key);
     });
 
     it("(#7) Updates a mutable token with a valid KeyList of nested Keylists (three levels) as its pause key", async function () {
-      const nestedKeyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -3507,30 +3546,25 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
 
-      const response = await JSONRPCRequest("updateToken", {
+      response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        feeScheduleKey: nestedKeyList.key,
+        feeScheduleKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            nestedKeyList.privateKeys[0],
-            nestedKeyList.privateKeys[1],
-            nestedKeyList.privateKeys[2],
-            nestedKeyList.privateKeys[3],
-            nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenPauseKeyUpdate(response.tokenId, nestedKeyList.key);
+      verifyTokenPauseKeyUpdate(response.tokenId, key);
     });
 
     it("(#8) Updates a mutable token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its pause key", async function () {
-      const thresholdKey = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "thresholdKey",
         threshold: 2,
         keys: [
@@ -3545,43 +3579,58 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
 
-      const response = await JSONRPCRequest("updateToken", {
+      response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        feeScheduleKey: thresholdKey.key,
+        feeScheduleKey: key,
         commonTransactionParams: {
           signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenPauseKeyUpdate(response.tokenId, thresholdKey.key);
+      verifyTokenPauseKeyUpdate(response.tokenId, key);
     });
 
-    it("(#9) Updates a mutable token with a valid key as its pause key but doesn't sign with it", async function () {
+    it("(#9) Updates a mutable token that doesn't have a pause key with a valid key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
+      response = await JSONRPCRequest("createToken", {
+        name: initialTokenName,
+        symbol: initialTokenSymbol,
+        treasuryAccountId: initialTreasuryAccountId,
+        adminKey: mutableTokenKey,
+        initialSupply: initialSupply,
+        tokenType: "ft",
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      const tokenId = response.tokenId;
+
       try {
         response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId,
-          feeScheduleKey: key,
+          tokenId: tokenId,
+          pauseKey: key,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        assert.equal(err.data.status, "TOKEN_HAS_NO_PAUSE_KEY");
         return;
       }
 
@@ -3595,7 +3644,7 @@ describe("TokenCreateTransaction", function () {
           feeScheduleKey: crypto.randomBytes(88).toString("hex"),
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
@@ -3637,7 +3686,7 @@ describe("TokenCreateTransaction", function () {
         metadata: metadata,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -3653,7 +3702,7 @@ describe("TokenCreateTransaction", function () {
         metadata: metadata,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey
+            mutableTokenKey
           ]
         }
       });
@@ -3692,60 +3741,44 @@ describe("TokenCreateTransaction", function () {
 
     it("(#2) Updates a mutable token with a valid ED25519 public key as its metadata key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PublicKey"
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey",
-        fromKey: privateKey
-      });
-      const publicKey = response.key;
+      const key = response.key;
 
       response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        metadataKey: publicKey,
+        metadataKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenMetadataKeyUpdate(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      verifyTokenMetadataKeyUpdate(response.tokenId, String(key).substring(24).toLowerCase());
     });
 
     it("(#3) Updates a mutable token with a valid ECDSAsecp256k1 public key as its metadata key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PublicKey"
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-      const privateKey = response.key;
-
-      response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
-      });
-      const publicKey = response.key;
+      const key = response.key;
 
       response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        metadataKey: publicKey,
+        metadataKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenMetadataKeyUpdate(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      verifyTokenMetadataKeyUpdate(response.tokenId, String(key).substring(28).toLowerCase());
     });
 
     it("(#4) Updates a mutable token with a valid ED25519 private key as its metadata key", async function () {
@@ -3766,8 +3799,7 @@ describe("TokenCreateTransaction", function () {
         metadataKey: privateKey,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -3795,7 +3827,7 @@ describe("TokenCreateTransaction", function () {
         metadataKey: privateKey,
         commonTransactionParams: {
           signers: [
-            privateKey
+            mutableTokenKey
           ]
         }
       });
@@ -3806,7 +3838,7 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#6) Updates a mutable token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its metadata key", async function () {
-      const keyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -3823,28 +3855,25 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
 
-      const response = await JSONRPCRequest("updateToken", {
+      response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        metadataKey: keyList.key,
+        metadataKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            keyList.privateKeys[0],
-            keyList.privateKeys[1],
-            keyList.privateKeys[2],
-            keyList.privateKeys[3]
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenMetadataKeyUpdate(response.tokenId, keyList.key);
+      verifyTokenMetadataKeyUpdate(response.tokenId, key);
     });
 
     it("(#7) Updates a mutable token with a valid KeyList of nested Keylists (three levels) as its metadata key", async function () {
-      const nestedKeyList = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "keyList",
         keys: [
           {
@@ -3882,30 +3911,25 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
 
-      const response = await JSONRPCRequest("updateToken", {
+      response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        metadataKey: nestedKeyList.key,
+        metadataKey: key,
         commonTransactionParams: {
           signers: [
-            mutableTokenAdminKey,
-            nestedKeyList.privateKeys[0],
-            nestedKeyList.privateKeys[1],
-            nestedKeyList.privateKeys[2],
-            nestedKeyList.privateKeys[3],
-            nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenMetadataKeyUpdate(response.tokenId, nestedKeyList.key);
+      verifyTokenMetadataKeyUpdate(response.tokenId, key);
     });
 
     it("(#8) Updates a mutable token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its metadata key", async function () {
-      const thresholdKey = await JSONRPCRequest("generateKey", {
+      let response = await JSONRPCRequest("generateKey", {
         type: "thresholdKey",
         threshold: 2,
         keys: [
@@ -3920,43 +3944,58 @@ describe("TokenCreateTransaction", function () {
           }
         ]
       });
-      if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
 
-      const response = await JSONRPCRequest("updateToken", {
+      response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
-        metadataKey: thresholdKey.key,
+        metadataKey: key,
         commonTransactionParams: {
           signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
+            mutableTokenKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenMetadataKeyUpdate(response.tokenId, thresholdKey.key);
+      verifyTokenMetadataKeyUpdate(response.tokenId, key);
     });
 
-    it("(#9) Updates a mutable token with a valid key as its metadata key but doesn't sign with it", async function () {
+    it("(#9) Updates a mutable token that doesn't have a metadata key with a valid key as its metadata key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
+      response = await JSONRPCRequest("createToken", {
+        name: initialTokenName,
+        symbol: initialTokenSymbol,
+        treasuryAccountId: initialTreasuryAccountId,
+        adminKey: mutableTokenKey,
+        initialSupply: initialSupply,
+        tokenType: "ft",
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      const tokenId = response.tokenId;
+
       try {
         response = await JSONRPCRequest("updateToken", {
-          tokenId: mutableTokenId,
+          tokenId: tokenId,
           metadataKey: key,
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
+        assert.equal(err.data.status, "TOKEN_HAS_NO_METADATA_KEY");
         return;
       }
 
@@ -3970,7 +4009,7 @@ describe("TokenCreateTransaction", function () {
           metadataKey: crypto.randomBytes(88).toString("hex"),
           commonTransactionParams: {
             signers: [
-              mutableTokenAdminKey
+              mutableTokenKey
             ]
           }
         });
