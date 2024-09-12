@@ -1099,7 +1099,29 @@ describe("TokenUpdateTransaction", function () {
       verifyTokenKycKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token that doesn't have a KYC key with a valid key as its KYC key", async function () {
+    it("(#9) Updates a mutable token with an empty KeyList as its KYC key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "keyList",
+        keys: []
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
+        kycKey: key,
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenKycKeyUpdate(response.tokenId, key);
+    });
+
+    it("(#10) Updates a mutable token that doesn't have a KYC key with a valid key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
@@ -1141,7 +1163,7 @@ describe("TokenUpdateTransaction", function () {
 
     });
 
-    it("(#10) Updates a mutable token with an invalid key as its KYC key", async function () {
+    it("(#11) Updates a mutable token with an invalid key as its KYC key", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
@@ -1434,7 +1456,29 @@ describe("TokenUpdateTransaction", function () {
       verifyTokenFreezeKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token that doesn't have a freeze key with a valid key as its freeze key", async function () {
+    it("(#9) Updates a mutable token with an empty KeyList as its freeze key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "keyList",
+        keys: []
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
+        freezeKey: key,
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenFreezeKeyUpdate(response.tokenId, key);
+    });
+
+    it("(#10) Updates a mutable token that doesn't have a freeze key with a valid key as its freeze key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
@@ -1475,7 +1519,7 @@ describe("TokenUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#10) Updates a mutable token with an invalid key as its freeze key", async function () {
+    it("(#11) Updates a mutable token with an invalid key as its freeze key", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
@@ -1768,7 +1812,29 @@ describe("TokenUpdateTransaction", function () {
       verifyTokenWipeKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token that doesn't have a wipe key with a valid key as its wipe key", async function () {
+    it("(#9) Updates a mutable token with an empty KeyList as its wipe key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "keyList",
+        keys: []
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
+        wipeKey: key,
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenWipeKeyUpdate(response.tokenId, key);
+    });
+
+    it("(#10) Updates a mutable token that doesn't have a wipe key with a valid key as its wipe key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
@@ -1809,7 +1875,7 @@ describe("TokenUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#10) Updates a mutable token with an invalid key as its wipe key", async function () {
+    it("(#11) Updates a mutable token with an invalid key as its wipe key", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
@@ -2102,7 +2168,29 @@ describe("TokenUpdateTransaction", function () {
       verifyTokenSupplyKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token that doesn't have a supply key with a valid key as its supply key", async function () {
+    it("(#9) Updates a mutable token with an empty KeyList as its supply key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "keyList",
+        keys: []
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
+        supplyKey: key,
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenSupplyKeyUpdate(response.tokenId, key);
+    });
+
+    it("(#10) Updates a mutable token that doesn't have a supply key with a valid key as its supply key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
@@ -2143,7 +2231,7 @@ describe("TokenUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#10) Updates a mutable token with an invalid key as its supply key", async function () {
+    it("(#11) Updates a mutable token with an invalid key as its supply key", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
@@ -2878,7 +2966,7 @@ describe("TokenUpdateTransaction", function () {
     //  verifyTokenExpirationTimeUpdate(response.tokenId, expirationTime);
     //});
 
-    it("(#13) Creates a token with an expiration time of 30 days minus one second (2,591,999 seconds) from the current time", async function () {
+    it("(#13) Updates a mutable to an expiration time of 30 days minus one second (2,591,999 seconds) from the current time", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
@@ -2898,7 +2986,7 @@ describe("TokenUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#14) Updates a mutable token with an expiration time 8,000,001 seconds from the current time", async function () {
+    it("(#14) Updates a mutable token to an expiration time 8,000,001 seconds from the current time", async function () {
       const expirationTime = parseInt((Date.now() / 1000) + 8000001);
       const response = await JSONRPCRequest("updateToken", {
         tokenId: mutableTokenId,
@@ -2914,7 +3002,7 @@ describe("TokenUpdateTransaction", function () {
       verifyTokenExpirationTimeUpdate(response.tokenId, expirationTime);
     });
 
-    it("(#15) Updates a mutable token with an expiration time 8,000,002 seconds from the current time", async function () {
+    it("(#15) Updates a mutable token to an expiration time 8,000,002 seconds from the current time", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
@@ -3285,7 +3373,29 @@ describe("TokenUpdateTransaction", function () {
       verifyTokenFeeScheduleKeyUpdate(response.tokenId, thresholdKey.key);
     });
 
-    it("(#9) Updates a mutable token that doesn't have a fee schedule key with a valid key as its fee schedule key", async function () {
+    it("(#9) Updates a mutable token with an empty KeyList as its fee schedule key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "keyList",
+        keys: []
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
+        feeScheduleKey: key,
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenFeeScheduleKeyUpdate(response.tokenId, key);
+    });
+
+    it("(#10) Updates a mutable token that doesn't have a fee schedule key with a valid key as its fee schedule key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
@@ -3326,7 +3436,7 @@ describe("TokenUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#10) Updates a mutable token with an invalid key as its fee schedule key", async function () {
+    it("(#11) Updates a mutable token with an invalid key as its fee schedule key", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
@@ -3596,7 +3706,29 @@ describe("TokenUpdateTransaction", function () {
       verifyTokenPauseKeyUpdate(response.tokenId, key);
     });
 
-    it("(#9) Updates a mutable token that doesn't have a pause key with a valid key as its pause key", async function () {
+    it("(#9) Updates a mutable token with an empty KeyList as its pause key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "keyList",
+        keys: []
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
+        pauseKey: key,
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenPauseKeyUpdate(response.tokenId, key);
+    });
+
+    it("(#10) Updates a mutable token that doesn't have a pause key with a valid key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
@@ -3637,7 +3769,7 @@ describe("TokenUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#10) Updates a mutable token with an invalid key as its pause key", async function () {
+    it("(#11) Updates a mutable token with an invalid key as its pause key", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
@@ -3961,7 +4093,29 @@ describe("TokenUpdateTransaction", function () {
       verifyTokenMetadataKeyUpdate(response.tokenId, key);
     });
 
-    it("(#9) Updates a mutable token that doesn't have a metadata key with a valid key as its metadata key", async function () {
+    it("(#9) Updates a mutable token with an empty KeyList as its metadata key", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "keyList",
+        keys: []
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const key = response.key;
+
+      response = await JSONRPCRequest("updateToken", {
+        tokenId: mutableTokenId,
+        metadataKey: key,
+        commonTransactionParams: {
+          signers: [
+            mutableTokenKey
+          ]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+
+      verifyTokenMetadataKeyUpdate(response.tokenId, key);
+    });
+
+    it("(#10) Updates a mutable token that doesn't have a metadata key with a valid key as its metadata key", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey"
       });
@@ -4002,7 +4156,7 @@ describe("TokenUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#10) Updates a mutable token with an invalid key as its metadata key", async function () {
+    it("(#11) Updates a mutable token with an invalid key as its metadata key", async function () {
       try {
         const response = await JSONRPCRequest("updateToken", {
           tokenId: mutableTokenId,
