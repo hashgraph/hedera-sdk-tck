@@ -1,4 +1,4 @@
-import { AccountBalanceQuery, AccountId, AccountInfoQuery, Client, TokenCreateTransaction } from "@hashgraph/sdk";
+import { AccountBalanceQuery, AccountId, AccountInfoQuery, Client, TokenInfoQuery } from "@hashgraph/sdk";
 
 class ConsensusInfoClient {
   constructor() {
@@ -20,8 +20,17 @@ class ConsensusInfoClient {
     return this.executeAccountMethod(accountId, new AccountInfoQuery());
   }
 
+  async getTokenInfo(tokenId) {
+    return this.executeTokenMethod(tokenId, new TokenInfoQuery());
+  }
+
   async executeAccountMethod(accountId, method) {
     method.setAccountId(accountId);
+    return method.execute(this.sdkClient);
+  }
+
+  async executeTokenMethod(tokenId, method) {
+    method.setTokenId(tokenId);
     return method.execute(this.sdkClient);
   }
 }
