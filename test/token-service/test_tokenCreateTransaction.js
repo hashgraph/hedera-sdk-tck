@@ -615,7 +615,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe("Treasury Account", function () {
+  describe("Treasury Account ID", function () {
     async function verifyTokenCreationWithTreasuryAccount(tokenId, treasuryAccountId) {
       expect(treasuryAccountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).treasuryAccountId.toString());
       expect(treasuryAccountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].treasury_account_id);
@@ -2235,7 +2235,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe("Auto Renew Account", function () {
+  describe("Auto Renew Account ID", function () {
     it ("(#1) Creates a token with an auto renew account", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
