@@ -2313,7 +2313,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it ("(#4) Creates a token with an empty auto renew account", async function () {
+    it ("(#4) Creates a token with the auto renew account not set", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
