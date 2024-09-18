@@ -244,9 +244,9 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 }
 ```
 
-### **Treasury Account:**
+### **Treasury Account ID:**
 
-- The account that will hold the token "treasury" and receive all minted tokens.
+- The ID of the account that will hold the token "treasury" and receive all minted tokens.
 
 | Test no | Name                                                                                   | Input                                                                                                                                         | Expected response                                                                                   | Implemented (Y/N) |
 |---------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|-------------------|
@@ -599,7 +599,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 }
 ```
 
-### **Auto Renew Account:**
+### **Auto Renew Account ID:**
 
 - The ID of the account to pay for the auto-renewal of the token.
 
@@ -608,7 +608,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 | 1       | Creates a token with an auto renew account                                        | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, autoRenewAccountId=<VALID_ACCOUNT_ID>, commonTransactionParams.signers=[<VALID_ACCOUNT_KEY>]     | The token creation succeeds and the token has a valid auto-renew account.                  | N                 |
 | 2       | Creates a token with an auto renew account without signing with the account's key | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, autoRenewAccountId=<VALID_ACCOUNT_ID>                                                            | The token creation fails with an INVALID_SIGNATURE response code from the network.         | N                 |
 | 3       | Creates a token with an auto renew account that doesn't exist                     | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, autoRenewAccountId="123.456.789"                                                                 | The token creation fails with an INVALID_AUTORENEW_ACCOUNT response code from the network. | N                 |
-| 4       | Creates a token with an empty auto renew account                                  | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, autoRenewAccountId=""                                                                            | The token creation fails with an SDK internal error.                                       | N                 |
+| 4       | Creates a token with the auto renew account not set                               | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, autoRenewAccountId=""                                                                            | The token creation fails with an SDK internal error.                                       | N                 |
 | 5       | Creates a token with an auto renew account that is deleted                        | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, autoRenewAccountId=<DELETED_ACCOUNT_ID>, commonTransactionParams.signers=[<DELETED_ACCOUNT_KEY>] | The token creation fails with an INVALID_AUTORENEW_ACCOUNT response code from the network. | N                 |
 
 #### JSON Request Example
@@ -738,7 +738,6 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 |---------|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|-------------------|
 | 1       | Creates a fungible token            | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, tokenType="ft"                         | The token creation succeeds and the token is a fungible token.                           | N                 |
 | 2       | Creates an NFT                      | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, supplyKey=<VALID_KEY>, tokenType="nft" | The token creation succeeds and the token is an NFT.                                     | N                 |
-| 3       | Creates an NFT without a supply key | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, tokenType="nft"                        | The token creation fails with an TOKEN_HAS_NO_SUPPLY_KEY response code from the network. | N                 |
 
 #### JSON Request Example
 
