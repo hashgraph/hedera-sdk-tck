@@ -244,9 +244,9 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 }
 ```
 
-### **Treasury Account:**
+### **Treasury Account ID:**
 
-- The account that will hold the token "treasury" and receive all minted tokens.
+- The ID of the account that will hold the token "treasury" and receive all minted tokens.
 
 | Test no | Name                                                                                   | Input                                                                                                                                         | Expected response                                                                                   | Implemented (Y/N) |
 |---------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|-------------------|
@@ -599,7 +599,7 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 }
 ```
 
-### **Auto Renew Account:**
+### **Auto Renew Account ID:**
 
 - The ID of the account to pay for the auto-renewal of the token.
 
