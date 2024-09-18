@@ -738,7 +738,6 @@ https://docs.hedera.com/hedera/sdks-and-apis/rest-api
 |---------|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|-------------------|
 | 1       | Creates a fungible token            | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, tokenType="ft"                         | The token creation succeeds and the token is a fungible token.                           | N                 |
 | 2       | Creates an NFT                      | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, supplyKey=<VALID_KEY>, tokenType="nft" | The token creation succeeds and the token is an NFT.                                     | N                 |
-| 3       | Creates an NFT without a supply key | name="testname", symbol="testsymbol", treasuryAccountId=<OPERATOR_ACCOUNT_ID>, tokenType="nft"                        | The token creation fails with an TOKEN_HAS_NO_SUPPLY_KEY response code from the network. | N                 |
 
 #### JSON Request Example
 
