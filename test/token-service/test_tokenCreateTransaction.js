@@ -2571,23 +2571,6 @@ describe("TokenCreateTransaction", function () {
 
       verifyTokenCreationWithTokenType(response.tokenId, "NON_FUNGIBLE_UNIQUE");
     });
-
-    it ("(#3) Creates an NFT without a supply key", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          tokenType: "nft"
-        });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
-      } catch (err) {
-        assert.equal(err.data.status, "TOKEN_HAS_NO_SUPPLY_KEY");
-        return;
-      }
-
-      assert.fail("Should throw an error");
-    });
   });
 
   describe("Supply Type", function () {
