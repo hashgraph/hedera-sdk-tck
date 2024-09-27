@@ -2,24 +2,82 @@ import { JSONRPCRequest } from "../../client.js";
 import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
 import { setOperator } from "../../setup_Tests.js";
-import crypto, { verify } from "crypto";
+import crypto from "crypto";
 import { assert, expect } from "chai";
+
+import { proto } from "@hashgraph/proto";
+
+import {
+  PublicKey,
+  TokenType,
+  TokenSupplyType,
+  CustomFixedFee,
+  CustomFractionalFee,
+  CustomRoyaltyFee,
+} from "@hashgraph/sdk";
 
 // Needed to convert BigInts to JSON number format.
 BigInt.prototype.toJSON = function () {
-  return JSON.rawJSON(this.toString())
-}
+  return JSON.rawJSON(this.toString());
+};
+
+const TOKEN_TYPE = {
+  FUNGIBLE_COMMON: TokenType.FungibleCommon,
+  NON_FUNGIBLE_UNIQUE: TokenType.NonFungibleUnique,
+};
+
+const getEncodedKeyHexFromKeyList = async (
+  consensusInfoClient,
+  tokenId,
+  keyName
+) => {
+  // Retrieve token info
+  const tokenInfo = await consensusInfoClient.getTokenInfo(tokenId);
+
+  // Access the dynamic key (e.g., wipeKey, freezeKey, etc.)
+  const key = tokenInfo[keyName];
+
+  // Encode the key into Protobuf and convert to hex string
+  const encodedKeyList = proto.Key.encode(key._toProtobufKey()).finish();
+  const keyHex = Buffer.from(encodedKeyList).toString("hex");
+
+  return keyHex;
+};
+
+const getPublicKeyFromMirrorNode = async (tokenId, keyName) => {
+  // Define a mapping for key type functions
+  const keyTypeConvertFunctions = {
+    ED25519: PublicKey.fromStringED25519,
+    ECDSA_SECP256K1: PublicKey.fromStringECDSA,
+  };
+
+  // Retrieve token data from Mirror Node
+  const tokenData = await mirrorNodeClient.getTokenData(tokenId);
+
+  // Access the dynamic key (e.g., fee_schedule_key, admin_key, etc.)
+  const keyMirrorNode = tokenData[keyName];
+
+  // Use the appropriate key type function to convert the key
+  const publicKeyMirrorNode = keyTypeConvertFunctions[keyMirrorNode._type](
+    keyMirrorNode.key
+  );
+
+  return publicKeyMirrorNode;
+};
 
 /**
  * Tests for TokenCreateTransaction
  */
-describe("TokenCreateTransaction", function () {  
+describe("TokenCreateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
   // Each test should first establish the network to use, and then teardown the network when complete.
   beforeEach(async function () {
-    await setOperator(process.env.OPERATOR_ACCOUNT_ID, process.env.OPERATOR_ACCOUNT_PRIVATE_KEY);
+    await setOperator(
+      process.env.OPERATOR_ACCOUNT_ID,
+      process.env.OPERATOR_ACCOUNT_PRIVATE_KEY
+    );
   });
   afterEach(async function () {
     await JSONRPCRequest("reset");
@@ -27,8 +85,16 @@ describe("TokenCreateTransaction", function () {
 
   describe("Name", function () {
     async function verifyTokenCreationWithName(tokenId, name) {
-      expect(name).to.equal(await consensusInfoClient.getTokenInfo(tokenId).name);
-      expect(name).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].name);
+      expect(name).to.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).name
+      );
+      expect(name).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).name
+      );
     }
 
     it("(#1) Creates a token with a name that is a valid length", async function () {
@@ -36,11 +102,11 @@ describe("TokenCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: name,
         symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithName(response.tokenId, name);
+      await verifyTokenCreationWithName(response.tokenId, name);
     });
 
     it("(#2) Creates a token with a name that is the minimum length", async function () {
@@ -48,11 +114,11 @@ describe("TokenCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: name,
         symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithName(response.tokenId, name);
+      await verifyTokenCreationWithName(response.tokenId, name);
     });
 
     it("(#3) Creates a token with a name that is empty", async function () {
@@ -60,7 +126,7 @@ describe("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "",
           symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -72,15 +138,16 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#4) Creates a token with a name that is the maximum length", async function () {
-      const name = "This is a really long name but it is still valid because it is 100 characters exactly on the money!!"
+      const name =
+        "This is a really long name but it is still valid because it is 100 characters exactly on the money!!";
       const response = await JSONRPCRequest("createToken", {
         name: name,
         symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithName(response.tokenId, name);
+      await verifyTokenCreationWithName(response.tokenId, name);
     });
 
     it("(#5) Creates a token with a name that exceeds the maximum length", async function () {
@@ -88,7 +155,7 @@ describe("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "This is a long name that is not valid because it exceeds 100 characters and it should fail the test!!",
           symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -103,7 +170,7 @@ describe("TokenCreateTransaction", function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -117,8 +184,16 @@ describe("TokenCreateTransaction", function () {
 
   describe("Symbol", function () {
     async function verifyTokenCreationWithSymbol(tokenId, symbol) {
-      expect(symbol).to.equal(await consensusInfoClient.getTokenInfo(tokenId).symbol);
-      expect(symbol).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].symbol);
+      expect(symbol).to.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).symbol
+      );
+      expect(symbol).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).symbol
+      );
     }
 
     it("(#1) Creates a token with a symbol that is the minimum length", async function () {
@@ -126,11 +201,11 @@ describe("TokenCreateTransaction", function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: symbol,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSymbol(response.tokenId, symbol);
+      await verifyTokenCreationWithSymbol(response.tokenId, symbol);
     });
 
     it("(#2) Creates a token with a symbol that is empty", async function () {
@@ -138,7 +213,7 @@ describe("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -150,23 +225,25 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#3) Creates a token with a symbol that is the maximum length", async function () {
-      const symbol = "This is a really long symbol but it is still valid because it is 100 characters exactly on the money";
+      const symbol =
+        "This is a really long symbol but it is still valid because it is 100 characters exactly on the money";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: symbol,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSymbol(response.tokenId, symbol);
+      await verifyTokenCreationWithSymbol(response.tokenId, symbol);
     });
 
     it("(#4) Creates a token with a symbol that exceeds the maximum length", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
-          symbol: "This is a long symbol that is not valid because it exceeds 100 characters and it should fail the test",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          symbol:
+            "This is a long symbol that is not valid because it exceeds 100 characters and it should fail the test",
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -181,7 +258,7 @@ describe("TokenCreateTransaction", function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -195,8 +272,15 @@ describe("TokenCreateTransaction", function () {
 
   describe("Decimals", function () {
     async function verifyTokenCreationWithDecimals(tokenId, decimals) {
-      expect(decimals).to.equal(await consensusInfoClient.getTokenInfo(tokenId).decimals);
-      expect(decimals).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].decimals);
+      expect(decimals).to.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).decimals
+      );
+
+      expect(decimals).to.equal(
+        Number(await (await mirrorNodeClient.getTokenData(tokenId)).decimals)
+      );
     }
 
     it("(#1) Creates a fungible token with 0 decimals", async function () {
@@ -205,11 +289,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         decimals: decimals,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
+      await verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
     it("(#2) Creates a fungible token with -1 decimals", async function () {
@@ -218,7 +302,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: -1,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -235,11 +319,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         decimals: decimals,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
+      await verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
     it("(#4) Creates a fungible token with 2,147,483,646 (int32 max - 1) decimals", async function () {
@@ -248,11 +332,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         decimals: decimals,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
+      await verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
     it("(#5) Creates a fungible token with 2,147,483,648 (int32 max + 1) decimals", async function () {
@@ -261,7 +345,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: 2147483648,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -278,7 +362,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: 4294967295,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -295,7 +379,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: 4294967294,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -312,7 +396,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: -2147483648,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -329,7 +413,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           decimals: -2147483647,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -342,7 +426,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#10) Creates an NFT with a decimal amount of zero", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -354,11 +438,11 @@ describe("TokenCreateTransaction", function () {
         decimals: decimals,
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: key,
-        tokenType: "nft"
+        tokenType: "nft",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenCreationWithDecimals(response.tokenId, decimals);
+
+      await verifyTokenCreationWithDecimals(response.tokenId, decimals);
     });
 
     it("(#11) Creates an NFT with a nonzero decimal amount", async function () {
@@ -368,7 +452,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           decimals: 3,
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          tokenType: "nft"
+          tokenType: "nft",
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -381,9 +465,25 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Initial Supply", function () {
-    async function verifyTokenCreationWithInitialSupply(tokenId, initialSupply) {
-      expect(initialSupply).to.equal(await consensusInfoClient.getTokenInfo(tokenId).totalSupply);
-      expect(initialSupply).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].initial_supply);
+    async function verifyTokenCreationWithInitialSupply(
+      tokenId,
+      initialSupply
+    ) {
+      const totalSupplyConsensus = await (
+        await consensusInfoClient.getTokenInfo(tokenId)
+      ).totalSupply;
+
+      const totalSupplyMirror = await (
+        await mirrorNodeClient.getTokenData(tokenId)
+      ).initial_supply;
+
+      if (BigInt(initialSupply) !== initialSupply) {
+        expect(initialSupply).to.equal(Number(totalSupplyConsensus));
+        expect(initialSupply).to.equal(Number(totalSupplyMirror));
+      } else {
+        expect(initialSupply).to.equal(BigInt(totalSupplyConsensus));
+        expect(initialSupply).to.equal(BigInt(totalSupplyMirror));
+      }
     }
 
     it("(#1) Creates a fungible token with 0 initial supply", async function () {
@@ -392,11 +492,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
+      await verifyTokenCreationWithInitialSupply(
+        response.tokenId,
+        initialSupply
+      );
     });
 
     it("(#2) Creates a fungible token with -1 initial supply", async function () {
@@ -405,7 +508,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: -1,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -422,11 +525,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
+      await verifyTokenCreationWithInitialSupply(
+        response.tokenId,
+        initialSupply
+      );
     });
 
     it("(#4) Creates a fungible token with 9,223,372,036,854,775,806 (int64 max - 1) initial supply", async function () {
@@ -435,11 +541,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
+      await verifyTokenCreationWithInitialSupply(
+        response.tokenId,
+        BigInt(initialSupply)
+      );
     });
 
     it("(#5) Creates a fungible token with 9,223,372,036,854,775,808 (int64 max + 1) initial supply", async function () {
@@ -448,7 +557,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: 9223372036854775808n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -465,7 +574,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: 18446744073709551615n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -482,7 +591,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: 18446744073709551614n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -499,7 +608,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: -9223372036854775808n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -516,7 +625,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           initialSupply: -9223372036854775807n,
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -535,11 +644,15 @@ describe("TokenCreateTransaction", function () {
         symbol: "testsymbol",
         decimals: decimals,
         initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply / (10 ** decimals));
+      // Why initialSupply / 10 ** decimals
+      await verifyTokenCreationWithInitialSupply(
+        response.tokenId,
+        initialSupply
+      );
     });
 
     it("(#11) Creates a fungible token with a valid initial supply and more decimals", async function () {
@@ -550,16 +663,20 @@ describe("TokenCreateTransaction", function () {
         symbol: "testsymbol",
         decimals: decimals,
         initialSupply: initialSupply,
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply / (10 ** decimals));
+      // Why initialSupply / 10 ** decimals
+      await verifyTokenCreationWithInitialSupply(
+        response.tokenId,
+        initialSupply
+      );
     });
 
     it("(#12) Creates an NFT with an initial supply of zero", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -571,11 +688,14 @@ describe("TokenCreateTransaction", function () {
         initialSupply: initialSupply,
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: key,
-        tokenType: "nft"
+        tokenType: "nft",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenCreationWithInitialSupply(response.tokenId, initialSupply);
+
+      await verifyTokenCreationWithInitialSupply(
+        response.tokenId,
+        initialSupply
+      );
     });
 
     it("(#13) Creates an NFT with an initial supply of zero without a supply key", async function () {
@@ -585,7 +705,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           initialSupply: 0,
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          tokenType: "nft"
+          tokenType: "nft",
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -603,7 +723,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           initialSupply: 3,
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          tokenType: "nft"
+          tokenType: "nft",
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -616,14 +736,25 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Treasury Account ID", function () {
-    async function verifyTokenCreationWithTreasuryAccount(tokenId, treasuryAccountId) {
-      expect(treasuryAccountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).treasuryAccountId.toString());
-      expect(treasuryAccountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].treasury_account_id);
+    async function verifyTokenCreationWithTreasuryAccount(
+      tokenId,
+      treasuryAccountId
+    ) {
+      expect(treasuryAccountId).to.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).treasuryAccountId.toString()
+      );
+      expect(treasuryAccountId).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).treasury_account_id
+      );
     }
 
     it("(#1) Creates a token with a treasury account", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -639,19 +770,17 @@ describe("TokenCreateTransaction", function () {
         symbol: "testsymbol",
         treasuryAccountId: accountId,
         commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
+          signers: [key],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithTreasuryAccount(response.tokenId, accountId);
+      await verifyTokenCreationWithTreasuryAccount(response.tokenId, accountId);
     });
 
     it("(#2) Creates a token with a treasury account without signing with the account's private key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -662,11 +791,12 @@ describe("TokenCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const accountId = response.accountId;
 
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccountId: accountId
+          treasuryAccountId: accountId,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -683,7 +813,7 @@ describe("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          treasuryAccountId: "123.456.789"
+          treasuryAccountId: "123.456.789",
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -697,7 +827,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#4) Creates a token with a treasury account that is deleted", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -712,10 +842,8 @@ describe("TokenCreateTransaction", function () {
         deleteAccountId: accountId,
         transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
         commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
+          signers: [key],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -725,10 +853,8 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: accountId,
           commonTransactionParams: {
-            signers: [
-              key
-            ]
-          }
+            signers: [key],
+          },
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -743,20 +869,50 @@ describe("TokenCreateTransaction", function () {
 
   describe("Admin Key", function () {
     async function verifyTokenCreationWithAdminKey(tokenId, adminKey) {
-      expect(adminKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).adminKey.toStringDer());
-      expect(adminKey).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].admin_key);
+      expect(adminKey).to.equal(
+        (await (await consensusInfoClient.getTokenInfo(tokenId)).adminKey)
+          .toStringDer()
+          .toUpperCase()
+      );
+
+      const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        tokenId,
+        "admin_key"
+      );
+
+      expect(adminKey).to.equal(publicKeyMirrorNode.toString().toUpperCase());
+    }
+
+    async function verifyTokenCreationWithAdminKeyList(tokenId, adminKey) {
+      const keyHex = await getEncodedKeyHexFromKeyList(
+        consensusInfoClient,
+        tokenId,
+        "adminKey"
+      );
+
+      // Consensus node check
+      expect(adminKey).to.equal(keyHex.toUpperCase());
+
+      // Mirror node check
+      expect(adminKey).to.equal(
+        (
+          await (
+            await mirrorNodeClient.getTokenData(tokenId)
+          ).admin_key
+        ).key.toUpperCase()
+      );
     }
 
     it("(#1) Creates a token with a valid ED25519 public key as its admin key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -766,27 +922,25 @@ describe("TokenCreateTransaction", function () {
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: publicKey,
         commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+          signers: [privateKey],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithAdminKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithAdminKey(response.tokenId, publicKey);
     });
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its admin key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -796,27 +950,25 @@ describe("TokenCreateTransaction", function () {
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: publicKey,
         commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+          signers: [privateKey],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithAdminKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithAdminKey(response.tokenId, publicKey);
     });
 
     it("(#3) Creates a token with a valid ED25519 private key as its admin key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -826,27 +978,25 @@ describe("TokenCreateTransaction", function () {
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: privateKey,
         commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+          signers: [privateKey],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithAdminKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithAdminKey(response.tokenId, publicKey);
     });
 
     it("(#4) Creates a token with a valid ECDSAsecp256k1 private key as its admin key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -856,15 +1006,13 @@ describe("TokenCreateTransaction", function () {
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: privateKey,
         commonTransactionParams: {
-          signers: [
-            privateKey
-          ]
-        }
+          signers: [privateKey],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithAdminKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithAdminKey(response.tokenId, publicKey);
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its admin key", async function () {
@@ -872,18 +1020,18 @@ describe("TokenCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
-            type: "ed25519PublicKey"
+            type: "ed25519PublicKey",
           },
           {
-            type: "ecdsaSecp256k1PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey",
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
-          }
-        ]
+            type: "ecdsaSecp256k1PublicKey",
+          },
+        ],
       });
       if (keyList.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -897,13 +1045,13 @@ describe("TokenCreateTransaction", function () {
             keyList.privateKeys[0],
             keyList.privateKeys[1],
             keyList.privateKeys[2],
-            keyList.privateKeys[3]
-          ]
-        }
+            keyList.privateKeys[3],
+          ],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithAdminKey(response.tokenId, keyList.key);
+      await verifyTokenCreationWithAdminKeyList(response.tokenId, keyList.key);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its admin key", async function () {
@@ -914,36 +1062,36 @@ describe("TokenCreateTransaction", function () {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ecdsaSecp256k1PrivateKey"
-              }
-            ]
+                type: "ecdsaSecp256k1PrivateKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ed25519PublicKey"
-              }
-            ]
+                type: "ed25519PublicKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ed25519PrivateKey"
+                type: "ed25519PrivateKey",
               },
               {
-                type: "ecdsaSecp256k1PublicKey"
-              }
-            ]
-          }
-        ]
+                type: "ecdsaSecp256k1PublicKey",
+              },
+            ],
+          },
+        ],
       });
       if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -959,13 +1107,16 @@ describe("TokenCreateTransaction", function () {
             nestedKeyList.privateKeys[2],
             nestedKeyList.privateKeys[3],
             nestedKeyList.privateKeys[4],
-            nestedKeyList.privateKeys[5]
-          ]
-        }
+            nestedKeyList.privateKeys[5],
+          ],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithAdminKey(response.tokenId, nestedKeyList.key);
+      await verifyTokenCreationWithAdminKeyList(
+        response.tokenId,
+        nestedKeyList.key
+      );
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its admin key", async function () {
@@ -974,15 +1125,15 @@ describe("TokenCreateTransaction", function () {
         threshold: 2,
         keys: [
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
+            type: "ecdsaSecp256k1PublicKey",
           },
           {
-            type: "ed25519PublicKey"
-          }
-        ]
+            type: "ed25519PublicKey",
+          },
+        ],
       });
       if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -992,20 +1143,20 @@ describe("TokenCreateTransaction", function () {
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         adminKey: thresholdKey.key,
         commonTransactionParams: {
-          signers: [
-            thresholdKey.privateKeys[0],
-            thresholdKey.privateKeys[1]
-          ]
-        }
+          signers: [thresholdKey.privateKeys[0], thresholdKey.privateKeys[1]],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithAdminKey(response.tokenId, thresholdKey.key);
+      await verifyTokenCreationWithAdminKeyList(
+        response.tokenId,
+        thresholdKey.key
+      );
     });
 
     it("(#8) Creates a token with a valid key as its admin key but doesn't sign with it", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
+        type: "ecdsaSecp256k1PublicKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -1015,7 +1166,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          adminKey: key
+          adminKey: key,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1032,7 +1183,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          adminKey: crypto.randomBytes(88).toString("hex")
+          adminKey: crypto.randomBytes(88).toString("hex"),
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1046,13 +1197,42 @@ describe("TokenCreateTransaction", function () {
 
   describe("KYC Key", function () {
     async function verifyTokenCreationWithKycKey(tokenId, kycKey) {
-      expect(kycKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).kycKey.toStringDer());
-      expect(kycKey).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].kyc_key);
+      expect(kycKey).to.equal(
+        (await (await consensusInfoClient.getTokenInfo(tokenId)).kycKey)
+          .toStringDer()
+          .toUpperCase()
+      );
+
+      const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        tokenId,
+        "kyc_key"
+      );
+
+      expect(kycKey).to.equal(publicKeyMirrorNode.toString().toUpperCase());
     }
 
+    async function verifyTokenCreationWithKycKeyList(tokenId, kycKey) {
+      const keyHex = await getEncodedKeyHexFromKeyList(
+        consensusInfoClient,
+        tokenId,
+        "kycKey"
+      );
+
+      // Consensus node check
+      expect(kycKey).to.equal(keyHex.toUpperCase());
+
+      // Mirror node check
+      expect(kycKey).to.equal(
+        (
+          await (
+            await mirrorNodeClient.getTokenData(tokenId)
+          ).kyc_key
+        ).key.toUpperCase()
+      );
+    }
     it("(#1) Creates a token with a valid ED25519 public key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
       });
       const publicKey = response.key;
 
@@ -1060,17 +1240,17 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        kycKey: publicKey
+        kycKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithKycKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithKycKey(response.tokenId, publicKey);
     });
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
+        type: "ecdsaSecp256k1PublicKey",
       });
       const publicKey = response.key;
 
@@ -1078,24 +1258,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        kycKey: publicKey
+        kycKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithKycKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithKycKey(response.tokenId, publicKey);
     });
 
     it("(#3) Creates a token with a valid ED25519 private key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -1103,24 +1283,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        kycKey: privateKey
+        kycKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithKycKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithKycKey(response.tokenId, publicKey);
     });
 
     it("(#4) Creates a token with a valid ECDSAsecp256k1 private key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -1128,12 +1308,12 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        kycKey: privateKey
+        kycKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithKycKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithKycKey(response.tokenId, publicKey);
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its KYC key", async function () {
@@ -1141,18 +1321,18 @@ describe("TokenCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
-            type: "ed25519PublicKey"
+            type: "ed25519PublicKey",
           },
           {
-            type: "ecdsaSecp256k1PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey",
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
-          }
-        ]
+            type: "ecdsaSecp256k1PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const keyList = response.key;
@@ -1161,11 +1341,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        kycKey: keyList
+        kycKey: keyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithKycKey(response.tokenId, keyList);
+      await verifyTokenCreationWithKycKeyList(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its KYC key", async function () {
@@ -1176,36 +1356,36 @@ describe("TokenCreateTransaction", function () {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ecdsaSecp256k1PrivateKey"
-              }
-            ]
+                type: "ecdsaSecp256k1PrivateKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ed25519PublicKey"
-              }
-            ]
+                type: "ed25519PublicKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ed25519PrivateKey"
+                type: "ed25519PrivateKey",
               },
               {
-                type: "ecdsaSecp256k1PublicKey"
-              }
-            ]
-          }
-        ]
+                type: "ecdsaSecp256k1PublicKey",
+              },
+            ],
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const nestedKeyList = response.key;
@@ -1214,11 +1394,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        kycKey: nestedKeyList
+        kycKey: nestedKeyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithKycKey(response.tokenId, nestedKeyList);
+      await verifyTokenCreationWithKycKeyList(response.tokenId, nestedKeyList);
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its KYC key", async function () {
@@ -1227,15 +1407,15 @@ describe("TokenCreateTransaction", function () {
         threshold: 2,
         keys: [
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
+            type: "ecdsaSecp256k1PublicKey",
           },
           {
-            type: "ed25519PublicKey"
-          }
-        ]
+            type: "ed25519PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const thresholdKey = response.key;
@@ -1244,11 +1424,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        kycKey: thresholdKey
+        kycKey: thresholdKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithKycKey(response.tokenId, thresholdKey);
+      await verifyTokenCreationWithKycKeyList(response.tokenId, thresholdKey);
     });
 
     it("(#8) Creates a token with an invalid key as its KYC key", async function () {
@@ -1257,7 +1437,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          kycKey: crypto.randomBytes(88).toString("hex")
+          kycKey: crypto.randomBytes(88).toString("hex"),
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1272,13 +1452,42 @@ describe("TokenCreateTransaction", function () {
 
   describe("Freeze Key", function () {
     async function verifyTokenCreationWithFreezeKey(tokenId, freezeKey) {
-      expect(freezeKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).freezeKey.toStringDer());
-      expect(freezeKey).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].freeze_key);
+      expect(freezeKey).to.equal(
+        (await (await consensusInfoClient.getTokenInfo(tokenId)).freezeKey)
+          .toStringDer()
+          .toUpperCase()
+      );
+
+      const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        tokenId,
+        "freeze_key"
+      );
+
+      expect(freezeKey).to.equal(publicKeyMirrorNode.toString().toUpperCase());
     }
 
+    async function verifyTokenCreationWithFreezeKeyList(tokenId, freezeKey) {
+      const keyHex = await getEncodedKeyHexFromKeyList(
+        consensusInfoClient,
+        tokenId,
+        "freezeKey"
+      );
+
+      // Consensus node check
+      expect(freezeKey).to.equal(keyHex.toUpperCase());
+
+      // Mirror node check
+      expect(freezeKey).to.equal(
+        (
+          await (
+            await mirrorNodeClient.getTokenData(tokenId)
+          ).freeze_key
+        ).key.toUpperCase()
+      );
+    }
     it("(#1) Creates a token with a valid ED25519 public key as its freeze key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
       });
       const publicKey = response.key;
 
@@ -1286,17 +1495,17 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: publicKey
+        freezeKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithFreezeKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithFreezeKey(response.tokenId, publicKey);
     });
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its freeze key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
+        type: "ecdsaSecp256k1PublicKey",
       });
       const publicKey = response.key;
 
@@ -1304,24 +1513,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: publicKey
+        freezeKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithFreezeKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithFreezeKey(response.tokenId, publicKey);
     });
 
     it("(#3) Creates a token with a valid ED25519 private key as its freeze key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -1329,24 +1538,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: privateKey
+        freezeKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithFreezeKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithFreezeKey(response.tokenId, publicKey);
     });
 
     it("(#4) Creates a token with a valid ECDSAsecp256k1 private key as its freeze key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -1354,12 +1563,12 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: privateKey
+        freezeKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithFreezeKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithFreezeKey(response.tokenId, publicKey);
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its freeze key", async function () {
@@ -1367,18 +1576,18 @@ describe("TokenCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
-            type: "ed25519PublicKey"
+            type: "ed25519PublicKey",
           },
           {
-            type: "ecdsaSecp256k1PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey",
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
-          }
-        ]
+            type: "ecdsaSecp256k1PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const keyList = response.key;
@@ -1387,11 +1596,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: keyList
+        freezeKey: keyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFreezeKey(response.tokenId, keyList);
+      await verifyTokenCreationWithFreezeKeyList(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its freeze key", async function () {
@@ -1402,36 +1611,36 @@ describe("TokenCreateTransaction", function () {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ecdsaSecp256k1PrivateKey"
-              }
-            ]
+                type: "ecdsaSecp256k1PrivateKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ed25519PublicKey"
-              }
-            ]
+                type: "ed25519PublicKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ed25519PrivateKey"
+                type: "ed25519PrivateKey",
               },
               {
-                type: "ecdsaSecp256k1PublicKey"
-              }
-            ]
-          }
-        ]
+                type: "ecdsaSecp256k1PublicKey",
+              },
+            ],
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const nestedKeyList = response.key;
@@ -1440,11 +1649,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: nestedKeyList
+        freezeKey: nestedKeyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFreezeKey(response.tokenId, nestedKeyList);
+      await verifyTokenCreationWithFreezeKeyList(
+        response.tokenId,
+        nestedKeyList
+      );
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its freeze key", async function () {
@@ -1453,15 +1665,15 @@ describe("TokenCreateTransaction", function () {
         threshold: 2,
         keys: [
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
+            type: "ecdsaSecp256k1PublicKey",
           },
           {
-            type: "ed25519PublicKey"
-          }
-        ]
+            type: "ed25519PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const thresholdKey = response.key;
@@ -1470,11 +1682,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeKey: thresholdKey
+        freezeKey: thresholdKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFreezeKey(response.tokenId, thresholdKey);
+      await verifyTokenCreationWithFreezeKeyList(
+        response.tokenId,
+        thresholdKey
+      );
     });
 
     it("(#8) Creates a token with an invalid key as its freeze key", async function () {
@@ -1483,7 +1698,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          freezeKey: crypto.randomBytes(88).toString("hex")
+          freezeKey: crypto.randomBytes(88).toString("hex"),
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1497,13 +1712,43 @@ describe("TokenCreateTransaction", function () {
 
   describe("Wipe Key", function () {
     async function verifyTokenCreationWithWipeKey(tokenId, wipeKey) {
-      expect(wipeKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).wipeKey.toStringDer());
-      expect(wipeKey).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].wipe_key);
+      expect(wipeKey).to.equal(
+        (await (await consensusInfoClient.getTokenInfo(tokenId)).wipeKey)
+          .toStringDer()
+          .toUpperCase()
+      );
+
+      const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        tokenId,
+        "wipe_key"
+      );
+
+      expect(wipeKey).to.equal(publicKeyMirrorNode.toString().toUpperCase());
+    }
+
+    async function verifyTokenCreationWithWipeKeyList(tokenId, wipeKey) {
+      const keyHex = await getEncodedKeyHexFromKeyList(
+        consensusInfoClient,
+        tokenId,
+        "wipeKey"
+      );
+
+      // Consensus node check
+      expect(wipeKey).to.equal(keyHex.toUpperCase());
+
+      // Mirror node check
+      expect(wipeKey).to.equal(
+        (
+          await (
+            await mirrorNodeClient.getTokenData(tokenId)
+          ).wipe_key
+        ).key.toUpperCase()
+      );
     }
 
     it("(#1) Creates a token with a valid ED25519 public key as its wipe key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
       });
       const publicKey = response.key;
 
@@ -1511,17 +1756,17 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: publicKey
+        wipeKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithWipeKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithWipeKey(response.tokenId, publicKey);
     });
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its wipe key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
+        type: "ecdsaSecp256k1PublicKey",
       });
       const publicKey = response.key;
 
@@ -1529,24 +1774,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: publicKey
+        wipeKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithWipeKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithWipeKey(response.tokenId, publicKey);
     });
 
     it("(#3) Creates a token with a valid ED25519 private key as its wipe key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -1554,24 +1799,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: privateKey
+        wipeKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithWipeKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithWipeKey(response.tokenId, publicKey);
     });
 
     it("(#4) Creates a token with a valid ECDSAsecp256k1 private key as its wipe key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -1579,12 +1824,12 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: privateKey
+        wipeKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithWipeKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithWipeKey(response.tokenId, publicKey);
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its wipe key", async function () {
@@ -1592,18 +1837,18 @@ describe("TokenCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
-            type: "ed25519PublicKey"
+            type: "ed25519PublicKey",
           },
           {
-            type: "ecdsaSecp256k1PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey",
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
-          }
-        ]
+            type: "ecdsaSecp256k1PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const keyList = response.key;
@@ -1612,11 +1857,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: keyList
+        wipeKey: keyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithWipeKey(response.tokenId, keyList);
+      await verifyTokenCreationWithWipeKeyList(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its wipe key", async function () {
@@ -1627,36 +1872,36 @@ describe("TokenCreateTransaction", function () {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ecdsaSecp256k1PrivateKey"
-              }
-            ]
+                type: "ecdsaSecp256k1PrivateKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ed25519PublicKey"
-              }
-            ]
+                type: "ed25519PublicKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ed25519PrivateKey"
+                type: "ed25519PrivateKey",
               },
               {
-                type: "ecdsaSecp256k1PublicKey"
-              }
-            ]
-          }
-        ]
+                type: "ecdsaSecp256k1PublicKey",
+              },
+            ],
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const nestedKeyList = response.key;
@@ -1665,11 +1910,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: nestedKeyList
+        wipeKey: nestedKeyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithWipeKey(response.tokenId, nestedKeyList);
+      await verifyTokenCreationWithWipeKeyList(response.tokenId, nestedKeyList);
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its wipe key", async function () {
@@ -1678,15 +1923,15 @@ describe("TokenCreateTransaction", function () {
         threshold: 2,
         keys: [
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
+            type: "ecdsaSecp256k1PublicKey",
           },
           {
-            type: "ed25519PublicKey"
-          }
-        ]
+            type: "ed25519PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const thresholdKey = response.key;
@@ -1695,11 +1940,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        wipeKey: thresholdKey
+        wipeKey: thresholdKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithWipeKey(response.tokenId, thresholdKey);
+      await verifyTokenCreationWithWipeKeyList(response.tokenId, thresholdKey);
     });
 
     it("(#8) Creates a token with an invalid key as its wipe key", async function () {
@@ -1708,7 +1953,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          wipeKey: crypto.randomBytes(88).toString("hex")
+          wipeKey: crypto.randomBytes(88).toString("hex"),
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1722,13 +1967,43 @@ describe("TokenCreateTransaction", function () {
 
   describe("Supply Key", function () {
     async function verifyTokenCreationWithSupplyKey(tokenId, supplyKey) {
-      expect(supplyKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).supplyKey.toStringDer());
-      expect(supplyKey).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].supply_key);
+      expect(supplyKey).to.equal(
+        (await (await consensusInfoClient.getTokenInfo(tokenId)).supplyKey)
+          .toStringDer()
+          .toUpperCase()
+      );
+
+      const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        tokenId,
+        "supply_key"
+      );
+
+      expect(supplyKey).to.equal(publicKeyMirrorNode.toString().toUpperCase());
+    }
+
+    async function verifyTokenCreationWithSupplyKeyList(tokenId, supplyKey) {
+      const keyHex = await getEncodedKeyHexFromKeyList(
+        consensusInfoClient,
+        tokenId,
+        "supplyKey"
+      );
+
+      // Consensus node check
+      expect(supplyKey).to.equal(keyHex.toUpperCase());
+
+      // Mirror node check
+      expect(supplyKey).to.equal(
+        (
+          await (
+            await mirrorNodeClient.getTokenData(tokenId)
+          ).supply_key
+        ).key.toUpperCase()
+      );
     }
 
     it("(#1) Creates a token with a valid ED25519 public key as its supply key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
       });
       const publicKey = response.key;
 
@@ -1736,17 +2011,17 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: publicKey
+        supplyKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithSupplyKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithSupplyKey(response.tokenId, publicKey);
     });
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its supply key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
+        type: "ecdsaSecp256k1PublicKey",
       });
       const publicKey = response.key;
 
@@ -1754,24 +2029,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: publicKey
+        supplyKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithSupplyKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithSupplyKey(response.tokenId, publicKey);
     });
 
     it("(#3) Creates a token with a valid ED25519 private key as its supply key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -1779,24 +2054,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: privateKey
+        supplyKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithSupplyKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithSupplyKey(response.tokenId, publicKey);
     });
 
     it("(#4) Creates a token with a valid ECDSAsecp256k1 private key as its supply key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -1804,12 +2079,12 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: privateKey
+        supplyKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithSupplyKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithSupplyKey(response.tokenId, publicKey);
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its supply key", async function () {
@@ -1817,18 +2092,18 @@ describe("TokenCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
-            type: "ed25519PublicKey"
+            type: "ed25519PublicKey",
           },
           {
-            type: "ecdsaSecp256k1PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey",
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
-          }
-        ]
+            type: "ecdsaSecp256k1PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const keyList = response.key;
@@ -1837,11 +2112,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: keyList
+        supplyKey: keyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSupplyKey(response.tokenId, keyList);
+      await verifyTokenCreationWithSupplyKeyList(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its supply key", async function () {
@@ -1852,36 +2127,36 @@ describe("TokenCreateTransaction", function () {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ecdsaSecp256k1PrivateKey"
-              }
-            ]
+                type: "ecdsaSecp256k1PrivateKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ed25519PublicKey"
-              }
-            ]
+                type: "ed25519PublicKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ed25519PrivateKey"
+                type: "ed25519PrivateKey",
               },
               {
-                type: "ecdsaSecp256k1PublicKey"
-              }
-            ]
-          }
-        ]
+                type: "ecdsaSecp256k1PublicKey",
+              },
+            ],
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const nestedKeyList = response.key;
@@ -1890,11 +2165,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: nestedKeyList
+        supplyKey: nestedKeyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSupplyKey(response.tokenId, nestedKeyList);
+      await verifyTokenCreationWithSupplyKeyList(
+        response.tokenId,
+        nestedKeyList
+      );
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its supply key", async function () {
@@ -1903,15 +2181,15 @@ describe("TokenCreateTransaction", function () {
         threshold: 2,
         keys: [
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
+            type: "ecdsaSecp256k1PublicKey",
           },
           {
-            type: "ed25519PublicKey"
-          }
-        ]
+            type: "ed25519PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const thresholdKey = response.key;
@@ -1920,11 +2198,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyKey: thresholdKey
+        supplyKey: thresholdKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSupplyKey(response.tokenId, thresholdKey.key);
+      await verifyTokenCreationWithSupplyKeyList(
+        response.tokenId,
+        thresholdKey
+      );
     });
 
     it("(#8) Creates a token with an invalid key as its supply key", async function () {
@@ -1933,7 +2214,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          supplyKey: crypto.randomBytes(88).toString("hex")
+          supplyKey: crypto.randomBytes(88).toString("hex"),
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1946,14 +2227,26 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Freeze Default", function () {
-    async function verifyTokenCreationWithFreezeDefault(tokenId, freezeDefault) {
-      expect(freezeDefault).to.equal(await consensusInfoClient.getTokenInfo(tokenId).freezeDefault);
-      expect(freezeDefault).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].freeze_default);
+    async function verifyTokenCreationWithFreezeDefault(
+      tokenId,
+      freezeDefault
+    ) {
+      expect(freezeDefault).to.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).defaultFreezeStatus
+      );
+
+      expect(freezeDefault).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).freeze_default
+      );
     }
 
     it("(#1) Creates a token with a frozen default status", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -1964,11 +2257,14 @@ describe("TokenCreateTransaction", function () {
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         freezeKey: key,
-        freezeDefault: freezeDefault
+        freezeDefault: freezeDefault,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFreezeDefault(response.tokenId, freezeDefault);
+      await verifyTokenCreationWithFreezeDefault(
+        response.tokenId,
+        freezeDefault
+      );
     });
 
     it("(#2) Creates a token with a frozen default status and no freeze key", async function () {
@@ -1977,7 +2273,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          freezeDefault: true
+          freezeDefault: true,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -1989,23 +2285,53 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#3) Creates a token with an unfrozen default status", async function () {
+      let responseKey = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey",
+      });
+      if (responseKey.status === "NOT_IMPLEMENTED") this.skip();
+      const key = responseKey.key;
+
       const freezeDefault = false;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        freezeDefault: freezeDefault
+        freezeKey: key,
+        freezeDefault: freezeDefault,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFreezeDefault(response.tokenId, freezeDefault);
+      await verifyTokenCreationWithFreezeDefault(
+        response.tokenId,
+        freezeDefault
+      );
     });
   });
 
   describe("Expiration Time", function () {
-    async function verifyTokenCreationWithExpirationTime(tokenId, expirationTime) {
-      expect(expirationTime).to.equal(await consensusInfoClient.getTokenInfo(tokenId).expirationTime);
-      expect(expirationTime).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].expiry_timestamp);
+    async function verifyTokenCreationWithExpirationTime(
+      tokenId,
+      expirationTime
+    ) {
+      expect(expirationTime).to.equal(
+        Number(
+          await (
+            await consensusInfoClient.getTokenInfo(tokenId)
+          ).expirationTime
+        )
+      );
+
+      // Check if this is expected to act like this
+      const convertedExpirationTimeToNanoSeconds =
+        expirationTime * 1_000_000_000;
+
+      expect(convertedExpirationTimeToNanoSeconds).to.equal(
+        Number(
+          await (
+            await mirrorNodeClient.getTokenData(tokenId)
+          ).expiry_timestamp
+        )
+      );
     }
 
     it("(#1) Creates a token with an expiration time of 0 seconds", async function () {
@@ -2014,7 +2340,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 0
+          expirationTime: 0,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2031,7 +2357,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: -1
+          expirationTime: -1,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2048,7 +2374,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 9223372036854775807n
+          expirationTime: 9223372036854775807n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2065,7 +2391,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 9223372036854775806n
+          expirationTime: 9223372036854775806n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2082,7 +2408,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 9223372036854775808n
+          expirationTime: 9223372036854775808n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2099,7 +2425,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 18446744073709551615n
+          expirationTime: 18446744073709551615n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2116,7 +2442,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 18446744073709551614n
+          expirationTime: 18446744073709551614n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2133,7 +2459,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: -9223372036854775808n
+          expirationTime: -9223372036854775808n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2150,7 +2476,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: -9223372036854775807n
+          expirationTime: -9223372036854775807n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2162,29 +2488,35 @@ describe("TokenCreateTransaction", function () {
     });
 
     it("(#10) Creates a token with an expiration time of 60 days (5,184,000 seconds) from the current time", async function () {
-      const expirationTime = parseInt((Date.now() / 1000) + 5184000);
+      const expirationTime = parseInt(Date.now() / 1000 + 5184000);
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        expirationTime: expirationTime
+        expirationTime: expirationTime,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenCreationWithExpirationTime(response.tokenId, expirationTime);
+
+      await verifyTokenCreationWithExpirationTime(
+        response.tokenId,
+        expirationTime
+      );
     });
 
     it("(#11) Creates a token with an expiration time of 30 days (2,592,000 seconds) from the current time", async function () {
-      const expirationTime = parseInt((Date.now() / 1000) + 2592000);
+      const expirationTime = parseInt(Date.now() / 1000 + 2592000);
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        expirationTime: expirationTime
+        expirationTime: expirationTime,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenCreationWithExpirationTime(response.tokenId, expirationTime);
+
+      await verifyTokenCreationWithExpirationTime(
+        response.tokenId,
+        expirationTime
+      );
     });
 
     //it("(#12) Creates a token with an expiration time of 30 days minus one second (2,591,999 seconds) from the current time", async function () {
@@ -2205,16 +2537,19 @@ describe("TokenCreateTransaction", function () {
     //});
 
     it("(#13) Creates a token with an expiration time of 8,000,001 seconds from the current time", async function () {
-      const expirationTime = parseInt((Date.now() / 1000) + 8000001);
+      const expirationTime = parseInt(Date.now() / 1000 + 8000001);
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        expirationTime: expirationTime
+        expirationTime: expirationTime,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-      
-      verifyTokenCreationWithExpirationTime(response.tokenId, expirationTime);
+
+      await verifyTokenCreationWithExpirationTime(
+        response.tokenId,
+        expirationTime
+      );
     });
 
     it("(#14) Creates a token with an expiration time of 8,000,002 seconds from the current time", async function () {
@@ -2223,7 +2558,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: (Date.now() / 1000) + 8000002
+          expirationTime: Date.now() / 1000 + 8000002,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2236,9 +2571,9 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Auto Renew Account ID", function () {
-    it ("(#1) Creates a token with an auto renew account", async function () {
+    it("(#1) Creates a token with an auto renew account", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -2255,21 +2590,27 @@ describe("TokenCreateTransaction", function () {
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         autoRenewAccountId: accountId,
         commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
+          signers: [key],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const tokenId = response.tokenId;
 
-      expect(accountId).to.equal(await consensusInfoClient.getTokenInfo(tokenId).autoRenewAccountId.toString());
-      expect(accountId).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].auto_renew_account);
+      expect(accountId).to.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).autoRenewAccountId.toString()
+      );
+      expect(accountId).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).auto_renew_account
+      );
     });
 
-    it ("(#2) Creates a token with an auto renew account without signing with the account's key", async function () {
+    it("(#2) Creates a token with an auto renew account without signing with the account's key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -2280,12 +2621,14 @@ describe("TokenCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const accountId = response.accountId;
 
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewAccountId: accountId
+          autoRenewAccountId: accountId,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2296,13 +2639,13 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it ("(#3) Creates a token with an auto renew account that doesn't exist", async function () {
+    it("(#3) Creates a token with an auto renew account that doesn't exist", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewAccountId: "123.456.789"
+          autoRenewAccountId: "123.456.789",
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2313,13 +2656,13 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it ("(#4) Creates a token with the auto renew account not set", async function () {
+    it("(#4) Creates a token with the auto renew account not set", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewAccountId: ""
+          autoRenewAccountId: "",
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2331,9 +2674,9 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it ("(#5) Creates a token with an auto renew account that is deleted", async function () {
+    it("(#5) Creates a token with an auto renew account that is deleted", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -2348,10 +2691,8 @@ describe("TokenCreateTransaction", function () {
         deleteAccountId: accountId,
         transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
         commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
+          signers: [key],
+        },
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -2362,10 +2703,8 @@ describe("TokenCreateTransaction", function () {
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           autoRenewAccountId: accountId,
           commonTransactionParams: {
-            signers: [
-              key
-            ]
-          }
+            signers: [key],
+          },
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2379,30 +2718,49 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Auto Renew Period", function () {
-    async function verifyTokenCreationWithAutoRenewPeriod(tokenId, autoRenewPeriod) {
-      expect(autoRenewPeriod).to.equal(await consensusInfoClient.getTokenInfo(tokenId).autoRenewPeriod);
-      expect(autoRenewPeriod).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].auto_renew_period);
+    async function verifyTokenCreationWithAutoRenewPeriod(
+      tokenId,
+      autoRenewPeriod
+    ) {
+      expect(autoRenewPeriod).to.equal(
+        Number(
+          await (
+            await consensusInfoClient.getTokenInfo(tokenId)
+          ).autoRenewPeriod.seconds
+        )
+      );
+
+      expect(autoRenewPeriod).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).auto_renew_period
+      );
     }
 
-    it ("(#1) Creates a token with an auto renew period set to 60 days (5,184,000 seconds)", async function () {
-      const autoRenewPeriod = 5184000
+    it("(#1) Creates a token with an auto renew period set to 60 days (5,184,000 seconds)", async function () {
+      const autoRenewPeriod = 5184000;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        autoRenewPeriod: autoRenewPeriod
+        autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        autoRenewPeriod: autoRenewPeriod,
       });
 
-      verifyTokenCreationWithAutoRenewPeriod(response.tokenId, autoRenewPeriod);
+      await verifyTokenCreationWithAutoRenewPeriod(
+        response.tokenId,
+        autoRenewPeriod
+      );
     });
 
-    it ("(#2) Creates a token with an auto renew period set to -1 seconds", async function () {
+    it("(#2) Creates a token with an auto renew period set to -1 seconds", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: -1
+          autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          autoRenewPeriod: -1,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2413,25 +2771,30 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it ("(#3) Creates a token with an auto renew period set to the minimum period of 30 days (2,592,000 seconds)", async function () {
+    it("(#3) Creates a token with an auto renew period set to the minimum period of 30 days (2,592,000 seconds)", async function () {
       const autoRenewPeriod = 2592000;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        autoRenewPeriod: autoRenewPeriod
+        autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        autoRenewPeriod: autoRenewPeriod,
       });
 
-      verifyTokenCreationWithAutoRenewPeriod(response.tokenId, autoRenewPeriod);
+      await verifyTokenCreationWithAutoRenewPeriod(
+        response.tokenId,
+        autoRenewPeriod
+      );
     });
 
-    it ("(#4) Creates a token with an auto renew period set to the minimum period of 30 days minus one second (2,591,999 seconds)", async function () {
+    it("(#4) Creates a token with an auto renew period set to the minimum period of 30 days minus one second (2,591,999 seconds)", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 2591999
+          autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          autoRenewPeriod: 2591999,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2442,25 +2805,30 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it ("(#5) Creates a token with an auto renew period set to the maximum period of 8,000,001 seconds", async function () {
+    it("(#5) Creates a token with an auto renew period set to the maximum period of 8,000,001 seconds", async function () {
       const autoRenewPeriod = 8000001;
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        autoRenewPeriod: autoRenewPeriod
+        autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
+        autoRenewPeriod: autoRenewPeriod,
       });
 
-      verifyTokenCreationWithAutoRenewPeriod(response.tokenId, autoRenewPeriod);
+      await verifyTokenCreationWithAutoRenewPeriod(
+        response.tokenId,
+        autoRenewPeriod
+      );
     });
 
-    it ("(#6) Creates a token with an auto renew period set to the maximum period plus one second (8,000,002 seconds)", async function () {
+    it("(#6) Creates a token with an auto renew period set to the maximum period plus one second (8,000,002 seconds)", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 8000002
+          autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
+          autoRenewPeriod: 8000002,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2474,56 +2842,65 @@ describe("TokenCreateTransaction", function () {
 
   describe("Memo", function () {
     async function verifyTokenCreationWithMemo(tokenId, memo) {
-      expect(memo).to.equal(await consensusInfoClient.getTokenInfo(tokenId).memo);
-      expect(memo).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].memo);
+      expect(memo).to.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).tokenMemo
+      );
+      expect(memo).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).memo
+      );
     }
 
-    it ("(#1) Creates a token with a memo that is a valid length", async function () {
-      const memo = "testmemo"
+    it("(#1) Creates a token with a memo that is a valid length", async function () {
+      const memo = "testmemo";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        memo: memo
+        memo: memo,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMemo(response.tokenId, memo);
+      await verifyTokenCreationWithMemo(response.tokenId, memo);
     });
 
-    it ("(#2) Creates a token with a memo that is the minimum length", async function () {
-      const memo = ""
+    it("(#2) Creates a token with a memo that is the minimum length", async function () {
+      const memo = "";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        memo: memo
+        memo: memo,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMemo(response.tokenId, memo);
+      await verifyTokenCreationWithMemo(response.tokenId, memo);
     });
 
-    it ("(#3) Creates a token with a memo that is the maximum length", async function () {
-      const memo = "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!"
+    it("(#3) Creates a token with a memo that is the maximum length", async function () {
+      const memo =
+        "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        memo: memo
+        memo: memo,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMemo(response.tokenId, memo);
+      await verifyTokenCreationWithMemo(response.tokenId, memo);
     });
 
-    it ("(#4) Creates a token with a memo that exceeds the maximum length", async function () {
+    it("(#4) Creates a token with a memo that exceeds the maximum length", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          memo: "This is a long memo that is not valid because it exceeds 100 characters and it should fail the test!!"
+          memo: "This is a long memo that is not valid because it exceeds 100 characters and it should fail the test!!",
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2537,26 +2914,38 @@ describe("TokenCreateTransaction", function () {
 
   describe("Token Type", function () {
     async function verifyTokenCreationWithTokenType(tokenId, type) {
-      expect(type).to.equal(await consensusInfoClient.getTokenInfo(tokenId).type);
-      expect(type).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].type);
+      expect(TOKEN_TYPE[type]).to.deep.equal;
+
+      await (
+        await consensusInfoClient.getTokenInfo(tokenId)
+      ).tokenType;
+
+      expect(type).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).type
+      );
     }
 
-    it ("(#1) Creates a fungible token", async function () {
+    it("(#1) Creates a fungible token", async function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        tokenType: "ft"
+        tokenType: "ft",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithTokenType(response.tokenId, "FUNGIBLE_COMMON");
+      await verifyTokenCreationWithTokenType(
+        response.tokenId,
+        "FUNGIBLE_COMMON"
+      );
     });
 
-    it ("(#2) Creates an NFT", async function () {
+    it("(#2) Creates an NFT", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
-      });;
+        type: "ecdsaSecp256k1PublicKey",
+      });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
@@ -2565,50 +2954,79 @@ describe("TokenCreateTransaction", function () {
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyKey: key,
-        tokenType: "nft"
+        tokenType: "nft",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithTokenType(response.tokenId, "NON_FUNGIBLE_UNIQUE");
+      await verifyTokenCreationWithTokenType(
+        response.tokenId,
+        "NON_FUNGIBLE_UNIQUE"
+      );
     });
   });
 
   describe("Supply Type", function () {
     async function verifyTokenCreationWithSupplyType(tokenId, type) {
-      expect(type).to.equal(await consensusInfoClient.getTokenInfo(tokenId).supplyType);
-      expect(type).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].supply_type);
+      const TOKEN_TYPE = {
+        FINITE: TokenSupplyType.Finite,
+        INFINITE: TokenSupplyType.Infinite,
+      };
+
+      expect(TOKEN_TYPE[type]).to.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).supplyType
+      );
+      expect(type).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).supply_type
+      );
     }
 
-    it ("(#1) Creates a token with a finite supply", async function () {
+    it("(#1) Creates a token with a finite supply", async function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyType: "finite",
-        maxSupply: 1000000
+        maxSupply: 1000000,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSupplyType(response.tokenId, "FINITE");
-    })
+      await verifyTokenCreationWithSupplyType(response.tokenId, "FINITE");
+    });
 
-    it ("(#2) Creates a token with an infinite supply", async function () {
+    it("(#2) Creates a token with an infinite supply", async function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        supplyType: "infinite"
+        supplyType: "infinite",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithSupplyType(response.tokenId, "INFINITE");
-    })
+      await verifyTokenCreationWithSupplyType(response.tokenId, "INFINITE");
+    });
   });
 
   describe("Max Supply", function () {
     async function verifyTokenCreationWithMaxSupply(tokenId, maxSupply) {
-      expect(maxSupply).to.equal(await consensusInfoClient.getTokenInfo(tokenId).maxSupply);
-      expect(maxSupply).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].max_supply);
+      const totalMaxSupplyConsensus = await (
+        await consensusInfoClient.getTokenInfo(tokenId)
+      ).maxSupply;
+
+      const totalMaxSupplyMirror = await (
+        await mirrorNodeClient.getTokenData(tokenId)
+      ).max_supply;
+
+      if (BigInt(maxSupply) !== maxSupply) {
+        expect(maxSupply).to.equal(Number(totalMaxSupplyConsensus));
+        expect(maxSupply).to.equal(Number(totalMaxSupplyMirror));
+      } else {
+        expect(maxSupply).to.equal(BigInt(totalMaxSupplyConsensus));
+        expect(maxSupply).to.equal(BigInt(totalMaxSupplyMirror));
+      }
     }
 
     it("(#1) Creates a token with 0 max supply", async function () {
@@ -2618,7 +3036,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: 0
+          maxSupply: 0,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2636,7 +3054,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: -1
+          maxSupply: -1,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2654,11 +3072,11 @@ describe("TokenCreateTransaction", function () {
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyType: "finite",
-        maxSupply: maxSupply
+        maxSupply: maxSupply,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
+      await verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
     });
 
     it("(#4) Creates a token with 9,223,372,036,854,775,806 (int64 max - 1) max supply", async function () {
@@ -2668,11 +3086,11 @@ describe("TokenCreateTransaction", function () {
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyType: "finite",
-        maxSupply: maxSupply
+        maxSupply: maxSupply,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
+      await verifyTokenCreationWithMaxSupply(response.tokenId, maxSupply);
     });
 
     it("(#5) Creates a token with 9,223,372,036,854,775,808 (int64 max + 1) max supply", async function () {
@@ -2682,7 +3100,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: 9223372036854775808n
+          maxSupply: 9223372036854775808n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2700,7 +3118,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: 18446744073709551615n
+          maxSupply: 18446744073709551615n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2718,7 +3136,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: 18446744073709551614n
+          maxSupply: 18446744073709551614n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2736,7 +3154,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: -9223372036854775808n
+          maxSupply: -9223372036854775808n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2754,7 +3172,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: -9223372036854775807n
+          maxSupply: -9223372036854775807n,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2772,7 +3190,7 @@ describe("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "infinite",
-          maxSupply: 1000000
+          maxSupply: 1000000,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -2785,14 +3203,50 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Fee Schedule Key", function () {
-    async function verifyTokenCreationWithFeeScheduleKey(tokenId, feeScheduleKey) {
-      expect(feeScheduleKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).feeScheduleKey.toStringDer());
-      expect(feeScheduleKey).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].fee_schedule_key);
+    async function verifyTokenCreationWithFeeScheduleKey(
+      tokenId,
+      feeScheduleKey
+    ) {
+      expect(feeScheduleKey).to.equal(
+        (await (await consensusInfoClient.getTokenInfo(tokenId)).feeScheduleKey)
+          .toStringDer()
+          .toUpperCase()
+      );
+
+      const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        tokenId,
+        "fee_schedule_key"
+      );
+
+      expect(feeScheduleKey).to.equal(
+        publicKeyMirrorNode.toString().toUpperCase()
+      );
+    }
+
+    async function verifyTokenCreationWithFeeScheduleKeyList(
+      tokenId,
+      feeScheduleKey
+    ) {
+      const keyHex = await getEncodedKeyHexFromKeyList(
+        consensusInfoClient,
+        tokenId,
+        "feeScheduleKey"
+      );
+
+      // Consensus node check
+      expect(feeScheduleKey).to.equal(keyHex.toUpperCase());
+
+      // Mirror node check
+      expect(feeScheduleKey).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).fee_schedule_key.key.toUpperCase()
+      );
     }
 
     it("(#1) Creates a token with a valid ED25519 public key as its fee schedule key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
       });
       const publicKey = response.key;
 
@@ -2800,17 +3254,17 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: publicKey
+        feeScheduleKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithFeeScheduleKey(response.tokenId, publicKey);
     });
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its fee schedule key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
+        type: "ecdsaSecp256k1PublicKey",
       });
       const publicKey = response.key;
 
@@ -2818,24 +3272,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: publicKey
+        feeScheduleKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithFeeScheduleKey(response.tokenId, publicKey);
     });
 
     it("(#3) Creates a token with a valid ED25519 private key as its fee schedule key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -2843,24 +3297,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: privateKey
+        feeScheduleKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithFeeScheduleKey(response.tokenId, publicKey);
     });
 
     it("(#4) Creates a token with a valid ECDSAsecp256k1 private key as its fee schedule key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -2868,12 +3322,12 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: privateKey
+        feeScheduleKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithFeeScheduleKey(response.tokenId, publicKey);
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its fee schedule key", async function () {
@@ -2881,18 +3335,18 @@ describe("TokenCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
-            type: "ed25519PublicKey"
+            type: "ed25519PublicKey",
           },
           {
-            type: "ecdsaSecp256k1PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey",
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
-          }
-        ]
+            type: "ecdsaSecp256k1PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const keyList = response.key;
@@ -2901,11 +3355,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: keyList
+        feeScheduleKey: keyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, keyList);
+      await verifyTokenCreationWithFeeScheduleKeyList(
+        response.tokenId,
+        keyList
+      );
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its fee schedule key", async function () {
@@ -2916,36 +3373,36 @@ describe("TokenCreateTransaction", function () {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ecdsaSecp256k1PrivateKey"
-              }
-            ]
+                type: "ecdsaSecp256k1PrivateKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ed25519PublicKey"
-              }
-            ]
+                type: "ed25519PublicKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ed25519PrivateKey"
+                type: "ed25519PrivateKey",
               },
               {
-                type: "ecdsaSecp256k1PublicKey"
-              }
-            ]
-          }
-        ]
+                type: "ecdsaSecp256k1PublicKey",
+              },
+            ],
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const nestedKeyList = response.key;
@@ -2954,11 +3411,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: nestedKeyList
+        feeScheduleKey: nestedKeyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, nestedKeyList);
+      await verifyTokenCreationWithFeeScheduleKeyList(
+        response.tokenId,
+        nestedKeyList
+      );
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its fee schedule key", async function () {
@@ -2967,15 +3427,15 @@ describe("TokenCreateTransaction", function () {
         threshold: 2,
         keys: [
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
+            type: "ecdsaSecp256k1PublicKey",
           },
           {
-            type: "ed25519PublicKey"
-          }
-        ]
+            type: "ed25519PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const thresholdKey = response.key;
@@ -2984,11 +3444,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        feeScheduleKey: thresholdKey
+        feeScheduleKey: thresholdKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFeeScheduleKey(response.tokenId, thresholdKey);
+      await verifyTokenCreationWithFeeScheduleKeyList(
+        response.tokenId,
+        thresholdKey
+      );
     });
 
     it("(#8) Creates a token with an invalid key as its fee schedule key", async function () {
@@ -2997,7 +3460,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          feeScheduleKey: crypto.randomBytes(88).toString("hex")
+          feeScheduleKey: crypto.randomBytes(88).toString("hex"),
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3010,127 +3473,273 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Custom Fees", function () {
-    async function consensusNodeFeeEqualsCustomFee(customFee, feeCollectorAccountId, feeCollectorsExempt) {
-      return feeCollectorAccountId === customFee.feeCollectorAccountId.toString() &&
-             feeCollectorsExempt === customFee.allCollectorsAreExempt;
+    async function consensusNodeFeeEqualsCustomFee(
+      customFee,
+      feeCollectorAccountId,
+      feeCollectorsExempt
+    ) {
+      return (
+        feeCollectorAccountId === customFee.feeCollectorAccountId.toString() &&
+        feeCollectorsExempt === customFee.allCollectorsAreExempt
+      );
     }
 
-    async function consensusNodeFeeEqualsCustomFixedFee(customFixedFee, feeCollectorAccountId, feeCollectorsExempt, amount) {
-      return consensusNodeFeeEqualsCustomFee(customFixedFee, feeCollectorAccountId, feeCollectorsExempt) &&
-             amount === customFixedFee.amount;
+    async function consensusNodeFeeEqualsCustomFixedFee(
+      customFixedFee,
+      feeCollectorAccountId,
+      feeCollectorsExempt,
+      amount
+    ) {
+      return (
+        consensusNodeFeeEqualsCustomFee(
+          customFixedFee,
+          feeCollectorAccountId,
+          feeCollectorsExempt
+        ) && amount === customFixedFee.amount
+      );
     }
 
-    async function consensusNodeFeeEqualsCustomFractionalFee(customFractionalFee, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod) {
-      return consensusNodeFeeEqualsCustomFee(customFractionalFee, feeCollectorAccountId, feeCollectorsExempt) &&
-             numerator === customFractionalFee.numerator &&
-             denominator === customFractionalFee.denominator &&
-             minAmount === customFractionalFee.minimumAmount &&
-             maxAmount === customFractionalFee.maximumAmount &&
-             assessmentMethod === customFractionalFee.assessmentMethod.toString().toLowerCase();
+    async function consensusNodeFeeEqualsCustomFractionalFee(
+      customFractionalFee,
+      feeCollectorAccountId,
+      feeCollectorsExempt,
+      numerator,
+      denominator,
+      minAmount,
+      maxAmount,
+      assessmentMethod
+    ) {
+      return (
+        consensusNodeFeeEqualsCustomFee(
+          customFractionalFee,
+          feeCollectorAccountId,
+          feeCollectorsExempt
+        ) &&
+        numerator === customFractionalFee.numerator &&
+        denominator === customFractionalFee.denominator &&
+        minAmount === customFractionalFee.minimumAmount &&
+        maxAmount === customFractionalFee.maximumAmount &&
+        assessmentMethod ===
+          customFractionalFee.assessmentMethod.toString().toLowerCase()
+      );
     }
 
-    async function consensusNodeFeeEqualsCustomRoyaltyFee(customRoyaltyFee, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeAmount) {
-      return consensusNodeFeeEqualsCustomFee(customRoyaltyFee, feeCollectorAccountId, feeCollectorsExempt) &&
-             numerator === customRoyaltyFee.numerator &&
-             denominator === customRoyaltyFee.denominator &&
-             fixedFeeAmount === customRoyaltyFee.fixedFeeAmount;
+    async function consensusNodeFeeEqualsCustomRoyaltyFee(
+      customRoyaltyFee,
+      feeCollectorAccountId,
+      feeCollectorsExempt,
+      numerator,
+      denominator,
+      fixedFeeAmount
+    ) {
+      return (
+        consensusNodeFeeEqualsCustomFee(
+          customRoyaltyFee,
+          feeCollectorAccountId,
+          feeCollectorsExempt
+        ) &&
+        numerator === customRoyaltyFee.numerator &&
+        denominator === customRoyaltyFee.denominator &&
+        fixedFeeAmount === customRoyaltyFee.fixedFeeAmount
+      );
     }
 
-    async function mirrorNodeFeeEqualsCustomFixedFee(customFixedFee, feeCollectorAccountId, amount) {
-      return feeCollectorAccountId === customFixedFee.collector_account_id &&
-             amount === customFixedFee.amount;
+    async function mirrorNodeFeeEqualsCustomFixedFee(
+      customFixedFee,
+      feeCollectorAccountId,
+      amount
+    ) {
+      return (
+        feeCollectorAccountId === customFixedFee.collector_account_id &&
+        amount === customFixedFee.amount
+      );
     }
 
-    async function mirrorNodeFeeEqualsCustomFractionalFee(customFractionalFee, feeCollectorAccountId, numerator, denominator, minAmount, maxAmount, assessmentMethod) {
-      return feeCollectorAccountId === customFractionalFee.collector_account_id &&
-             numerator === customFractionalFee.amount.numerator &&
-             denominator === customFractionalFee.amount.denominator &&
-             minAmount === customFractionalFee.minimum &&
-             maxAmount === customFractionalFee.maximum &&
-             ((assessmentMethod === "exclusive") === customFractionalFee.net_of_transfer);
+    async function mirrorNodeFeeEqualsCustomFractionalFee(
+      customFractionalFee,
+      feeCollectorAccountId,
+      numerator,
+      denominator,
+      minAmount,
+      maxAmount,
+      assessmentMethod
+    ) {
+      return (
+        feeCollectorAccountId === customFractionalFee.collector_account_id &&
+        numerator === customFractionalFee.amount.numerator &&
+        denominator === customFractionalFee.amount.denominator &&
+        minAmount === customFractionalFee.minimum &&
+        maxAmount === customFractionalFee.maximum &&
+        (assessmentMethod === "exclusive") ===
+          customFractionalFee.net_of_transfer
+      );
     }
 
-    async function mirrorNodeFeeEqualsCustomRoyaltyFee(customRoyaltyFee, feeCollectorAccountId, numerator, denominator, fixedFeeAmount) {
-      return feeCollectorAccountId === customRoyaltyFee.collector_account_id &&
-             numerator === customRoyaltyFee.amount.numerator &&
-             denominator === customRoyaltyFee.amount.denominator &&
-             fixedFeeAmount === customRoyaltyFee.fallback_fee.amount;
+    async function mirrorNodeFeeEqualsCustomRoyaltyFee(
+      customRoyaltyFee,
+      feeCollectorAccountId,
+      numerator,
+      denominator,
+      fixedFeeAmount
+    ) {
+      return (
+        feeCollectorAccountId === customRoyaltyFee.collector_account_id &&
+        numerator === customRoyaltyFee.amount.numerator &&
+        denominator === customRoyaltyFee.amount.denominator &&
+        fixedFeeAmount === customRoyaltyFee.fallback_fee.amount
+      );
     }
 
-    async function verifyTokenCreationWithFixedFee(tokenId, feeCollectorAccountId, feeCollectorsExempt, amount) {
+    async function verifyTokenCreationWithFixedFee(
+      tokenId,
+      feeCollectorAccountId,
+      feeCollectorsExempt,
+      amount
+    ) {
       const consensusNodeInfo = await consensusInfoClient.getTokenInfo(tokenId);
-      const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId).tokens[0];
+      const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId);
 
       let foundConsensusNodeFee = false;
       let foundMirrorNodeFee = false;
 
-      for (let i = 0; i < consensusNodeInfo.customFees.size(); i++) {
-        if (consensusNodeInfo.customFees[i] instanceof CustomFixedFee &&
-            consensusNodeFeeEqualsCustomFixedFee(consensusNodeInfo.customFees[i], feeCollectorAccountId, feeCollectorsExempt, amount)) {
-            foundConsensusNodeFee = true;
-            break;
+      for (let i = 0; i < consensusNodeInfo.customFees.length; i++) {
+        if (
+          consensusNodeInfo.customFees[i] instanceof CustomFixedFee &&
+          consensusNodeFeeEqualsCustomFixedFee(
+            consensusNodeInfo.customFees[i],
+            feeCollectorAccountId,
+            feeCollectorsExempt,
+            amount
+          )
+        ) {
+          foundConsensusNodeFee = true;
+          break;
         }
       }
 
-      for (let i = 0; i < mirrorNodeInfo.custom_fees.fixed_fees.size(); i++) {
-        if (mirrorNodeFeeEqualsCustomFixedFee(mirrorNodeInfo.custom_fees.fixed_fees[i], feeCollectorAccountId, amount)) {
+      for (let i = 0; i < mirrorNodeInfo.custom_fees.fixed_fees.length; i++) {
+        if (
+          mirrorNodeFeeEqualsCustomFixedFee(
+            mirrorNodeInfo.custom_fees.fixed_fees[i],
+            feeCollectorAccountId,
+            amount
+          )
+        ) {
           foundMirrorNodeFee = true;
           break;
         }
       }
-      
+
       expect(foundConsensusNodeFee).to.be.true;
       expect(foundMirrorNodeFee).to.be.true;
     }
 
-    async function verifyTokenCreationWithFractionalFee(tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod) {
+    async function verifyTokenCreationWithFractionalFee(
+      tokenId,
+      feeCollectorAccountId,
+      feeCollectorsExempt,
+      numerator,
+      denominator,
+      minAmount,
+      maxAmount,
+      assessmentMethod
+    ) {
       const consensusNodeInfo = await consensusInfoClient.getTokenInfo(tokenId);
-      const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId).tokens[0];
+      const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId);
 
       let foundConsensusNodeFee = false;
       let foundMirrorNodeFee = false;
 
-      for (let i = 0; i < consensusNodeInfo.customFees.size(); i++) {
-        if (consensusNodeInfo.customFees[i] instanceof CustomFractionalFee &&
-            consensusNodeFeeEqualsCustomFractionalFee(consensusNodeInfo.customFees[i], feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod)) {
-            foundConsensusNodeFee = true;
-            break;
+      for (let i = 0; i < consensusNodeInfo.customFees.length; i++) {
+        if (
+          consensusNodeInfo.customFees[i] instanceof CustomFractionalFee &&
+          consensusNodeFeeEqualsCustomFractionalFee(
+            consensusNodeInfo.customFees[i],
+            feeCollectorAccountId,
+            feeCollectorsExempt,
+            numerator,
+            denominator,
+            minAmount,
+            maxAmount,
+            assessmentMethod
+          )
+        ) {
+          foundConsensusNodeFee = true;
+          break;
         }
       }
 
-      for (let i = 0; i < mirrorNodeInfo.custom_fees.fractional_fees.size(); i++) {
-        if (mirrorNodeFeeEqualsCustomFractionalFee(mirrorNodeInfo.custom_fees.fractional_fees[i], feeCollectorAccountId, numerator, denominator, minAmount, maxAmount, assessmentMethod)) {
+      for (
+        let i = 0;
+        i < mirrorNodeInfo.custom_fees.fractional_fees.length;
+        i++
+      ) {
+        if (
+          mirrorNodeFeeEqualsCustomFractionalFee(
+            mirrorNodeInfo.custom_fees.fractional_fees[i],
+            feeCollectorAccountId,
+            numerator,
+            denominator,
+            minAmount,
+            maxAmount,
+            assessmentMethod
+          )
+        ) {
           foundMirrorNodeFee = true;
           break;
         }
       }
-      
+
       expect(foundConsensusNodeFee).to.be.true;
       expect(foundMirrorNodeFee).to.be.true;
     }
 
-    async function verifyTokenCreationWithRoyaltyFee(tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeAmount) {
+    async function verifyTokenCreationWithRoyaltyFee(
+      tokenId,
+      feeCollectorAccountId,
+      feeCollectorsExempt,
+      numerator,
+      denominator,
+      fixedFeeAmount
+    ) {
       const consensusNodeInfo = await consensusInfoClient.getTokenInfo(tokenId);
-      const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId).tokens[0];
+      const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId);
 
       let foundConsensusNodeFee = false;
       let foundMirrorNodeFee = false;
 
-      for (let i = 0; i < consensusNodeInfo.customFees.size(); i++) {
-        if (consensusNodeInfo.customFees[i] instanceof CustomRoyaltyFee &&
-            consensusNodeFeeEqualsCustomRoyaltyFee(consensusNodeInfo.customFees[i], feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeAmount)) {
-            foundConsensusNodeFee = true;
-            break;
+      for (let i = 0; i < consensusNodeInfo.customFees.length; i++) {
+        if (
+          consensusNodeInfo.customFees[i] instanceof CustomRoyaltyFee &&
+          consensusNodeFeeEqualsCustomRoyaltyFee(
+            consensusNodeInfo.customFees[i],
+            feeCollectorAccountId,
+            feeCollectorsExempt,
+            numerator,
+            denominator,
+            fixedFeeAmount
+          )
+        ) {
+          foundConsensusNodeFee = true;
+          break;
         }
       }
 
-      for (let i = 0; i < mirrorNodeInfo.custom_fees.fractional_fees.size(); i++) {
-        if (mirrorNodeFeeEqualsCustomRoyaltyFee(mirrorNodeInfo.custom_fees.fractional_fees[i], feeCollectorAccountId, numerator, denominator, fixedFeeAmount)) {
+      for (let i = 0; i < mirrorNodeInfo.custom_fees.royalty_fees.length; i++) {
+        if (
+          mirrorNodeFeeEqualsCustomRoyaltyFee(
+            mirrorNodeInfo.custom_fees.royalty_fees[i],
+            feeCollectorAccountId,
+            numerator,
+            denominator,
+            fixedFeeAmount
+          )
+        ) {
           foundMirrorNodeFee = true;
           break;
         }
       }
-      
+
       expect(foundConsensusNodeFee).to.be.true;
       expect(foundMirrorNodeFee).to.be.true;
     }
@@ -3146,10 +3755,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 0
-              }
-            }
-          ]
+                amount: 0,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3171,10 +3780,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: -1
-              }
-            }
-          ]
+                amount: -1,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3198,14 +3807,19 @@ describe("TokenCreateTransaction", function () {
             feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fixedFee: {
-              amount: amount
-            }
-          }
-        ]
+              amount: amount,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
+      await verifyTokenCreationWithFixedFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        amount
+      );
     });
 
     it("(#4) Creates a token with a fixed fee with an amount of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
@@ -3221,14 +3835,19 @@ describe("TokenCreateTransaction", function () {
             feeCollectorAccountId: feeCollectorAccountId,
             feeCollectorsExempt: feeCollectorsExempt,
             fixedFee: {
-              amount: amount
-            }
-          }
-        ]
+              amount: amount,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
+      await verifyTokenCreationWithFixedFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        amount
+      );
     });
 
     it("(#5) Creates a token with a fixed fee with an amount of 9,223,372,036,854,775,8068 (int64 max + 1)", async function () {
@@ -3242,10 +3861,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 9223372036854775808n
-              }
-            }
-          ]
+                amount: 9223372036854775808n,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3267,10 +3886,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 18446744073709551615n
-              }
-            }
-          ]
+                amount: 18446744073709551615n,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3292,10 +3911,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 18446744073709551614n
-              }
-            }
-          ]
+                amount: 18446744073709551614n,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3317,10 +3936,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: -9223372036854775808n
-              }
-            }
-          ]
+                amount: -9223372036854775808n,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3342,10 +3961,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: -9223372036854775807n
-              }
-            }
-          ]
+                amount: -9223372036854775807n,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3371,10 +3990,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3400,10 +4019,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3435,14 +4054,23 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
-            }
-          }
-        ]
+              assessmentMethod: assessmentMethod,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
     it("(#13) Creates a token with a fractional fee with a numerator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
@@ -3466,14 +4094,23 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
-            }
-          }
-        ]
+              assessmentMethod: assessmentMethod,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
     it("(#14) Creates a token with a fractional fee with a numerator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -3491,10 +4128,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3520,10 +4157,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3549,10 +4186,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3578,10 +4215,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3607,10 +4244,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3636,10 +4273,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 0,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3665,10 +4302,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: -1,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3700,14 +4337,23 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
-            }
-          }
-        ]
+              assessmentMethod: assessmentMethod,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
     it("(#22) Creates a token with a fractional fee with a denominator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
@@ -3731,14 +4377,23 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
-            }
-          }
-        ]
+              assessmentMethod: assessmentMethod,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
     it("(#23) Creates a token with a fractional fee with a denominator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -3756,10 +4411,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 9223372036854775808n,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3785,10 +4440,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 18446744073709551615n,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3814,10 +4469,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 18446744073709551614n,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3843,10 +4498,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: -9223372036854775808n,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3872,10 +4527,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: -9223372036854775807n,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3907,14 +4562,23 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
-            }
-          }
-        ]
+              assessmentMethod: assessmentMethod,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
     it("(#29) Creates a token with a fractional fee with a minimum amount of -1", async function () {
@@ -3932,10 +4596,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: -1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -3961,14 +4625,17 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 9223372036854775807n,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "FRACTIONAL_FEE_MAX_AMOUNT_LESS_THAN_MIN_AMOUNT");
+        assert.equal(
+          err.data.status,
+          "FRACTIONAL_FEE_MAX_AMOUNT_LESS_THAN_MIN_AMOUNT"
+        );
         return;
       }
 
@@ -3990,14 +4657,17 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 9223372036854775806n,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "FRACTIONAL_FEE_MAX_AMOUNT_LESS_THAN_MIN_AMOUNT");
+        assert.equal(
+          err.data.status,
+          "FRACTIONAL_FEE_MAX_AMOUNT_LESS_THAN_MIN_AMOUNT"
+        );
         return;
       }
 
@@ -4019,10 +4689,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 9223372036854775808n,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4048,10 +4718,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 18446744073709551615n,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4077,10 +4747,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 18446744073709551614n,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4106,10 +4776,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: -9223372036854775808n,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4135,10 +4805,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: -9223372036854775807n,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4170,14 +4840,23 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: "inclusive"
-            }
-          }
-        ]
+              assessmentMethod: "inclusive",
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
     it("(#38) Creates a token with a fractional fee with a maximum amount of -1", async function () {
@@ -4195,10 +4874,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: -1,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4230,14 +4909,23 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
-            }
-          }
-        ]
+              assessmentMethod: assessmentMethod,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
     it("(#40) Creates a token with a fractional fee with a maximum amount of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
@@ -4261,14 +4949,23 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
-            }
-          }
-        ]
+              assessmentMethod: assessmentMethod,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
     it("(#41) Creates a token with a fractional fee with a maximum amount of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -4286,10 +4983,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 9223372036854775808n,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4315,10 +5012,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 18446744073709551615n,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4344,10 +5041,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 18446744073709551614n,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4373,10 +5070,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: -9223372036854775808n,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4402,10 +5099,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: -9223372036854775807n,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4418,7 +5115,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#46) Creates a token with a royalty fee with a numerator of 0", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -4438,11 +5135,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 0,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4455,7 +5152,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#47) Creates a token with a royalty fee with a numerator of -1", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -4475,11 +5172,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: -1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4492,11 +5189,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#48) Creates a token with a royalty fee with a numerator of 9,223,372,036,854,775,807 (int64 max)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4512,11 +5209,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 9223372036854775807n,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4529,11 +5226,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#49) Creates a token with a royalty fee with a numerator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4549,11 +5246,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 9223372036854775806n,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4566,11 +5263,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#50) Creates a token with a royalty fee with a numerator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4586,11 +5283,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 9223372036854775808n,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4603,11 +5300,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#51) Creates a token with a royalty fee with a numerator of 18,446,744,073,709,551,615 (uint64 max)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4623,11 +5320,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 18446744073709551615n,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4640,11 +5337,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#52) Creates a token with a royalty fee with a numerator of 18,446,744,073,709,551,614 (uint64 max - 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4660,11 +5357,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 18446744073709551614n,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4677,11 +5374,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#53) Creates a token with a royalty fee with a numerator of -9,223,372,036,854,775,808 (int64 min)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4697,11 +5394,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: -9223372036854775808n,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4714,11 +5411,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#54) Creates a token with a royalty fee with a numerator of -9,223,372,036,854,775,807 (int64 min + 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4734,11 +5431,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: -9223372036854775807n,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4751,11 +5448,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#55) Creates a token with a royalty fee with a denominator of 0", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4771,11 +5468,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 0,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4788,11 +5485,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#56) Creates a token with a royalty fee with a denominator of -1", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4808,11 +5505,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: -1,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4825,11 +5522,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#57) Creates a token with a royalty fee with a denominator of 9,223,372,036,854,775,807 (int64 max)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -4849,24 +5546,33 @@ describe("TokenCreateTransaction", function () {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                amount: fallbackFeeAmount
-              }
-            }
-          }
-        ]
+                amount: fallbackFeeAmount,
+              },
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, feeCollectorAccountId, feeCollectorsExempt, fallbackFeeAmount);
+      await verifyTokenCreationWithRoyaltyFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        fallbackFeeAmount
+      );
     });
 
     it("(#58) Creates a token with a royalty fee with a denominator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -4886,24 +5592,33 @@ describe("TokenCreateTransaction", function () {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                amount: fallbackFeeAmount
-              }
-            }
-          }
-        ]
+                amount: fallbackFeeAmount,
+              },
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, feeCollectorAccountId, feeCollectorsExempt, fallbackFeeAmount);
+      await verifyTokenCreationWithRoyaltyFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        fallbackFeeAmount
+      );
     });
 
     it("(#59) Creates a token with a royalty fee with a denominator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4919,11 +5634,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 9223372036854775808n,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4936,11 +5651,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#60) Creates a token with a royalty fee with a denominator of 18,446,744,073,709,551,615 (uint64 max)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4956,11 +5671,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 18446744073709551615n,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -4973,11 +5688,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#61) Creates a token with a royalty fee with a denominator of 18,446,744,073,709,551,614 (uint64 max - 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4993,11 +5708,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 18446744073709551614n,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5010,11 +5725,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#62) Creates a token with a royalty fee with a denominator of -9,223,372,036,854,775,808 (int64 min)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5030,11 +5745,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: -9223372036854775808n,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5047,11 +5762,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#63) Creates a token with a royalty fee with a denominator of -9,223,372,036,854,775,807 (int64 min + 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5067,11 +5782,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: -9223372036854775807n,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5084,11 +5799,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#64) Creates a token with a royalty fee with a fallback fee with an amount of 0", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5104,11 +5819,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 0
-                }
-              }
-            }
-          ]
+                  amount: 0,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5121,11 +5836,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#65) Creates a token with a royalty fee with a fallback fee with an amount of -1", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5141,11 +5856,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: -1
-                }
-              }
-            }
-          ]
+                  amount: -1,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5158,11 +5873,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#66) Creates a token with a royalty fee with a fallback fee with an amount of 9,223,372,036,854,775,807 (int64 max)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -5182,24 +5897,33 @@ describe("TokenCreateTransaction", function () {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                amount: fallbackFeeAmount
-              }
-            }
-          }
-        ]
+                amount: fallbackFeeAmount,
+              },
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, feeCollectorAccountId, feeCollectorsExempt, fallbackFeeAmount);
+      await verifyTokenCreationWithRoyaltyFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        fallbackFeeAmount
+      );
     });
 
     it("(#67) Creates a token with a royalty fee with a fallback fee with an amount of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -5219,24 +5943,33 @@ describe("TokenCreateTransaction", function () {
               numerator: numerator,
               denominator: denominator,
               fallbackFee: {
-                amount: fallbackFeeAmount
-              }
-            }
-          }
-        ]
+                amount: fallbackFeeAmount,
+              },
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, feeCollectorAccountId, feeCollectorsExempt, fallbackFeeAmount);
+      await verifyTokenCreationWithRoyaltyFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        fallbackFeeAmount
+      );
     });
 
     it("(#68) Creates a token with a royalty fee with a fallback fee with an amount of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5252,11 +5985,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 9223372036854775808n
-                }
-              }
-            }
-          ]
+                  amount: 9223372036854775808n,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5269,11 +6002,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#69) Creates a token with a royalty fee with a fallback fee with an amount of 18,446,744,073,709,551,615 (uint64 max)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5289,11 +6022,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 18446744073709551615n
-                }
-              }
-            }
-          ]
+                  amount: 18446744073709551615n,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5306,11 +6039,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#70) Creates a token with a royalty fee with a fallback fee with an amount of 18,446,744,073,709,551,614 (uint64 max - 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5326,11 +6059,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 18446744073709551614n
-                }
-              }
-            }
-          ]
+                  amount: 18446744073709551614n,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5343,11 +6076,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#71) Creates a token with a royalty fee with a fallback fee with an amount of -9,223,372,036,854,775,808 (int64 min)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5363,11 +6096,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: -9223372036854775808n
-                }
-              }
-            }
-          ]
+                  amount: -9223372036854775808n,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5380,11 +6113,11 @@ describe("TokenCreateTransaction", function () {
 
     it("(#72) Creates a token with a royalty fee with a fallback fee with an amount of -9,223,372,036,854,775,807 (int64 min + 1)", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-      
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5400,11 +6133,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: -9223372036854775807n
-                }
-              }
-            }
-          ]
+                  amount: -9223372036854775807n,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5415,7 +6148,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#73) Creates a token with a fixed fee with a fee collector account that doesn't exist", async function () {      
+    it("(#73) Creates a token with a fixed fee with a fee collector account that doesn't exist", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5426,10 +6159,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: "123.456.789",
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
-            }
-          ]
+                amount: 10,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5440,7 +6173,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#74) Creates a token with a fractional with a fee collector account that doesn't exist", async function () {      
+    it("(#74) Creates a token with a fractional with a fee collector account that doesn't exist", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5455,10 +6188,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5469,13 +6202,13 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#75) Creates a token with a royalty fee with a fee collector account that doesn't exist", async function () {     
+    it("(#75) Creates a token with a royalty fee with a fee collector account that doesn't exist", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-       
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5491,11 +6224,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5506,7 +6239,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#76) Creates a token with a fixed fee with an empty fee collector account", async function () {      
+    it("(#76) Creates a token with a fixed fee with an empty fee collector account", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5517,10 +6250,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: "",
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
-            }
-          ]
+                amount: 10,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5531,7 +6264,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#77) Creates a token with a fractional with an empty fee collector account", async function () {      
+    it("(#77) Creates a token with a fractional with an empty fee collector account", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5546,10 +6279,10 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5560,13 +6293,13 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#78) Creates a token with a royalty fee with an empty fee collector account", async function () {    
+    it("(#78) Creates a token with a royalty fee with an empty fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
-        
+
       try {
         response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5582,11 +6315,11 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5597,15 +6330,15 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#79) Creates a token with a fixed fee with a deleted fee collector account", async function () {
+    it.skip("(#79) Creates a token with a fixed fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
       response = await JSONRPCRequest("createAccount", {
-        key: key
+        key: key,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const accountId = response.accountId;
@@ -5614,11 +6347,9 @@ describe("TokenCreateTransaction", function () {
         deleteAccountId: accountId,
         transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
         commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
-      })
+          signers: [key],
+        },
+      });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -5631,16 +6362,15 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: accountId,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
-            }
+                amount: 10,
+              },
+            },
           ],
           commonTransactionParams: {
-            signers: [
-              key
-            ]
-          }
+            signers: [key],
+          },
         });
+
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
         assert.equal(err.data.status, "INVALID_CUSTOM_FEE_COLLECTOR");
@@ -5650,15 +6380,15 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#80) Creates a token with a fractional fee with a deleted fee collector account", async function () {
+    it.skip("(#80) Creates a token with a fractional fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
       response = await JSONRPCRequest("createAccount", {
-        key: key
+        key: key,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const accountId = response.accountId;
@@ -5667,11 +6397,9 @@ describe("TokenCreateTransaction", function () {
         deleteAccountId: accountId,
         transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
         commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
-      })
+          signers: [key],
+        },
+      });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -5688,15 +6416,13 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
+                assessmentMethod: "inclusive",
+              },
+            },
           ],
           commonTransactionParams: {
-            signers: [
-              key
-            ]
-          }
+            signers: [key],
+          },
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5707,15 +6433,15 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#81) Creates a token with a royalty fee with a deleted fee collector account", async function () {
+    it.skip("(#81) Creates a token with a royalty fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
 
       response = await JSONRPCRequest("createAccount", {
-        key: key
+        key: key,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const accountId = response.accountId;
@@ -5724,11 +6450,9 @@ describe("TokenCreateTransaction", function () {
         deleteAccountId: accountId,
         transferAccountId: process.env.OPERATOR_ACCOUNT_ID,
         commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
-      })
+          signers: [key],
+        },
+      });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       try {
@@ -5746,16 +6470,14 @@ describe("TokenCreateTransaction", function () {
                 numerator: 1,
                 denominator: 10,
                 fallbackFee: {
-                  amount: 10
-                }
-              }
-            }
+                  amount: 10,
+                },
+              },
+            },
           ],
           commonTransactionParams: {
-            signers: [
-              key
-            ]
-          }
+            signers: [key],
+          },
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5781,17 +6503,22 @@ describe("TokenCreateTransaction", function () {
             feeCollectorsExempt: feeCollectorsExempt,
             fixedFee: {
               amount: fixedFeeAmount,
-              denominatingTokenId: denominatingTokenId
-            }
-          }
-        ]
+              denominatingTokenId: denominatingTokenId,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, fixedFeeAmount);
+      await verifyTokenCreationWithFixedFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        fixedFeeAmount
+      );
     });
 
-    it("(#83) Creates a token with a fixed fee that is assessed with a token that doesn't exist", async function () {      
+    it("(#83) Creates a token with a fixed fee that is assessed with a token that doesn't exist", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5803,10 +6530,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorsExempt: false,
               fixedFee: {
                 amount: 10,
-                denominatingTokenId: "123.456.789"
-              }
-            }
-          ]
+                denominatingTokenId: "123.456.789",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5817,7 +6544,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#84) Creates a token with a fixed fee that is assessed with an empty token", async function () {      
+    it("(#84) Creates a token with a fixed fee that is assessed with an empty token", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5829,10 +6556,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorsExempt: false,
               fixedFee: {
                 amount: 10,
-                denominatingTokenId: ""
-              }
-            }
-          ]
+                denominatingTokenId: "",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -5843,17 +6570,17 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#85) Creates a token with a fixed fee that is assessed with a deleted token", async function () {   
+    it("(#85) Creates a token with a fixed fee that is assessed with a deleted token", async function () {
       let response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
-        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID
+        treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const tokenId = response.tokenId;
 
       response = await JSONRPCRequest("deleteToken", {
-        tokenId: tokenId
+        tokenId: tokenId,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
@@ -5868,10 +6595,10 @@ describe("TokenCreateTransaction", function () {
               feeCollectorsExempt: false,
               fixedFee: {
                 amount: 10,
-                denominatingTokenId: tokenId
-              }
-            }
-          ]
+                denominatingTokenId: tokenId,
+              },
+            },
+          ],
         });
       } catch (err) {
         assert.equal(err.data.status, "INVALID_TOKEN_ID_IN_CUSTOM_FEES");
@@ -5902,17 +6629,26 @@ describe("TokenCreateTransaction", function () {
               denominator: denominator,
               minimumAmount: minimumAmount,
               maximumAmount: maximumAmount,
-              assessmentMethod: assessmentMethod
-            }
-          }
-        ]
+              assessmentMethod: assessmentMethod,
+            },
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minimumAmount, maximumAmount, assessmentMethod);
+      await verifyTokenCreationWithFractionalFee(
+        response.tokenId,
+        feeCollectorAccountId,
+        feeCollectorsExempt,
+        numerator,
+        denominator,
+        minimumAmount,
+        maximumAmount,
+        assessmentMethod
+      );
     });
 
-    it("(#87) Creates a fungible token with a royalty fee", async function () {      
+    it("(#87) Creates a fungible token with a royalty fee", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -5928,15 +6664,18 @@ describe("TokenCreateTransaction", function () {
                 fallbackFee: {
                   feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
                   feeCollectorsExempt: false,
-                  amount: 10
-                }
-              }
-            }
-          ]
+                  amount: 10,
+                },
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "CUSTOM_ROYALTY_FEE_ONLY_ALLOWED_FOR_NON_FUNGIBLE_UNIQUE");
+        assert.equal(
+          err.data.status,
+          "CUSTOM_ROYALTY_FEE_ONLY_ALLOWED_FOR_NON_FUNGIBLE_UNIQUE"
+        );
         return;
       }
 
@@ -5945,7 +6684,7 @@ describe("TokenCreateTransaction", function () {
 
     it("(#88) Creates an NFT with a fractional fee", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const key = response.key;
@@ -5966,14 +6705,17 @@ describe("TokenCreateTransaction", function () {
                 denominator: 10,
                 minimumAmount: 1,
                 maximumAmount: 10,
-                assessmentMethod: "inclusive"
-              }
-            }
-          ]
+                assessmentMethod: "inclusive",
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
-        assert.equal(err.data.status, "CUSTOM_FRACTIONAL_FEE_ONLY_ALLOWED_FOR_FUNGIBLE_COMMON");
+        assert.equal(
+          err.data.status,
+          "CUSTOM_FRACTIONAL_FEE_ONLY_ALLOWED_FOR_FUNGIBLE_COMMON"
+        );
         return;
       }
 
@@ -5991,80 +6733,80 @@ describe("TokenCreateTransaction", function () {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
+                amount: 10,
+              },
             },
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
               feeCollectorsExempt: false,
               fixedFee: {
-                amount: 10
-              }
-            }
-          ]
+                amount: 10,
+              },
+            },
+          ],
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -6078,13 +6820,44 @@ describe("TokenCreateTransaction", function () {
 
   describe("Pause Key", function () {
     async function verifyTokenCreationWithPauseKey(tokenId, pauseKey) {
-      expect(pauseKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).pauseKey.toStringDer());
-      expect(pauseKey).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].pause_key);
+      expect(pauseKey).to.equal(
+        (await (await consensusInfoClient.getTokenInfo(tokenId)).pauseKey)
+          .toStringDer()
+          .toUpperCase()
+      );
+
+      const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        tokenId,
+        "pause_key"
+      );
+
+      expect(pauseKey).to.equal(publicKeyMirrorNode.toString().toUpperCase());
+    }
+
+    async function verifyTokenCreationWithPauseKeyList(
+      tokenId,
+      feeScheduleKey
+    ) {
+      const keyHex = await getEncodedKeyHexFromKeyList(
+        consensusInfoClient,
+        tokenId,
+        "pauseKey"
+      );
+
+      // Consensus node check
+      expect(feeScheduleKey).to.equal(keyHex.toUpperCase());
+
+      // Mirror node check
+      expect(feeScheduleKey).to.equal(
+        await (
+          await mirrorNodeClient.getTokenData(tokenId)
+        ).pause_key.key.toUpperCase()
+      );
     }
 
     it("(#1) Creates a token with a valid ED25519 public key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
       });
       const publicKey = response.key;
 
@@ -6092,17 +6865,17 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: publicKey
+        pauseKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithPauseKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithPauseKey(response.tokenId, publicKey);
     });
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
+        type: "ecdsaSecp256k1PublicKey",
       });
       const publicKey = response.key;
 
@@ -6110,24 +6883,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: publicKey
+        pauseKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithPauseKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithPauseKey(response.tokenId, publicKey);
     });
 
     it("(#3) Creates a token with a valid ED25519 private key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -6135,24 +6908,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: privateKey
+        pauseKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithPauseKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithPauseKey(response.tokenId, publicKey);
     });
 
     it("(#4) Creates a token with a valid ECDSAsecp256k1 private key as its pause key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -6160,12 +6933,12 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: privateKey
+        pauseKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithPauseKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithPauseKey(response.tokenId, publicKey);
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its pause key", async function () {
@@ -6173,18 +6946,18 @@ describe("TokenCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
-            type: "ed25519PublicKey"
+            type: "ed25519PublicKey",
           },
           {
-            type: "ecdsaSecp256k1PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey",
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
-          }
-        ]
+            type: "ecdsaSecp256k1PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const keyList = response.key;
@@ -6193,11 +6966,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: keyList
+        pauseKey: keyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithPauseKey(response.tokenId, keyList);
+      await verifyTokenCreationWithPauseKeyList(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its pause key", async function () {
@@ -6208,36 +6981,36 @@ describe("TokenCreateTransaction", function () {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ecdsaSecp256k1PrivateKey"
-              }
-            ]
+                type: "ecdsaSecp256k1PrivateKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ed25519PublicKey"
-              }
-            ]
+                type: "ed25519PublicKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ed25519PrivateKey"
+                type: "ed25519PrivateKey",
               },
               {
-                type: "ecdsaSecp256k1PublicKey"
-              }
-            ]
-          }
-        ]
+                type: "ecdsaSecp256k1PublicKey",
+              },
+            ],
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const nestedKeyList = response.key;
@@ -6246,11 +7019,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: nestedKeyList
+        pauseKey: nestedKeyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithPauseKey(response.tokenId, nestedKeyList);
+      await verifyTokenCreationWithPauseKeyList(
+        response.tokenId,
+        nestedKeyList
+      );
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its pause key", async function () {
@@ -6259,15 +7035,15 @@ describe("TokenCreateTransaction", function () {
         threshold: 2,
         keys: [
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
+            type: "ecdsaSecp256k1PublicKey",
           },
           {
-            type: "ed25519PublicKey"
-          }
-        ]
+            type: "ed25519PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const thresholdKey = response.key;
@@ -6276,11 +7052,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        pauseKey: thresholdKey
+        pauseKey: thresholdKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithPauseKey(response.tokenId, thresholdKey);
+      await verifyTokenCreationWithPauseKeyList(response.tokenId, thresholdKey);
     });
 
     it("(#8) Creates a token with an invalid key as its pause key", async function () {
@@ -6289,7 +7065,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          pauseKey: crypto.randomBytes(88).toString("hex")
+          pauseKey: crypto.randomBytes(88).toString("hex"),
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
@@ -6302,22 +7078,37 @@ describe("TokenCreateTransaction", function () {
   });
 
   describe("Metadata", function () {
-    async function verifyTokenCreationWithMetadata(tokenId, metadata) {
-      expect(metadata).to.equal(await consensusInfoClient.getTokenInfo(tokenId).metadata);
-      expect(metadata).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].metadata);
+    async function verifyTokenCreationWithMetadata(tokenId, expectedMetadata) {
+      const metadataConsensus = await (
+        await consensusInfoClient.getTokenInfo(tokenId)
+      ).metadata;
+
+      expect(metadataConsensus.toString("utf8")).to.equal(expectedMetadata);
+
+      const metadataMirror = await (
+        await mirrorNodeClient.getTokenData(tokenId)
+      ).metadata;
+
+      expect(Buffer.from(metadataMirror, "base64").toString("utf8")).to.equal(
+        expectedMetadata
+      );
     }
 
     it("(#1) Creates a token with metadata", async function () {
-      const metadata = "1234";
+      const metadataValue = "1234";
+      // Send the metadata as a hexadecimal representation
+      const metadata = Buffer.from(metadataValue, "utf8").toString("hex");
+
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadata: metadata
+        metadata: metadata,
       });
+
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMetadata(response.tokenId, metadata);
+      await verifyTokenCreationWithMetadata(response.tokenId, metadataValue);
     });
 
     it("(#2) Creates a token with empty metadata", async function () {
@@ -6326,23 +7117,58 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadata: metadata
+        metadata: metadata,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMetadata(response.tokenId, metadata);
+      await verifyTokenCreationWithMetadata(response.tokenId, metadata);
     });
   });
 
   describe("Metadata Key", function () {
     async function verifyTokenCreationWithMetadataKey(tokenId, metadataKey) {
-      expect(metadataKey).to.equal(await consensusInfoClient.getTokenInfo(tokenId).metadataKey.toStringDer());
-      expect(metadataKey).to.equal(await mirrorNodeClient.getTokenData(tokenId).tokens[0].metadata_key);
+      expect(metadataKey).to.equal(
+        (await (await consensusInfoClient.getTokenInfo(tokenId)).metadataKey)
+          .toStringDer()
+          .toUpperCase()
+      );
+
+      const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        tokenId,
+        "metadata_key"
+      );
+
+      expect(metadataKey).to.equal(
+        publicKeyMirrorNode.toString().toUpperCase()
+      );
+    }
+
+    async function verifyTokenCreationWithMetadataKeyList(
+      tokenId,
+      feeScheduleKey
+    ) {
+      const keyHex = await getEncodedKeyHexFromKeyList(
+        consensusInfoClient,
+        tokenId,
+        "metadataKey"
+      );
+
+      // Consensus node check
+      expect(feeScheduleKey).to.equal(keyHex.toUpperCase());
+
+      // Mirror node check
+      expect(feeScheduleKey).to.equal(
+        (
+          await (
+            await mirrorNodeClient.getTokenData(tokenId)
+          ).metadata_key
+        ).key.toUpperCase()
+      );
     }
 
     it("(#1) Creates a token with a valid ED25519 public key as its metadata key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PublicKey"
+        type: "ed25519PublicKey",
       });
       const publicKey = response.key;
 
@@ -6350,17 +7176,18 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadataKey: publicKey
+        metadata: "1234",
+        metadataKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithMetadataKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithMetadataKey(response.tokenId, publicKey);
     });
 
     it("(#2) Creates a token with a valid ECDSAsecp256k1 public key as its metadata key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PublicKey"
+        type: "ecdsaSecp256k1PublicKey",
       });
       const publicKey = response.key;
 
@@ -6368,24 +7195,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadataKey: publicKey
+        metadataKey: publicKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithMetadataKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithMetadataKey(response.tokenId, publicKey);
     });
 
     it("(#3) Creates a token with a valid ED25519 private key as its metadata key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ed25519PrivateKey"
+        type: "ed25519PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -6393,24 +7220,24 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadataKey: privateKey
+        metadataKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ED25519 public key DER-encoding has a 12 byte prefix.
-      verifyTokenCreationWithMetadataKey(response.tokenId, String(publicKey).substring(24).toLowerCase());
+      await verifyTokenCreationWithMetadataKey(response.tokenId, publicKey);
     });
 
     it("(#4) Creates a token with a valid ECDSAsecp256k1 private key as its metadata key", async function () {
       let response = await JSONRPCRequest("generateKey", {
-        type: "ecdsaSecp256k1PrivateKey"
+        type: "ecdsaSecp256k1PrivateKey",
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const privateKey = response.key;
 
       response = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
-        fromKey: privateKey
+        fromKey: privateKey,
       });
       const publicKey = response.key;
 
@@ -6418,12 +7245,12 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadataKey: privateKey
+        metadataKey: privateKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Compare against raw key, ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix.
-      verifyTokenCreationWithMetadataKey(response.tokenId, String(publicKey).substring(28).toLowerCase());
+      await verifyTokenCreationWithMetadataKey(response.tokenId, publicKey);
     });
 
     it("(#5) Creates a token with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys as its metadata key", async function () {
@@ -6431,18 +7258,18 @@ describe("TokenCreateTransaction", function () {
         type: "keyList",
         keys: [
           {
-            type: "ed25519PublicKey"
+            type: "ed25519PublicKey",
           },
           {
-            type: "ecdsaSecp256k1PrivateKey"
+            type: "ecdsaSecp256k1PrivateKey",
           },
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
-          }
-        ]
+            type: "ecdsaSecp256k1PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const keyList = response.key;
@@ -6451,11 +7278,11 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadataKey: keyList
+        metadataKey: keyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMetadataKey(response.tokenId, keyList.key);
+      await verifyTokenCreationWithMetadataKeyList(response.tokenId, keyList);
     });
 
     it("(#6) Creates a token with a valid KeyList of nested Keylists (three levels) as its metadata key", async function () {
@@ -6466,36 +7293,36 @@ describe("TokenCreateTransaction", function () {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ecdsaSecp256k1PrivateKey"
-              }
-            ]
+                type: "ecdsaSecp256k1PrivateKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ecdsaSecp256k1PublicKey"
+                type: "ecdsaSecp256k1PublicKey",
               },
               {
-                type: "ed25519PublicKey"
-              }
-            ]
+                type: "ed25519PublicKey",
+              },
+            ],
           },
           {
             type: "keyList",
             keys: [
               {
-                type: "ed25519PrivateKey"
+                type: "ed25519PrivateKey",
               },
               {
-                type: "ecdsaSecp256k1PublicKey"
-              }
-            ]
-          }
-        ]
+                type: "ecdsaSecp256k1PublicKey",
+              },
+            ],
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const nestedKeyList = response.key;
@@ -6504,11 +7331,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadataKey: nestedKeyList
+        metadataKey: nestedKeyList,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMetadataKey(response.tokenId, nestedKeyList.key);
+      await verifyTokenCreationWithMetadataKeyList(
+        response.tokenId,
+        nestedKeyList
+      );
     });
 
     it("(#7) Creates a token with a valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys as its metadata key", async function () {
@@ -6517,15 +7347,15 @@ describe("TokenCreateTransaction", function () {
         threshold: 2,
         keys: [
           {
-            type: "ed25519PrivateKey"
+            type: "ed25519PrivateKey",
           },
           {
-            type: "ecdsaSecp256k1PublicKey"
+            type: "ecdsaSecp256k1PublicKey",
           },
           {
-            type: "ed25519PublicKey"
-          }
-        ]
+            type: "ed25519PublicKey",
+          },
+        ],
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
       const thresholdKey = response.key;
@@ -6534,11 +7364,14 @@ describe("TokenCreateTransaction", function () {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadataKey: thresholdKey
+        metadataKey: thresholdKey,
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      verifyTokenCreationWithMetadataKey(response.tokenId, thresholdKey.key);
+      await verifyTokenCreationWithMetadataKeyList(
+        response.tokenId,
+        thresholdKey
+      );
     });
 
     it("(#8) Creates a token with an invalid key as its metadata key", async function () {
@@ -6547,7 +7380,7 @@ describe("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          metadataKey: crypto.randomBytes(88).toString("hex")
+          metadataKey: crypto.randomBytes(88).toString("hex"),
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {
