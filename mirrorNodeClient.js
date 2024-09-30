@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 class MirrorNodeClient {
   constructor() {
@@ -8,23 +8,23 @@ class MirrorNodeClient {
 
   async getAccountData(accountId) {
     const url = `${this.mirrorNodeRestUrl}/api/v1/accounts?account.id=${accountId}`;
-    return this.retryUntilData(url, 'accounts');
+    return this.retryUntilData(url, "accounts");
   }
 
   async getBalanceData(accountId) {
     const url = `${this.mirrorNodeRestUrl}/api/v1/balances?account.id=${accountId}`;
-    return this.retryUntilData(url, 'balances');
+    return this.retryUntilData(url, "balances");
   }
 
   async retryUntilData(url, dataKey) {
     const maxRetries = Math.floor(this.NODE_TIMEOUT / 1000); // retry once per second
     let retries = 0;
-    
-    while(retries < maxRetries) {
+
+    while (retries < maxRetries) {
       const response = await axios.get(url);
 
       // If the array is not empty, return the data
-      if(response.data[dataKey] && response.data[dataKey].length > 0) {
+      if (response.data[dataKey] && response.data[dataKey].length > 0) {
         return response.data;
       }
 
@@ -32,8 +32,8 @@ class MirrorNodeClient {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       retries++;
     }
-    
-    throw new Error('Max retries reached without data');
+
+    throw new Error("Max retries reached without data");
   }
 }
 
