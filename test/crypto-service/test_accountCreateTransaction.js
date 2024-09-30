@@ -276,9 +276,7 @@ describe("AccountCreateTransaction", function () {
     
     it("(#4) Creates an account with an initial balance higher than the operator account balance", async function () {
       // Get the operator account balance.
-      const operatorBalanceData = await mirrorNodeClient.getBalanceData(process.env.OPERATOR_ACCOUNT_ID);
-      const operatorAccountBalance = Number(operatorBalanceData.balances[0].balance);
-
+      const operatorBalanceData = await mirrorNodeClient.getAccountData(process.env.OPERATOR_ACCOUNT_ID);
       // Generate a valid key for the account.
       const key = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey"
@@ -289,7 +287,7 @@ describe("AccountCreateTransaction", function () {
         // Attempt to create an account with an initial balance of the operator account balance + 1. The network should respond with an INSUFFICIENT_PAYER_BALANCE status.
         const response = await JSONRPCRequest("createAccount", {
           key: key.key,
-          initialBalance: operatorAccountBalance + 1,
+          initialBalance: operatorBalanceData.balance.balance + 1,
         });
         if (response.status === "NOT_IMPLEMENTED") this.skip();
       } catch (err) {

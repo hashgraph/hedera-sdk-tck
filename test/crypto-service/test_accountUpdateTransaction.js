@@ -49,7 +49,7 @@ describe("AccountUpdateTransaction", function () {
       // Account info should remain the same
       let mirrorNodeData = await mirrorNodeClient.getAccountData(accountId);
       let consensusNodeData = await consensusInfoClient.getAccountInfo(accountId);
-      expect(accountId).to.be.equal(mirrorNodeData.accounts[0].account);
+      expect(accountId).to.be.equal(mirrorNodeData.account);
       expect(accountId).to.be.equal(consensusNodeData.accountId.toString());
     });
 
@@ -598,7 +598,7 @@ describe("AccountUpdateTransaction", function () {
     it("(#3) Updates the expiration time of an account to 1 second less than its current expiration time", async function () {
       // Get the account's expiration time.
       let accountInfo = await mirrorNodeClient.getAccountData(accountId);
-      let expirationTimeSeconds = accountInfo.accounts[0].expiry_timestamp;
+      let expirationTimeSeconds = accountInfo.expiry_timestamp;
 
       // Attempt to update the expiration time to 1 second less than its current expiration time. The network should respond with an EXPIRATION_REDUCTION_NOT_ALLOWED status.
       try {
