@@ -23,8 +23,8 @@ describe("AccountCreateTransaction", function () {
   describe("Key", function () {
     async function verifyOnlyAccountCreation(accountId) {
       // If the account was created successfully, the queried account's IDs should be equal.
-      expect(accountId).to.equal(await consensusInfoClient.getAccountInfo(accountId).accountId.toString());
-      expect(accountId).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].account);
+      expect(accountId).to.equal(await (await consensusInfoClient.getAccountInfo(accountId)).accountId.toString());
+      expect(accountId).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).account);
     }
 
     it("(#1) Creates an account with a valid ED25519 public key", async function () {
@@ -41,7 +41,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created.
-      verifyOnlyAccountCreation(response.accountId);
+      await verifyOnlyAccountCreation(response.accountId);
     });
 
     it("(#2) Creates an account with a valid ECDSAsecp256k1 public key", async function () {
@@ -58,7 +58,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created.
-      verifyOnlyAccountCreation(response.accountId);
+      await verifyOnlyAccountCreation(response.accountId);
     });
 
     it("(#3) Creates an account with a valid ED25519 private key", async function () {
@@ -75,7 +75,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created.
-      verifyOnlyAccountCreation(response.accountId);
+      await verifyOnlyAccountCreation(response.accountId);
     });
 
     it("(#4) Creates an account with a valid ECDSAsecp256k1 private key", async function () {
@@ -92,7 +92,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created.
-      verifyOnlyAccountCreation(response.accountId);
+      await verifyOnlyAccountCreation(response.accountId);
     });
 
     it("(#5) Creates an account with a valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
@@ -120,7 +120,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created.
-      verifyOnlyAccountCreation(response.accountId);
+      await verifyOnlyAccountCreation(response.accountId);
     });
 
     it("(#6) Creates an account with a valid KeyList of nested Keylists (three levels)", async function () {
@@ -172,7 +172,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created.
-      verifyOnlyAccountCreation(response.accountId);
+      await verifyOnlyAccountCreation(response.accountId);
     });
 
     it("(#7) Creates an account with no key", async function () {
@@ -209,8 +209,8 @@ describe("AccountCreateTransaction", function () {
   describe("Initial Balance", function () {
     async function verifyAccountCreationWithInitialBalance(accountId, initialBalance) {
       // If the account was created successfully, the queried account's balances should be equal.
-      expect(initialBalance).to.equal(Number(await consensusInfoClient.getAccountInfo(accountId).balance._valueInTinybar));
-      expect(initialBalance).to.equal(Number(await mirrorNodeClient.getBalanceData(accountId).balances[0].balance));
+      expect(initialBalance).to.equal(Number(await(await consensusInfoClient.getAccountInfo(accountId)).balance._valueInTinybar));
+      expect(initialBalance).to.equal(Number(await(await mirrorNodeClient.getAccountData(accountId)).balance.balance));
     }
 
     it("(#1) Creates an account with an initial balance", async function () {
@@ -229,7 +229,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with 100 tinybars.
-      verifyAccountCreationWithInitialBalance(response.accountId, initialBalance);
+      await verifyAccountCreationWithInitialBalance(response.accountId, initialBalance);
     });
     
     it("(#2) Creates an account with no initial balance", async function () {
@@ -248,7 +248,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with 0 tinybars.
-      verifyAccountCreationWithInitialBalance(response.accountId, initialBalance);
+      await verifyAccountCreationWithInitialBalance(response.accountId, initialBalance);
     });
 
     it("(#3) Creates an account with a negative initial balance", async function () {
@@ -276,8 +276,8 @@ describe("AccountCreateTransaction", function () {
     
     it("(#4) Creates an account with an initial balance higher than the operator account balance", async function () {
       // Get the operator account balance.
-      const operatorBalanceData = await mirrorNodeClient.getBalanceData(process.env.OPERATOR_ACCOUNT_ID);
-      const operatorAccountBalance = Number(operatorBalanceData.balances[0].balance);
+      const operatorBalanceData = await mirrorNodeClient.getAccountData(process.env.OPERATOR_ACCOUNT_ID);
+      const operatorAccountBalance = Number(operatorBalanceData.balance.balance);
 
       // Generate a valid key for the account.
       const key = await JSONRPCRequest("generateKey", {
@@ -305,8 +305,8 @@ describe("AccountCreateTransaction", function () {
   describe("Receiver Signature Required", function () {
     async function verifyAccountCreationWithReceiverSignatureRequired(accountId, receiverSignatureRequired) {
       // If the account was created successfully, the queried account's receiver signature required policies should be equal.
-      expect(receiverSignatureRequired).to.equal(await consensusInfoClient.getAccountInfo(accountId).isReceiverSignatureRequired);
-      expect(receiverSignatureRequired).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].receiver_sig_required);
+      expect(receiverSignatureRequired).to.equal(await(await consensusInfoClient.getAccountInfo(accountId)).isReceiverSignatureRequired);
+      expect(receiverSignatureRequired).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).receiver_sig_required);
     }
 
     it("(#1) Creates an account that requires a receiving signature", async function () {
@@ -337,7 +337,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with a receiver signature required.
-      verifyAccountCreationWithReceiverSignatureRequired(response.accountId, receiverSignatureRequired);
+      await verifyAccountCreationWithReceiverSignatureRequired(response.accountId, receiverSignatureRequired);
     });
 
     it("(#2) Creates an account that doesn't require a receiving signature", async function () {
@@ -356,7 +356,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with a receiver signature not required.
-      verifyAccountCreationWithReceiverSignatureRequired(response.accountId, receiverSignatureRequired);
+      await verifyAccountCreationWithReceiverSignatureRequired(response.accountId, receiverSignatureRequired);
     });
 
     it("(#3) Creates an account that requires a receiving signature but isn't signed by the account key", async function () {
@@ -386,8 +386,9 @@ describe("AccountCreateTransaction", function () {
   describe("Auto Renew Period", function () {
     async function verifyAccountCreationWithAutoRenewPeriod(accountId, autoRenewPeriodSeconds) {
       // If the account was created successfully, the queried account's auto renew periods should be equal.
-      expect(autoRenewPeriodSeconds).to.equal(await consensusInfoClient.getAccountInfo(accountId).autoRenewPeriod);
-      expect(autoRenewPeriodSeconds).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].auto_renew_period);
+      
+      expect(autoRenewPeriodSeconds).to.equal(Number((await(await consensusInfoClient.getAccountInfo(accountId)).autoRenewPeriod).seconds));
+      expect(autoRenewPeriodSeconds).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).auto_renew_period);
     }
 
     it("(#1) Creates an account with an auto renew period set to 60 days (5,184,000 seconds)", async function () {
@@ -406,7 +407,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with an auto-renew period set to 60 days.
-      verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
+      await verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
     });
 
     it("(#2) Creates an account with an auto renew period set to -1 seconds", async function () {
@@ -448,7 +449,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with an auto-renew period set to 30 days.
-      verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
+      await verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
     });
 
     it("(#4) Creates an account with an auto renew period set to the minimum period of 30 days minus one second (2,591,999 seconds)", async function () {
@@ -490,7 +491,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with an auto-renew period set to 90ish days.
-      verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
+      await verifyAccountCreationWithAutoRenewPeriod(response.accountId, autoRenewPeriodSeconds);
     });
 
     it("(#6) Creates an account with an auto renew period set to the maximum period plus one seconds (8,000,002 seconds)", async function () {
@@ -520,8 +521,8 @@ describe("AccountCreateTransaction", function () {
   describe("Memo", async function () {
     async function verifyAccountCreationWithMemo(accountId, memo) {
       // If the account was created successfully, the queried account's memos should be equal.
-      expect(memo).to.equal(await consensusInfoClient.getAccountInfo(accountId).memo);
-      expect(memo).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].memo);
+      expect(memo).to.equal(await(await consensusInfoClient.getAccountInfo(accountId)).accountMemo);
+      expect(memo).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).memo);
     }
 
     it("(#1) Creates an account with a valid memo", async function () {
@@ -540,7 +541,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with the memo set to "testmemo".
-      verifyAccountCreationWithMemo(response.accountId, memo);
+      await verifyAccountCreationWithMemo(response.accountId, memo);
     });
 
     it("(#2) Creates an account with an empty memo", async function () {
@@ -559,7 +560,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with an empty memo.
-      verifyAccountCreationWithMemo(response.accountId, memo);
+      await verifyAccountCreationWithMemo(response.accountId, memo);
     });
 
     it("(#3) Creates an account with a memo that is 100 characters", async function () {
@@ -578,7 +579,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with the memo set to "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!".
-      verifyAccountCreationWithMemo(response.accountId, memo);
+      await verifyAccountCreationWithMemo(response.accountId, memo);
     });
 
     it("(#4) Creates an account with a memo that exceeds 100 characters", async function () {
@@ -631,8 +632,9 @@ describe("AccountCreateTransaction", function () {
   describe("Max Automatic Token Associations", async function () {
     async function verifyAccountCreationWithMaxAutoTokenAssociations(accountId, maxAutomaticTokenAssociations) {
       // If the account was created successfully, the queried account's max automatic token associations should be equal.
-      expect(maxAutomaticTokenAssociations).to.equal(await consensusInfoClient.getAccountInfo(accountId).maxAutomaticTokenAssociations);
-      expect(maxAutomaticTokenAssociations).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].max_automatic_token_associations);
+      
+      expect(maxAutomaticTokenAssociations).to.equal(Number((await (await consensusInfoClient.getAccountInfo(accountId)).maxAutomaticTokenAssociations)));
+      expect(maxAutomaticTokenAssociations).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).max_automatic_token_associations);
     }
 
     it("(#1) Creates an account with a max token association set to 100", async function () {
@@ -654,7 +656,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with the max automatic token associations set to 100.
-      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
+      await verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
     });
 
     it("(#2) Creates an account with a max token association set to 0", async function () {
@@ -673,7 +675,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with the max automatic token associations set to 0.
-      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
+      await verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
     });
 
     it("(#3) Creates an account with a max token association that is the maximum value", async function () {
@@ -692,7 +694,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with the max automatic token associations set to 5000.
-      verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
+      await verifyAccountCreationWithMaxAutoTokenAssociations(response.accountId, maxAutoTokenAssociations)
     });
 
     it("(#4) Creates an account with a max token association that is the maximum value plus one", async function () {
@@ -720,16 +722,17 @@ describe("AccountCreateTransaction", function () {
   });
 
   describe("Staked ID", async function () {
+
     async function verifyAccountCreationWithStakedAccountId(accountId, stakedAccountId) {
-      // If the account was created successfully, the queried account's staked account IDs should be equal.
-      expect(stakedAccountId).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakedAccountId);
-      expect(stakedAccountId).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].staked_account_id);
-    }
-    
-    async function verifyAccountCreationWithStakedAccountId(accountId, stakedNodeId) {
       // If the account was created successfully, the queried account's staked node IDs should be equal.
-      expect(stakedNodeId).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakedNodeId);
-      expect(stakedNodeId).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].staked_node_id);
+      expect(stakedAccountId).to.equal((await(await consensusInfoClient.getAccountInfo(accountId)).stakingInfo.stakedAccountId).toString());
+      expect(stakedAccountId).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).staked_account_id);
+    }
+
+    async function verifyAccountCreationWithStakedNodeId(accountId, stakedNodeId) {
+      // If the account was created successfully, the queried account's staked node IDs should be equal.
+      expect(stakedNodeId.toString()).to.equal((await(await consensusInfoClient.getAccountInfo(accountId)).stakingInfo.stakedNodeId).toString());
+      expect(stakedNodeId).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).staked_node_id);
     }
 
     it("(#1) Creates an account with the staked account ID set to the operators account ID", async function () {
@@ -747,7 +750,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with the staked account ID equal to the operator account ID.
-      verifyAccountCreationWithStakedAccountId(response.accountId, process.env.OPERATOR_ACCOUNT_ID);
+      await verifyAccountCreationWithStakedAccountId(response.accountId, process.env.OPERATOR_ACCOUNT_ID);
     });
 
     it("(#2) Creates an account with the staked node ID set to a valid node ID", async function () {
@@ -766,7 +769,7 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with the staked node ID equal to 0.
-      verifyAccountCreationWithStakedAccountId(response.accountId, stakedNodeId);
+      await verifyAccountCreationWithStakedNodeId(response.accountId, stakedNodeId);
     });
 
     it("(#3) Creates an account with the staked account ID set to an account ID that doesn't exist", async function () {
@@ -878,15 +881,15 @@ describe("AccountCreateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was created with the staked node ID equal to stakedNodeId.
-      verifyAccountCreationWithStakedAccountId(response.accountId, stakedNodeId);
+      await verifyAccountCreationWithStakedNodeId(response.accountId, stakedNodeId);
     });
   });
 
   describe("Decline Rewards", async function () {
     async function verifyAccountCreationWithDeclineRewards(accountId, declineRewards) {
       // If the account was created successfully, the queried account's decline rewards policy should be equal.
-      expect(declineRewards).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakingInfo.declineStakingReward);
-      expect(declineRewards).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].decline_reward);
+      expect(declineRewards).to.equal(await(await consensusInfoClient.getAccountInfo(accountId)).stakingInfo.declineStakingReward);
+      expect(declineRewards).to.equal(await(await mirrorNodeClient.getAccountData(accountId).decline_reward));
     }
 
     it("(#1) Creates an account that declines staking rewards", async function () {
@@ -931,8 +934,8 @@ describe("AccountCreateTransaction", function () {
   describe("Alias", async function () {
     async function verifyAccountCreationWithAlias(accountId, alias) {
       // If the account was created successfully, the queried account's aliases should be equal.
-      expect(alias).to.equal(await consensusInfoClient.getAccountInfo(accountId).aliasKey);
-      expect(alias).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].alias);
+      expect(alias).to.equal(await(await consensusInfoClient.getAccountInfo(accountId)).aliasKey);
+      expect(alias).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).alias);
     }
 
     it("(#1) Creates an account with the keccak-256 hash of an ECDSAsecp256k1 public key", async function () {

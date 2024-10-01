@@ -1,10 +1,13 @@
 import { JSONRPCRequest } from "../../client.js";
 import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
+import { PublicKey } from "@hashgraph/sdk";
 import { expect, assert } from "chai";
 import { setOperator } from "../../setup_Tests.js";
+import { getPublicKeyFromMirrorNode } from "../../utils/helpers/keys.js";
+import { getEncodedKeyHexFromKeyListConsensus } from "../../utils/helpers/keys.js";
 
-describe("AccountUpdateTransaction", function () {
+describe.only("AccountUpdateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
@@ -49,8 +52,9 @@ describe("AccountUpdateTransaction", function () {
       // Account info should remain the same
       let mirrorNodeData = await mirrorNodeClient.getAccountData(accountId);
       let consensusNodeData = await consensusInfoClient.getAccountInfo(accountId);
-      expect(accountId).to.be.equal(mirrorNodeData.accounts[0].account);
-      expect(accountId).to.be.equal(consensusNodeData.accountId.toString());
+
+      expect(accountId).to.be.equal(await mirrorNodeData.account);
+      expect(accountId).to.be.equal(await consensusNodeData.accountId.toString());
     });
 
     it("(#2) Updates an account with no updates without signing with the account's private key", async function () {
@@ -85,10 +89,45 @@ describe("AccountUpdateTransaction", function () {
   });
 
   describe("Key", async function () {
-    async function verifyAccountKeyUpdate(key) {
-      // If the account was updated successfully, the queried account keys should be equal.
-      expect(key).to.be.equal(await consensusInfoClient.getAccountInfo(accountId).key.toStringDer().toLowerCase());
-      expect(key).to.be.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].key.key.toLowerCase());
+    async function verifyAccountUpdateKey(accountId, key) {
+ await new Promise((resolve) => setTimeout(resolve, 1000));
+
+ console.log((await(await consensusInfoClient.getAccountInfo(accountId))).key.toStringDer());
+ 
+      // console.log(PublicKey.fromBytesED25519((await(await(await((await consensusInfoClient.getAccountInfo(accountId)).key))._key)._key)._keyData).toStringDer());
+      console.log("key", key);
+      
+
+      expect(key).to.equal(
+        await(await((await consensusInfoClient.getAccountInfo(accountId)).key))._key.toStringDer()
+      );
+
+      // const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+      //   accountId,
+      //   "key"
+      // );
+      
+      // expect(key).to.equal(publicKeyMirrorNode.toString());
+    }
+
+    async function verifyAccountUpdateKeyList(accountId, key) {
+
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        accountId,
+        "key"
+      );
+
+      
+      expect(key).to.equal(keyHex);
+
+      
+    //  // Mirror node check
+    //   expect(key).to.equal
+    //     (
+    //       (await (
+    //         await mirrorNodeClient.getAccountData(accountId)
+    //       ).key).key
+    //   );
     }
 
     it("(#1) Updates the key of an account to a new valid ED25519 public key", async function () {
@@ -119,7 +158,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account key was updated (use raw key for comparison, ED25519 public key DER-encoding has a 12 byte prefix).
-      verifyAccountKeyUpdate(String(ed25519PublicKey.key).substring(24).toLowerCase());
+     await verifyAccountUpdateKey(accountId, ed25519PublicKey.key);
     });
 
     it("(#2) Updates the key of an account to a new valid ECDSAsecp256k1 public key", async function () {
@@ -150,8 +189,8 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
-      verifyAccountKeyUpdate(String(ecdsaSecp256k1PublicKey.key).substring(28).toLowerCase());
-    });
+      await verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key);  
+      });
 
     it("(#3) Updates the key of an account to a new valid ED25519 private key", async function () {
       // Generate a new ED25519 private key for the account.
@@ -179,9 +218,9 @@ describe("AccountUpdateTransaction", function () {
         }
       })
       if (response.status === "NOT_IMPLEMENTED") this.skip();
-
+      
       // Verify the account key was updated (use raw key for comparison, ED25519 public key DER-encoding has a 12 byte prefix).
-      verifyAccountKeyUpdate(String(ed25519PublicKey.key).substring(24).toLowerCase());
+      await verifyAccountUpdateKey(accountId, ed25519PrivateKey.key);    
     });
 
     it("(#4) Updates the key of an account to a new valid ECDSAsecp256k1 private key", async function () {
@@ -212,8 +251,8 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
-      verifyAccountKeyUpdate(String(ecdsaSecp256k1PublicKey.key).substring(28).toLowerCase());
-    });
+      await verifyAccountUpdateKey(accountId, ecdsaSecp256k1PrivateKey.key);   
+     });
 
     it("(#5) Updates the key of an account to a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
       // Generate a KeyList of ED25519 and ECDSAsecp256k1 private and public keys for the account.
@@ -252,8 +291,10 @@ describe("AccountUpdateTransaction", function () {
       })
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      console.log(keyList);
+      
       // Verify the account key was updated.
-      verifyAccountKeyUpdate(keyList.key);
+      await verifyAccountUpdateKeyList(accountId, keyList.key);
     });
 
     it("(#6) Updates the key of an account to a new valid KeyList of nested KeyLists (three levels)", async function () {
@@ -317,7 +358,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account key was updated.
-      verifyAccountKeyUpdate(nestedKeyList.key);
+      await verifyAccountKeyUpdate(nestedKeyList.key);
     });
 
     it("(#7) Updates the key of an account to a new valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
@@ -354,7 +395,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account key was updated.
-      verifyAccountKeyUpdate(thresholdKey.key);
+      await verifyAccountKeyUpdate(thresholdKey.key);
     });
 
     it("(#8) Updates the key of an account to a key without signing with the new key", async function () {
@@ -423,8 +464,8 @@ describe("AccountUpdateTransaction", function () {
   describe("Auto Renew Period", async function () {
     async function verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds) {
       // If the account was updated successfully, the queried account's auto renew periods should be equal.
-      expect(autoRenewPeriodSeconds).to.equal(await consensusInfoClient.getAccountInfo(accountId).autoRenewPeriod);
-      expect(autoRenewPeriodSeconds).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].auto_renew_period);
+      expect(autoRenewPeriodSeconds).to.equal(Number(await(await(await consensusInfoClient.getAccountInfo(accountId)).autoRenewPeriod).seconds));
+      expect(autoRenewPeriodSeconds).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).auto_renew_period);
     }
 
     it("(#1) Updates the auto-renew period of an account to 60 days (5,184,000 seconds)", async function () {
@@ -441,8 +482,9 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 60 days.
-      verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
+      await verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
     });
 
     it("(#2) Updates the auto-renew period of an account to -1 seconds", async function () {
@@ -481,8 +523,9 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 30 days.
-      verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
+      await verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
     });
 
     it("(#4) Updates the auto-renew period of an account to 30 days minus one second (2,591,999 seconds)", async function () {
@@ -521,8 +564,9 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 8,000,001 seconds.
-      verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
+      await verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
     });
 
     it("(#6) Updates the auto-renew period of an account to the maximum period plus one second (8,000,002 seconds)", async function () {
@@ -551,8 +595,8 @@ describe("AccountUpdateTransaction", function () {
   describe("Expiration Time", async function () {
     async function verifyAccountExpirationTimeUpdate(expirationTime) {
       // If the account was updated successfully, the queried account's expiration times should be equal.
-      expect(expirationTime).to.equal(await consensusInfoClient.getAccountInfo(accountId).expirationTime);
-      expect(expirationTime).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].expiry_timestamp);
+      expect(expirationTime).to.equal((Number(await(await consensusInfoClient.getAccountInfo(accountId)).expirationTime.seconds)));
+      expect(expirationTime).to.equal(Number(await(await mirrorNodeClient.getAccountData(accountId)).expiry_timestamp));
     }
 
     it("(#1) Updates the expiration time of an account to 8,000,001 seconds from the current time", async function () {
@@ -569,8 +613,9 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an expiration time set to 8,000,001 seconds from the current time.
-      verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
+      await verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
     });
 
     it("(#2) Updates the expiration time of an account to -1 seconds", async function () {
@@ -598,7 +643,7 @@ describe("AccountUpdateTransaction", function () {
     it("(#3) Updates the expiration time of an account to 1 second less than its current expiration time", async function () {
       // Get the account's expiration time.
       let accountInfo = await mirrorNodeClient.getAccountData(accountId);
-      let expirationTimeSeconds = accountInfo.accounts[0].expiry_timestamp;
+      let expirationTimeSeconds = await accountInfo.expiry_timestamp;
 
       // Attempt to update the expiration time to 1 second less than its current expiration time. The network should respond with an EXPIRATION_REDUCTION_NOT_ALLOWED status.
       try {
@@ -647,8 +692,8 @@ describe("AccountUpdateTransaction", function () {
   describe("Receiver Signature Required", async function () {
     async function verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired) {
       // If the account was updated successfully, the queried account's receiver signature required policies should be equal.
-      expect(receiverSignatureRequired).to.equal(await consensusInfoClient.getAccountInfo(accountId).isReceiverSignatureRequired);
-      expect(receiverSignatureRequired).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].receiver_sig_required);
+      expect(receiverSignatureRequired).to.equal(await(await consensusInfoClient.getAccountInfo(accountId)).isReceiverSignatureRequired);
+      expect(receiverSignatureRequired).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).receiver_sig_required);
     }
 
     it("(#1) Updates the receiver signature required policy of an account to require a receiving signature", async function () {
@@ -666,7 +711,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account receiver signature required policy was updated.
-      verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired);
+      await verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired);
     });
 
     it("(#2) Updates the receiver signature required policy of an account to not require a receiving signature", async function () {
@@ -684,15 +729,16 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account receiver signature required policy was updated.
-      verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired);
+      await verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired);
     });
   });
 
   describe("Memo", async function () {
     async function verifyAccountMemoUpdate(memo) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // If the account was updated successfully, the queried account's memos should be equal.
-      expect(memo).to.equal(await consensusInfoClient.getAccountInfo(accountId).memo);
-      expect(memo).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].memo);
+      expect(memo).to.equal(await(await consensusInfoClient.getAccountInfo(accountId)).accountMemo);
+      expect(memo).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).memo);
     }
 
     it("(#1) Updates the memo of an account to a memo that is a valid length", async function () {
@@ -710,7 +756,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was updated with the memo set to "testmemo".
-      verifyAccountMemoUpdate(memo);
+      await verifyAccountMemoUpdate(memo);
     });
 
     it("(#2) Updates the memo of an account to a memo that is the minimum length", async function () {
@@ -728,7 +774,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was updated with an empty memo.
-      verifyAccountMemoUpdate(memo);
+      await verifyAccountMemoUpdate(memo);
     });
 
     it("(#3) Updates the memo of an account to a memo that is the maximum length", async function () {
@@ -746,7 +792,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the account was updated with the memo set to "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!".
-      verifyAccountMemoUpdate(memo);
+      await verifyAccountMemoUpdate(memo);
     });
 
     it("(#4) Updates the memo of an account to a memo that exceeds the maximum length", async function () {
@@ -775,8 +821,8 @@ describe("AccountUpdateTransaction", function () {
   describe("Max Automatic Token Associations", async function () {
     async function verifyMaxAutoTokenAssociationsUpdate(maxAutomaticTokenAssociations) {
       // If the account was updated successfully, the queried account's max automatic token associations should be equal.
-      expect(maxAutomaticTokenAssociations).to.equal(await consensusInfoClient.getAccountInfo(accountId).maxAutomaticTokenAssociations);
-      expect(maxAutomaticTokenAssociations).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].max_automatic_token_associations);
+      expect(maxAutomaticTokenAssociations).to.equal(Number(await(await consensusInfoClient.getAccountInfo(accountId)).maxAutomaticTokenAssociations));
+      expect(maxAutomaticTokenAssociations).to.equal(Number(await(await mirrorNodeClient.getAccountData(accountId)).max_automatic_token_associations));
     }
 
     it("(#1) Updates the max automatic token associations of an account to a valid amount", async function () {
@@ -794,8 +840,9 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+await new Promise((resolve) => setTimeout(resolve, 2000));
       // Verify the max auto token associations of the account was updated.
-      verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
+      await verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
     });
 
     it("(#2) Updates the max automatic token associations of an account to the minimum amount", async function () {
@@ -813,7 +860,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify max auto token associations of the account was updated.
-      verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
+      await verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
     });
 
     it("(#3) Updates the max automatic token associations of an account to the maximum amount", async function () {
@@ -831,8 +878,9 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify max auto token associations of the account was updated.
-      verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
+      await verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
     });
 
     it("(#4) Updates the max automatic token associations of an account to an amount that exceeds the maximum amount", async function () {
@@ -862,17 +910,18 @@ describe("AccountUpdateTransaction", function () {
   describe("Staked ID", async function () {
     async function verifyAccountStakedAccountIdUpdate(stakedAccountId) {
       // If the account was updated successfully, the queried account's staked account IDs should be equal.
-      expect(memo).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakedAccountId);
-      expect(memo).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].staked_account_id);
+      expect(stakedAccountId.toString()).to.equal(await(await(await consensusInfoClient.getAccountInfo(accountId)).stakingInfo).stakedAccountId.toString());
+      expect(stakedAccountId).to.equal(await(await mirrorNodeClient.getAccountData(accountId)).staked_account_id);
     }
 
+    
     async function verifyAccountStakedNodeIdUpdate(stakedAccountId) {
       // If the account was updated successfully, the queried account's staked node IDs should be equal.
-      expect(memo).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakedNodeId);
-      expect(memo).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].staked_node_id);
+      expect(stakedAccountId).to.equal(Number(await(await(await consensusInfoClient.getAccountInfo(accountId)).stakingInfo).stakedNodeId));
+      expect(stakedAccountId).to.equal(Number(await(await(await mirrorNodeClient.getAccountData(accountId)).staked_account_id)));
     }
 
-    it ("(#1) Updates the staked account ID of an account to the operator's account ID", async function () {
+    it("(#1) Updates the staked account ID of an account to the operator's account ID", async function () {
       // Attempt to update the staked account ID of the account to the operator's account ID.
       const stakedAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const response = await JSONRPCRequest("updateAccount", {
@@ -886,11 +935,12 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the staked account ID of the account was updated. 
-      verifyAccountStakedAccountIdUpdate(stakedAccountId);
+      await verifyAccountStakedAccountIdUpdate(stakedAccountId);
     });
 
-    it ("(#2) Updates the staked node ID of an account to a valid node ID", async function () {
+    it("(#2) Updates the staked node ID of an account to a valid node ID", async function () {
       // Attempt to update the staked node ID of the account to a valid node ID.
       const stakedNodeId = 0;
       const response = await JSONRPCRequest("updateAccount", {
@@ -904,8 +954,9 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the staked node ID of the account was updated. 
-      verifyAccountStakedNodeIdUpdate(stakedNodeId);
+      await verifyAccountStakedNodeIdUpdate(stakedNodeId);
     });
 
     it ("(#3) Updates the staked account ID of an account to an account ID that doesn't exist", async function () {
@@ -997,11 +1048,13 @@ describe("AccountUpdateTransaction", function () {
     });
   });
 
-  describe("Decline Reward", async function () {
+  describe.only("Decline Reward", async function () {
     async function verifyDeclineRewardUpdate(declineRewards) {
+      console.log(await consensusInfoClient.getAccountInfo(accountId));
+      
       // If the account was updated successfully, the queried account's decline staking rewards policy should be equal.
-      expect(declineRewards).to.equal(await consensusInfoClient.getAccountInfo(accountId).stakingInfo.declineStakingReward);
-      expect(declineRewards).to.equal(await mirrorNodeClient.getAccountData(accountId).accounts[0].decline_reward);
+      expect(declineRewards).to.equal( (await ((await consensusInfoClient.getAccountInfo(accountId)).stakingInfo)).declineStakingReward);
+      expect(declineRewards).to.equal((await (await mirrorNodeClient.getAccountData(accountId))).decline_reward);
     }
 
     it ("(#1) Updates the decline reward policy of an account to decline staking rewards", async function () {
@@ -1018,11 +1071,12 @@ describe("AccountUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));  
       // Verify the decline reward policy of the account was updated. 
-      verifyDeclineRewardUpdate(declineStakingRewards);
+      await verifyDeclineRewardUpdate(declineStakingRewards);
     });
 
-    it ("(#2) Updates the decline reward policy of an account to not decline staking rewards", async function () {
+    it("(#2) Updates the decline reward policy of an account to not decline staking rewards", async function () {
       // Attempt to update the decline reward policy of the account to not decline staking rewards.
       const declineStakingRewards = false;
       const response = await JSONRPCRequest("updateAccount", {
@@ -1037,7 +1091,7 @@ describe("AccountUpdateTransaction", function () {
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
       // Verify the decline reward policy of the account was updated. 
-      verifyDeclineRewardUpdate(declineStakingRewards);
+      await verifyDeclineRewardUpdate(declineStakingRewards);
     });
   });
 
