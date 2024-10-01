@@ -7,25 +7,34 @@ class MirrorNodeClient {
   }
 
   async getAccountData(accountId) {
-    const url = `${this.mirrorNodeRestUrl}/api/v1/accounts?account.id=${accountId}`;
-    return this.retryUntilData(url, "accounts");
+    const url = `${this.mirrorNodeRestUrl}/api/v1/accounts/${accountId}`;
+    return this.retryUntilData(url);
   }
 
-  async getBalanceData(accountId) {
-    const url = `${this.mirrorNodeRestUrl}/api/v1/balances?account.id=${accountId}`;
-    return this.retryUntilData(url, "balances");
+  async getBalanceData() {
+    const url = `${this.mirrorNodeRestUrl}/api/v1/balances`;
+    return this.retryUntilData(url);
   }
 
-  async retryUntilData(url, dataKey) {
+  async getTokenData(tokenId) {
+    const url = `${this.mirrorNodeRestUrl}/api/v1/tokens/${tokenId}`;
+    return this.retryUntilData(url);
+  }
+
+  async retryUntilData(url) {
     const maxRetries = Math.floor(this.NODE_TIMEOUT / 1000); // retry once per second
     let retries = 0;
 
     while (retries < maxRetries) {
-      const response = await axios.get(url);
+      try {
+        const response = await axios.get(url);
 
-      // If the array is not empty, return the data
-      if (response.data[dataKey] && response.data[dataKey].length > 0) {
-        return response.data;
+        if (response.data) {
+          return response.data;
+        }
+      } catch (error) {
+        // Uncomment if you want to see the error
+        // console.error(error);
       }
 
       // If the array is empty, delay for a second before the next try
