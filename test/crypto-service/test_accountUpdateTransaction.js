@@ -26,14 +26,18 @@ describe("AccountUpdateTransaction", function () {
     let response = await JSONRPCRequest("generateKey", {
       type: "ed25519PrivateKey",
     });
-    if (response.status === "NOT_IMPLEMENTED") this.skip();
+    if (response.status === "NOT_IMPLEMENTED") {
+      this.skip();
+    }
     accountPrivateKey = response.key;
 
     // Create an account using the generated private key.
     response = await JSONRPCRequest("createAccount", {
       key: accountPrivateKey,
     });
-    if (response.status === "NOT_IMPLEMENTED") this.skip();
+    if (response.status === "NOT_IMPLEMENTED") {
+      this.skip();
+    }
     accountId = response.accountId;
   });
   afterEach(async function () {
@@ -49,17 +53,16 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Account info should remain the same
-      let mirrorNodeData = await mirrorNodeClient.getAccountData(accountId);
-      let consensusNodeData =
+      const mirrorNodeData = await mirrorNodeClient.getAccountData(accountId);
+      const consensusNodeData =
         await consensusInfoClient.getAccountInfo(accountId);
-
-      expect(accountId).to.be.equal(await mirrorNodeData.account);
-      expect(accountId).to.be.equal(
-        await consensusNodeData.accountId.toString(),
-      );
+      expect(accountId).to.be.equal(mirrorNodeData.account);
+      expect(accountId).to.be.equal(consensusNodeData.accountId.toString());
     });
 
     it("(#2) Updates an account with no updates without signing with the account's private key", async function () {
@@ -68,7 +71,9 @@ describe("AccountUpdateTransaction", function () {
         const response = await JSONRPCRequest("updateAccount", {
           accountId: accountId,
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "INVALID_SIGNATURE");
         return;
@@ -82,7 +87,9 @@ describe("AccountUpdateTransaction", function () {
       try {
         // Attempt to update the account without providing the account ID. The network should respond with an ACCOUNT_ID_DOES_NOT_EXIST status.
         const response = await JSONRPCRequest("updateAccount", {});
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "ACCOUNT_ID_DOES_NOT_EXIST");
         return;
@@ -134,14 +141,18 @@ describe("AccountUpdateTransaction", function () {
       const ed25519PrivateKey = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey",
       });
-      if (ed25519PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (ed25519PrivateKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Generate the corresponding ED25519 public key.
       const ed25519PublicKey = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
         fromKey: ed25519PrivateKey.key,
       });
-      if (ed25519PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (ed25519PublicKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Attempt to update the key of the account with the new ED25519 public key.
       const response = await JSONRPCRequest("updateAccount", {
@@ -151,7 +162,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey, ed25519PrivateKey.key],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account key was updated (use raw key for comparison, ED25519 public key DER-encoding has a 12 byte prefix).
       await verifyAccountUpdateKey(accountId, ed25519PublicKey.key);
@@ -162,14 +175,18 @@ describe("AccountUpdateTransaction", function () {
       const ecdsaSecp256k1PrivateKey = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey",
       });
-      if (ecdsaSecp256k1PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (ecdsaSecp256k1PrivateKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Generate the corresponding ECDSAsecp256k1 public key.
       const ecdsaSecp256k1PublicKey = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
         fromKey: ecdsaSecp256k1PrivateKey.key,
       });
-      if (ecdsaSecp256k1PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (ecdsaSecp256k1PublicKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Attempt to update the key of the account with the new ECDSAsecp256k1 public key.
       const response = await JSONRPCRequest("updateAccount", {
@@ -179,7 +196,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey, ecdsaSecp256k1PrivateKey.key],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
       await verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key);
@@ -190,14 +209,18 @@ describe("AccountUpdateTransaction", function () {
       const ed25519PrivateKey = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey",
       });
-      if (ed25519PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (ed25519PrivateKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Generate the corresponding ED25519 public key.
       const ed25519PublicKey = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
         fromKey: ed25519PrivateKey.key,
       });
-      if (ed25519PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (ed25519PublicKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Attempt to update the key of the account with the new ED25519 private key.
       const response = await JSONRPCRequest("updateAccount", {
@@ -207,7 +230,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey, ed25519PrivateKey.key],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account key was updated (use raw key for comparison, ED25519 public key DER-encoding has a 12 byte prefix).
       await verifyAccountUpdateKey(accountId, ed25519PublicKey.key);
@@ -218,14 +243,18 @@ describe("AccountUpdateTransaction", function () {
       const ecdsaSecp256k1PrivateKey = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey",
       });
-      if (ecdsaSecp256k1PrivateKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (ecdsaSecp256k1PrivateKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Generate the corresponding ECDSAsecp256k1 public key.
       const ecdsaSecp256k1PublicKey = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PublicKey",
         fromKey: ecdsaSecp256k1PrivateKey.key,
       });
-      if (ecdsaSecp256k1PublicKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (ecdsaSecp256k1PublicKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Attempt to update the key of the account with the new ECDSAsecp256k1 public key.
       const response = await JSONRPCRequest("updateAccount", {
@@ -235,7 +264,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey, ecdsaSecp256k1PrivateKey.key],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
       await verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key);
@@ -260,7 +291,9 @@ describe("AccountUpdateTransaction", function () {
           },
         ],
       });
-      if (keyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (keyList.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Attempt to update the key of the account with the new KeyList of ED25519 and ECDSAsecp256k1 private and public keys.
       const response = await JSONRPCRequest("updateAccount", {
@@ -276,7 +309,9 @@ describe("AccountUpdateTransaction", function () {
           ],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account key was updated.
       await verifyAccountUpdateKeyList(accountId, keyList.key);
@@ -322,7 +357,9 @@ describe("AccountUpdateTransaction", function () {
           },
         ],
       });
-      if (nestedKeyList.status === "NOT_IMPLEMENTED") this.skip();
+      if (nestedKeyList.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Attempt to update the key of the account with the new KeyList of nested KeyLists.
       const response = await JSONRPCRequest("updateAccount", {
@@ -340,7 +377,9 @@ describe("AccountUpdateTransaction", function () {
           ],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account key was updated.
       await verifyAccountUpdateKeyList(accountId, nestedKeyList.key);
@@ -363,7 +402,9 @@ describe("AccountUpdateTransaction", function () {
           },
         ],
       });
-      if (thresholdKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (thresholdKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Attempt to update the key of the account with the new ThresholdKey.
       const response = await JSONRPCRequest("updateAccount", {
@@ -377,7 +418,9 @@ describe("AccountUpdateTransaction", function () {
           ],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account key was updated.
       await verifyAccountUpdateKeyList(accountId, thresholdKey.key);
@@ -388,7 +431,9 @@ describe("AccountUpdateTransaction", function () {
       const key = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey",
       });
-      if (key.status === "NOT_IMPLEMENTED") this.skip();
+      if (key.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       try {
         // Attempt to update the key of the account with the new key. The network should respond with an INVALID_SIGNATURE status.
@@ -399,7 +444,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "INVALID_SIGNATURE");
         return;
@@ -414,13 +461,17 @@ describe("AccountUpdateTransaction", function () {
       const publicKey = await JSONRPCRequest("generateKey", {
         type: "ed25519PublicKey",
       });
-      if (publicKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (publicKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Generate a random private key.
       const privateKey = await JSONRPCRequest("generateKey", {
         type: "ecdsaSecp256k1PrivateKey",
       });
-      if (privateKey.status === "NOT_IMPLEMENTED") this.skip();
+      if (privateKey.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       try {
         // Attempt to update the key of the account and sign with the random private key. The network should respond with an INVALID_SIGNATURE status.
@@ -431,7 +482,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [privateKey.key],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "INVALID_SIGNATURE");
         return;
@@ -471,7 +524,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 60 days.
@@ -488,7 +543,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "INVALID_RENEWAL_PERIOD");
         return;
@@ -508,7 +565,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 30 days.
@@ -525,7 +584,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
         return;
@@ -545,7 +606,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 8,000,001 seconds.
@@ -562,7 +625,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "AUTORENEW_DURATION_NOT_IN_RANGE");
         return;
@@ -602,7 +667,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an expiration time set to 8,000,001 seconds from the current time.
@@ -619,7 +686,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "INVALID_EXPIRATION_TIME");
         return;
@@ -631,8 +700,8 @@ describe("AccountUpdateTransaction", function () {
 
     it("(#3) Updates the expiration time of an account to 1 second less than its current expiration time", async function () {
       // Get the account's expiration time.
-      let accountInfo = await mirrorNodeClient.getAccountData(accountId);
-      let expirationTimeSeconds = await accountInfo.expiry_timestamp;
+      const accountInfo = await mirrorNodeClient.getAccountData(accountId);
+      const expirationTimeSeconds = await accountInfo.expiry_timestamp;
 
       // Attempt to update the expiration time to 1 second less than its current expiration time. The network should respond with an EXPIRATION_REDUCTION_NOT_ALLOWED status.
       try {
@@ -643,7 +712,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "EXPIRATION_REDUCTION_NOT_ALLOWED");
         return;
@@ -703,7 +774,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account receiver signature required policy was updated.
       await verifyAccountReceiverSignatureRequiredUpdate(
@@ -721,7 +794,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account receiver signature required policy was updated.
       await verifyAccountReceiverSignatureRequiredUpdate(
@@ -756,7 +831,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account was updated with the memo set to "testmemo".
       await verifyAccountMemoUpdate(memo);
@@ -772,7 +849,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account was updated with an empty memo.
       await verifyAccountMemoUpdate(memo);
@@ -789,7 +868,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the account was updated with the memo set to "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!".
       await verifyAccountMemoUpdate(memo);
@@ -805,7 +886,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "MEMO_TOO_LONG");
         return;
@@ -848,7 +931,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
       // Verify the max auto token associations of the account was updated.
@@ -865,7 +950,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify max auto token associations of the account was updated.
       await verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
@@ -882,7 +969,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify max auto token associations of the account was updated.
@@ -900,7 +989,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(
           err.data.status,
@@ -961,7 +1052,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the staked account ID of the account was updated.
@@ -978,7 +1071,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the staked node ID of the account was updated.
@@ -995,7 +1090,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "INVALID_STAKING_ID");
         return;
@@ -1015,7 +1112,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "INVALID_STAKING_ID");
         return;
@@ -1035,7 +1134,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.code, -32603, "Internal error");
         return;
@@ -1055,7 +1156,9 @@ describe("AccountUpdateTransaction", function () {
             signers: [accountPrivateKey],
           },
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         assert.equal(err.data.status, "INVALID_STAKING_ID");
         return;
@@ -1091,7 +1194,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the decline reward policy of the account was updated.
@@ -1108,7 +1213,9 @@ describe("AccountUpdateTransaction", function () {
           signers: [accountPrivateKey],
         },
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
       // Verify the decline reward policy of the account was updated.
       await verifyDeclineRewardUpdate(declineStakingRewards);

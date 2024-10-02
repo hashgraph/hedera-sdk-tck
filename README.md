@@ -46,6 +46,18 @@ Run all tests
 
 After running `npm run test` the generated HTML and JSON reports can be found in the mochawesome-report folder
 
+### Linting and Formatting
+To ensure code quality and consistent styling, you can run ESLint and Prettier on the codebase.
+
+To check for **code issues**, run:
+
+    npm run lint
+
+To **format** the code run:
+
+    npm run format
+
+
 ## Support
 
 If you have a question on how to use the product, please see our

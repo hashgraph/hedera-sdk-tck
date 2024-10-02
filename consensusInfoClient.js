@@ -1,15 +1,31 @@
-import { AccountBalanceQuery, AccountId, AccountInfoQuery, Client, TokenCreateTransaction } from "@hashgraph/sdk";
+import {
+  AccountBalanceQuery,
+  AccountId,
+  AccountInfoQuery,
+  Client,
+} from "@hashgraph/sdk";
 
 class ConsensusInfoClient {
   constructor() {
-    if (process.env.NODE_IP && process.env.NODE_ACCOUNT_ID && process.env.MIRROR_NETWORK) {
-      const node = { [process.env.NODE_IP]: AccountId.fromString(process.env.NODE_ACCOUNT_ID) };
+    if (
+      process.env.NODE_IP &&
+      process.env.NODE_ACCOUNT_ID &&
+      process.env.MIRROR_NETWORK
+    ) {
+      const node = {
+        [process.env.NODE_IP]: AccountId.fromString(
+          process.env.NODE_ACCOUNT_ID,
+        ),
+      };
       this.sdkClient = Client.forNetwork(node);
     } else {
       this.sdkClient = Client.forTestnet();
     }
 
-    this.sdkClient.setOperator(process.env.OPERATOR_ACCOUNT_ID, process.env.OPERATOR_ACCOUNT_PRIVATE_KEY);
+    this.sdkClient.setOperator(
+      process.env.OPERATOR_ACCOUNT_ID,
+      process.env.OPERATOR_ACCOUNT_PRIVATE_KEY,
+    );
   }
 
   async getBalance(accountId) {
