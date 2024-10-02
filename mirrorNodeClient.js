@@ -8,7 +8,7 @@ class MirrorNodeClient {
 
   async getAccountData(accountId) {
     const url = `${this.mirrorNodeRestUrl}/api/v1/accounts/${accountId}`;
-    return this.retryUntilData(url, "accounts");
+    return this.retryUntilData(url);
   }
 
   async getBalanceData() {

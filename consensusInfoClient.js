@@ -3,7 +3,6 @@ import {
   AccountId,
   AccountInfoQuery,
   Client,
-  TokenInfoQuery,
 } from "@hashgraph/sdk";
 
 class ConsensusInfoClient {
@@ -15,7 +14,7 @@ class ConsensusInfoClient {
     ) {
       const node = {
         [process.env.NODE_IP]: AccountId.fromString(
-          process.env.NODE_ACCOUNT_ID
+          process.env.NODE_ACCOUNT_ID,
         ),
       };
       this.sdkClient = Client.forNetwork(node);
@@ -25,7 +24,7 @@ class ConsensusInfoClient {
 
     this.sdkClient.setOperator(
       process.env.OPERATOR_ACCOUNT_ID,
-      process.env.OPERATOR_ACCOUNT_PRIVATE_KEY
+      process.env.OPERATOR_ACCOUNT_PRIVATE_KEY,
     );
   }
 
