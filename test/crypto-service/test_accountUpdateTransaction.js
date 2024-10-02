@@ -283,7 +283,7 @@ describe("AccountUpdateTransaction", function () {
       await verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key);
     });
 
-    it.only("(#5) Updates the key of an account to a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
+    it("(#5) Updates the key of an account to a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
       // Generate a KeyList of ED25519 and ECDSAsecp256k1 private and public keys for the account.
       const keyList = await JSONRPCRequest("generateKey", {
         type: "keyList",
