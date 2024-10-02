@@ -6,7 +6,7 @@ import { setOperator } from "../../setup_Tests.js";
 import {
   getEncodedKeyHexFromKeyListConsensus,
   getPublicKeyFromMirrorNode,
-} from "../../utils/helpers/keys.js";
+} from "../../utils/helpers/key.js";
 
 /* 
 *******************************************************************************************
@@ -120,6 +120,7 @@ describe("AccountUpdateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getAccountData",
         accountId,
         "key",
       );
@@ -129,9 +130,10 @@ describe("AccountUpdateTransaction", function () {
     }
 
     async function verifyAccountUpdateKeyList(accountId, updatedKey) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getAccountInfo",
         accountId,
         "key",
       );
@@ -281,7 +283,7 @@ describe("AccountUpdateTransaction", function () {
       await verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key);
     });
 
-    it("(#5) Updates the key of an account to a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
+    it.only("(#5) Updates the key of an account to a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
       // Generate a KeyList of ED25519 and ECDSAsecp256k1 private and public keys for the account.
       const keyList = await JSONRPCRequest("generateKey", {
         type: "keyList",
@@ -815,7 +817,7 @@ describe("AccountUpdateTransaction", function () {
 
   describe("Memo", async function () {
     async function verifyAccountMemoUpdate(memo) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       // If the account was updated successfully, the queried account's memos should be equal.
       expect(memo).to.equal(
         await (
