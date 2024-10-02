@@ -286,8 +286,6 @@ describe("AccountCreateTransaction", function () {
         this.skip();
       }
 
-      console.log(response);
-
       // Verify the account was created with 100 tinybars.
       await verifyAccountCreationWithInitialBalance(
         response.accountId,
@@ -503,11 +501,9 @@ describe("AccountCreateTransaction", function () {
 
       expect(autoRenewPeriodSeconds).to.equal(
         Number(
-          (
-            await (
-              await consensusInfoClient.getAccountInfo(accountId)
-            ).autoRenewPeriod
-          ).seconds,
+          await (
+            await consensusInfoClient.getAccountInfo(accountId)
+          ).autoRenewPeriod.seconds,
         ),
       );
       expect(autoRenewPeriodSeconds).to.equal(
@@ -823,7 +819,6 @@ describe("AccountCreateTransaction", function () {
       maxAutomaticTokenAssociations,
     ) {
       // If the account was created successfully, the queried account's max automatic token associations should be equal.
-
       expect(maxAutomaticTokenAssociations).to.equal(
         Number(
           await (
@@ -954,11 +949,9 @@ describe("AccountCreateTransaction", function () {
     ) {
       // If the account was created successfully, the queried account's staked node IDs should be equal.
       expect(stakedAccountId).to.equal(
-        (
-          await (
-            await consensusInfoClient.getAccountInfo(accountId)
-          ).stakingInfo.stakedAccountId
-        ).toString(),
+        await (
+          await consensusInfoClient.getAccountInfo(accountId)
+        ).stakingInfo.stakedAccountId.toString(),
       );
       expect(stakedAccountId).to.equal(
         await (
@@ -973,11 +966,9 @@ describe("AccountCreateTransaction", function () {
     ) {
       // If the account was created successfully, the queried account's staked node IDs should be equal.
       expect(stakedNodeId.toString()).to.equal(
-        (
-          await (
-            await consensusInfoClient.getAccountInfo(accountId)
-          ).stakingInfo.stakedNodeId
-        ).toString(),
+        await (
+          await consensusInfoClient.getAccountInfo(accountId)
+        ).stakingInfo.stakedNodeId.toString(),
       );
       expect(stakedNodeId).to.equal(
         await (
@@ -1185,7 +1176,7 @@ describe("AccountCreateTransaction", function () {
         ).stakingInfo.declineStakingReward,
       );
       expect(declineRewards).to.equal(
-        await await mirrorNodeClient.getAccountData(accountId).decline_reward,
+        await mirrorNodeClient.getAccountData(accountId).decline_reward,
       );
     }
 

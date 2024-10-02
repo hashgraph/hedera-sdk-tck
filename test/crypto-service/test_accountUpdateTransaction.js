@@ -8,6 +8,13 @@ import {
   getPublicKeyFromMirrorNode,
 } from "../../utils/helpers/keys.js";
 
+/* 
+*******************************************************************************************
+You may see "await new Promise((resolve) => setTimeout(resolve, 1000));" in some places of this file.
+This is to allow the network to update the account information before querying it.
+*******************************************************************************************
+*/
+
 describe("AccountUpdateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
@@ -103,13 +110,13 @@ describe("AccountUpdateTransaction", function () {
   describe("Key", async function () {
     async function verifyAccountUpdateKey(accountId, updatedKey) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      // If the account was updated successfully, the queried account keys should be equal.
 
+      // Consensus node check
       expect(updatedKey).to.equal(
         await (
-          await (
-            await consensusInfoClient.getAccountInfo(accountId)
-          ).key
-        )._key.toStringDer(),
+          await consensusInfoClient.getAccountInfo(accountId)
+        ).key._key.toStringDer(),
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
@@ -117,6 +124,7 @@ describe("AccountUpdateTransaction", function () {
         "key",
       );
 
+      // Mirror node check
       expect(updatedKey).to.equal(publicKeyMirrorNode.toString());
     }
 
@@ -128,6 +136,7 @@ describe("AccountUpdateTransaction", function () {
         "key",
       );
 
+      // Consensus node check
       expect(updatedKey).to.equal(keyHex);
 
       // Mirror node check
@@ -501,10 +510,8 @@ describe("AccountUpdateTransaction", function () {
       expect(autoRenewPeriodSeconds).to.equal(
         Number(
           await (
-            await (
-              await consensusInfoClient.getAccountInfo(accountId)
-            ).autoRenewPeriod
-          ).seconds,
+            await consensusInfoClient.getAccountInfo(accountId)
+          ).autoRenewPeriod.seconds,
         ),
       );
       expect(autoRenewPeriodSeconds).to.equal(
@@ -671,7 +678,7 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       // Verify the account was updated with an expiration time set to 8,000,001 seconds from the current time.
       await verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
     });
@@ -778,6 +785,7 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account receiver signature required policy was updated.
       await verifyAccountReceiverSignatureRequiredUpdate(
         receiverSignatureRequired,
@@ -935,7 +943,7 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the max auto token associations of the account was updated.
       await verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
     });
@@ -1010,10 +1018,8 @@ describe("AccountUpdateTransaction", function () {
       // If the account was updated successfully, the queried account's staked account IDs should be equal.
       expect(stakedAccountId.toString()).to.equal(
         await (
-          await (
-            await consensusInfoClient.getAccountInfo(accountId)
-          ).stakingInfo
-        ).stakedAccountId.toString(),
+          await consensusInfoClient.getAccountInfo(accountId)
+        ).stakingInfo.stakedAccountId.toString(),
       );
       expect(stakedAccountId).to.equal(
         await (
@@ -1027,15 +1033,13 @@ describe("AccountUpdateTransaction", function () {
       expect(stakedAccountId).to.equal(
         Number(
           await (
-            await (
-              await consensusInfoClient.getAccountInfo(accountId)
-            ).stakingInfo
-          ).stakedNodeId,
+            await consensusInfoClient.getAccountInfo(accountId)
+          ).stakingInfo.stakedNodeId,
         ),
       );
       expect(stakedAccountId).to.equal(
         Number(
-          await await (
+          await (
             await mirrorNodeClient.getAccountData(accountId)
           ).staked_account_id,
         ),
@@ -1173,14 +1177,12 @@ describe("AccountUpdateTransaction", function () {
     async function verifyDeclineRewardUpdate(declineRewards) {
       // If the account was updated successfully, the queried account's decline staking rewards policy should be equal.
       expect(declineRewards).to.equal(
-        (
-          await (
-            await consensusInfoClient.getAccountInfo(accountId)
-          ).stakingInfo
-        ).declineStakingReward,
+        await (
+          await consensusInfoClient.getAccountInfo(accountId)
+        ).stakingInfo.declineStakingReward,
       );
       expect(declineRewards).to.equal(
-        (await await mirrorNodeClient.getAccountData(accountId)).decline_reward,
+        (await mirrorNodeClient.getAccountData(accountId)).decline_reward,
       );
     }
 
