@@ -2,6 +2,7 @@ import {
   AccountBalanceQuery,
   AccountId,
   AccountInfoQuery,
+  TokenInfoQuery,
   Client,
 } from "@hashgraph/sdk";
 
