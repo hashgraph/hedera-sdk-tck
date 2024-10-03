@@ -9,7 +9,7 @@ import {
 } from "../../utils/helpers/key.js";
 import { retryOnError } from "../../utils/helpers/retry-on-error.js";
 
-describe.only("AccountUpdateTransaction", function () {
+describe("AccountUpdateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
