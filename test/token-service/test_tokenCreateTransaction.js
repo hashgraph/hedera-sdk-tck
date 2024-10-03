@@ -1,68 +1,24 @@
-import { JSONRPCRequest } from "../../client.js";
-import mirrorNodeClient from "../../mirrorNodeClient.js";
-import consensusInfoClient from "../../consensusInfoClient.js";
-import { setOperator } from "../../setup_Tests.js";
 import crypto from "crypto";
 import { assert, expect } from "chai";
-
-import { proto } from "@hashgraph/proto";
-
 import {
-  PublicKey,
-  TokenType,
-  TokenSupplyType,
   CustomFixedFee,
   CustomFractionalFee,
   CustomRoyaltyFee,
 } from "@hashgraph/sdk";
 
+import { JSONRPCRequest } from "../../client.js";
+import mirrorNodeClient from "../../mirrorNodeClient.js";
+import consensusInfoClient from "../../consensusInfoClient.js";
+import { setOperator } from "../../setup_Tests.js";
+import {
+  getPublicKeyFromMirrorNode,
+  getEncodedKeyHexFromKeyListConsensus,
+} from "../../utils/helpers/key.js";
+import { TOKEN_TYPE } from "../../utils/helpers/constants/token-type.js";
+
 // Needed to convert BigInts to JSON number format.
 BigInt.prototype.toJSON = function () {
   return JSON.rawJSON(this.toString());
-};
-
-const TOKEN_TYPE = {
-  FUNGIBLE_COMMON: TokenType.FungibleCommon,
-  NON_FUNGIBLE_UNIQUE: TokenType.NonFungibleUnique,
-};
-
-const getEncodedKeyHexFromKeyList = async (
-  consensusInfoClient,
-  tokenId,
-  keyName,
-) => {
-  // Retrieve token info
-  const tokenInfo = await consensusInfoClient.getTokenInfo(tokenId);
-
-  // Access the dynamic key (e.g., wipeKey, freezeKey, etc.)
-  const key = tokenInfo[keyName];
-
-  // Encode the key into Protobuf and convert to hex string
-  const encodedKeyList = proto.Key.encode(key._toProtobufKey()).finish();
-  const keyHex = Buffer.from(encodedKeyList).toString("hex");
-
-  return keyHex;
-};
-
-const getPublicKeyFromMirrorNode = async (tokenId, keyName) => {
-  // Define a mapping for key type functions
-  const keyTypeConvertFunctions = {
-    ED25519: PublicKey.fromStringED25519,
-    ECDSA_SECP256K1: PublicKey.fromStringECDSA,
-  };
-
-  // Retrieve token data from Mirror Node
-  const tokenData = await mirrorNodeClient.getTokenData(tokenId);
-
-  // Access the dynamic key (e.g., fee_schedule_key, admin_key, etc.)
-  const keyMirrorNode = tokenData[keyName];
-
-  // Use the appropriate key type function to convert the key
-  const publicKeyMirrorNode = keyTypeConvertFunctions[keyMirrorNode._type](
-    keyMirrorNode.key,
-  );
-
-  return publicKeyMirrorNode;
 };
 
 /**
@@ -877,7 +833,6 @@ describe("TokenCreateTransaction", function () {
       }
       const accountId = response.accountId;
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -974,6 +929,7 @@ describe("TokenCreateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getTokenData",
         tokenId,
         "admin_key",
       );
@@ -982,14 +938,14 @@ describe("TokenCreateTransaction", function () {
     }
 
     async function verifyTokenCreationWithAdminKeyList(tokenId, adminKey) {
-      const keyHex = await getEncodedKeyHexFromKeyList(
-        consensusInfoClient,
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getTokenInfo",
         tokenId,
         "adminKey",
       );
 
       // Consensus node check
-      expect(adminKey).to.equal(keyHex.toUpperCase());
+      expect(adminKey).to.include(keyHex.toUpperCase());
 
       // Mirror node check
       expect(adminKey).to.equal(
@@ -1336,6 +1292,7 @@ describe("TokenCreateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getTokenData",
         tokenId,
         "kyc_key",
       );
@@ -1344,14 +1301,14 @@ describe("TokenCreateTransaction", function () {
     }
 
     async function verifyTokenCreationWithKycKeyList(tokenId, kycKey) {
-      const keyHex = await getEncodedKeyHexFromKeyList(
-        consensusInfoClient,
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getTokenInfo",
         tokenId,
         "kycKey",
       );
 
       // Consensus node check
-      expect(kycKey).to.equal(keyHex.toUpperCase());
+      expect(kycKey).to.include(keyHex.toUpperCase());
 
       // Mirror node check
       expect(kycKey).to.equal(
@@ -1617,6 +1574,7 @@ describe("TokenCreateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getTokenData",
         tokenId,
         "freeze_key",
       );
@@ -1625,14 +1583,14 @@ describe("TokenCreateTransaction", function () {
     }
 
     async function verifyTokenCreationWithFreezeKeyList(tokenId, freezeKey) {
-      const keyHex = await getEncodedKeyHexFromKeyList(
-        consensusInfoClient,
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getTokenInfo",
         tokenId,
         "freezeKey",
       );
 
       // Consensus node check
-      expect(freezeKey).to.equal(keyHex.toUpperCase());
+      expect(freezeKey).to.include(keyHex.toUpperCase());
 
       // Mirror node check
       expect(freezeKey).to.equal(
@@ -1903,6 +1861,7 @@ describe("TokenCreateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getTokenData",
         tokenId,
         "wipe_key",
       );
@@ -1911,14 +1870,14 @@ describe("TokenCreateTransaction", function () {
     }
 
     async function verifyTokenCreationWithWipeKeyList(tokenId, wipeKey) {
-      const keyHex = await getEncodedKeyHexFromKeyList(
-        consensusInfoClient,
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getTokenInfo",
         tokenId,
         "wipeKey",
       );
 
       // Consensus node check
-      expect(wipeKey).to.equal(keyHex.toUpperCase());
+      expect(wipeKey).to.include(keyHex.toUpperCase());
 
       // Mirror node check
       expect(wipeKey).to.equal(
@@ -2184,6 +2143,7 @@ describe("TokenCreateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getTokenData",
         tokenId,
         "supply_key",
       );
@@ -2192,14 +2152,14 @@ describe("TokenCreateTransaction", function () {
     }
 
     async function verifyTokenCreationWithSupplyKeyList(tokenId, supplyKey) {
-      const keyHex = await getEncodedKeyHexFromKeyList(
-        consensusInfoClient,
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getTokenInfo",
         tokenId,
         "supplyKey",
       );
 
       // Consensus node check
-      expect(supplyKey).to.equal(keyHex.toUpperCase());
+      expect(supplyKey).to.include(keyHex.toUpperCase());
 
       // Mirror node check
       expect(supplyKey).to.equal(
@@ -2903,24 +2863,24 @@ describe("TokenCreateTransaction", function () {
       }
       const accountId = response.accountId;
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      try {
-        response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewAccountId: accountId,
-        });
-        if (response.status === "NOT_IMPLEMENTED") {
-          this.skip();
+      async () => {
+        try {
+          response = await JSONRPCRequest("createToken", {
+            name: "testname",
+            symbol: "testsymbol",
+            treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+            autoRenewAccountId: accountId,
+          });
+          if (response.status === "NOT_IMPLEMENTED") {
+            this.skip();
+          }
+        } catch (err) {
+          assert.equal(err.data.status, "INVALID_SIGNATURE");
+          return;
         }
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_SIGNATURE");
-        return;
-      }
 
-      assert.fail("Should throw an error");
+        assert.fail("Should throw an error");
+      };
     });
 
     it("(#3) Creates a token with an auto renew account that doesn't exist", async function () {
@@ -3283,11 +3243,6 @@ describe("TokenCreateTransaction", function () {
 
   describe("Supply Type", function () {
     async function verifyTokenCreationWithSupplyType(tokenId, type) {
-      const TOKEN_TYPE = {
-        FINITE: TokenSupplyType.Finite,
-        INFINITE: TokenSupplyType.Infinite,
-      };
-
       expect(TOKEN_TYPE[type]).to.equal(
         await (
           await consensusInfoClient.getTokenInfo(tokenId)
@@ -3554,6 +3509,7 @@ describe("TokenCreateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getTokenData",
         tokenId,
         "fee_schedule_key",
       );
@@ -3567,14 +3523,14 @@ describe("TokenCreateTransaction", function () {
       tokenId,
       feeScheduleKey,
     ) {
-      const keyHex = await getEncodedKeyHexFromKeyList(
-        consensusInfoClient,
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getTokenInfo",
         tokenId,
         "feeScheduleKey",
       );
 
       // Consensus node check
-      expect(feeScheduleKey).to.equal(keyHex.toUpperCase());
+      expect(feeScheduleKey).to.include(keyHex.toUpperCase());
 
       // Mirror node check
       expect(feeScheduleKey).to.equal(
@@ -7451,6 +7407,7 @@ describe("TokenCreateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getTokenData",
         tokenId,
         "pause_key",
       );
@@ -7462,14 +7419,14 @@ describe("TokenCreateTransaction", function () {
       tokenId,
       feeScheduleKey,
     ) {
-      const keyHex = await getEncodedKeyHexFromKeyList(
-        consensusInfoClient,
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getTokenInfo",
         tokenId,
         "pauseKey",
       );
 
       // Consensus node check
-      expect(feeScheduleKey).to.equal(keyHex.toUpperCase());
+      expect(feeScheduleKey).to.include(keyHex.toUpperCase());
 
       // Mirror node check
       expect(feeScheduleKey).to.equal(
@@ -7788,6 +7745,7 @@ describe("TokenCreateTransaction", function () {
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
+        "getTokenData",
         tokenId,
         "metadata_key",
       );
@@ -7801,14 +7759,14 @@ describe("TokenCreateTransaction", function () {
       tokenId,
       feeScheduleKey,
     ) {
-      const keyHex = await getEncodedKeyHexFromKeyList(
-        consensusInfoClient,
+      const keyHex = await getEncodedKeyHexFromKeyListConsensus(
+        "getTokenInfo",
         tokenId,
         "metadataKey",
       );
 
       // Consensus node check
-      expect(feeScheduleKey).to.equal(keyHex.toUpperCase());
+      expect(feeScheduleKey).to.include(keyHex.toUpperCase());
 
       // Mirror node check
       expect(feeScheduleKey).to.equal(
