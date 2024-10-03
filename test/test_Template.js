@@ -14,7 +14,10 @@ describe.skip("Hedera functionality we want to test", function () {
 
   // before and after hooks (normally used to set up and reset the client SDK)
   before(async function () {
-    await setOperator(process.env.OPERATOR_ACCOUNT_ID, process.env.OPERATOR_ACCOUNT_PRIVATE_KEY);
+    await setOperator(
+      process.env.OPERATOR_ACCOUNT_ID,
+      process.env.OPERATOR_ACCOUNT_PRIVATE_KEY,
+    );
   });
   after(async function () {
     await JSONRPCRequest("reset");
@@ -27,12 +30,14 @@ describe.skip("Hedera functionality we want to test", function () {
   describe("Test section name here", function () {
     it("should do something successfully", async function () {
       // 1. Call JSON-RPC (Make sure it is running first)
-      let response = await JSONRPCRequest("doSomething", {
+      const response = await JSONRPCRequest("doSomething", {
         parameter: "value",
       });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      if (response.status === "NOT_IMPLEMENTED") {
+        this.skip();
+      }
 
-      let accountId = new AccountId(response.accountId).toString();
+      const accountId = new AccountId(response.accountId).toString();
 
       // Get value using Client SDK (Don't use JSON-RPC)
       const respSDK = consensusInfoClient.getAccountInfo(accountId); //from SDKEnquiry.js
@@ -40,7 +45,7 @@ describe.skip("Hedera functionality we want to test", function () {
 
       // Get value using Mirror node (optional)
       // add delay here to give mirror node time to update
-      let url = `${process.env.MIRROR_NODE_REST_URL}/api/v1/accounts?account.id=${accountId}`;
+      const url = `${process.env.MIRROR_NODE_REST_URL}/api/v1/accounts?account.id=${accountId}`;
       const fetchedResponse = await axios.get(url);
       const respJSON = fetchedResponse.data;
 
@@ -53,10 +58,12 @@ describe.skip("Hedera functionality we want to test", function () {
     it("should try to do something but fail and check error code", async function () {
       try {
         // 1. Call JSON-RPC (Make sure it is running first)
-        let response = await JSONRPCRequest("doSomethingExpectingError", {
+        const response = await JSONRPCRequest("doSomethingExpectingError", {
           parameter: "value",
         });
-        if (response.status === "NOT_IMPLEMENTED") this.skip();
+        if (response.status === "NOT_IMPLEMENTED") {
+          this.skip();
+        }
       } catch (err) {
         // check if correct error status is thrown
         // custom hedera errors codes can be found here:
