@@ -1,21 +1,15 @@
+import { expect, assert } from "chai";
 import { JSONRPCRequest } from "../../client.js";
 import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
-import { expect, assert } from "chai";
 import { setOperator } from "../../setup_Tests.js";
 import {
   getEncodedKeyHexFromKeyListConsensus,
   getPublicKeyFromMirrorNode,
 } from "../../utils/helpers/key.js";
+import { retryOnError } from "../../utils/helpers/retry-on-error.js";
 
-/* 
-*******************************************************************************************
-You may see "await new Promise((resolve) => setTimeout(resolve, 1000));" in some places of this file.
-This is to allow the network to update the account information before querying it.
-*******************************************************************************************
-*/
-
-describe("AccountUpdateTransaction", function () {
+describe.only("AccountUpdateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
@@ -109,7 +103,6 @@ describe("AccountUpdateTransaction", function () {
 
   describe("Key", async function () {
     async function verifyAccountUpdateKey(accountId, updatedKey) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // If the account was updated successfully, the queried account keys should be equal.
 
       // Consensus node check
@@ -130,8 +123,6 @@ describe("AccountUpdateTransaction", function () {
     }
 
     async function verifyAccountUpdateKeyList(accountId, updatedKey) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
       const keyHex = await getEncodedKeyHexFromKeyListConsensus(
         "getAccountInfo",
         accountId,
@@ -178,7 +169,9 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account key was updated (use raw key for comparison, ED25519 public key DER-encoding has a 12 byte prefix).
-      await verifyAccountUpdateKey(accountId, ed25519PublicKey.key);
+      await retryOnError(() =>
+        verifyAccountUpdateKey(accountId, ed25519PublicKey.key),
+      );
     });
 
     it("(#2) Updates the key of an account to a new valid ECDSAsecp256k1 public key", async function () {
@@ -212,7 +205,9 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
-      await verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key);
+      await retryOnError(() =>
+        verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key),
+      );
     });
 
     it("(#3) Updates the key of an account to a new valid ED25519 private key", async function () {
@@ -246,7 +241,9 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account key was updated (use raw key for comparison, ED25519 public key DER-encoding has a 12 byte prefix).
-      await verifyAccountUpdateKey(accountId, ed25519PublicKey.key);
+      await retryOnError(() =>
+        verifyAccountUpdateKey(accountId, ed25519PublicKey.key),
+      );
     });
 
     it("(#4) Updates the key of an account to a new valid ECDSAsecp256k1 private key", async function () {
@@ -280,7 +277,9 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account key was updated (use raw key for comparison, compressed ECDSAsecp256k1 public key DER-encoding has a 14 byte prefix).
-      await verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key);
+      await retryOnError(() =>
+        verifyAccountUpdateKey(accountId, ecdsaSecp256k1PublicKey.key),
+      );
     });
 
     it("(#5) Updates the key of an account to a new valid KeyList of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
@@ -325,7 +324,9 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account key was updated.
-      await verifyAccountUpdateKeyList(accountId, keyList.key);
+      await retryOnError(() =>
+        verifyAccountUpdateKeyList(accountId, keyList.key),
+      );
     });
 
     it("(#6) Updates the key of an account to a new valid KeyList of nested KeyLists (three levels)", async function () {
@@ -393,7 +394,9 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account key was updated.
-      await verifyAccountUpdateKeyList(accountId, nestedKeyList.key);
+      await retryOnError(() =>
+        verifyAccountUpdateKeyList(accountId, nestedKeyList.key),
+      );
     });
 
     it("(#7) Updates the key of an account to a new valid ThresholdKey of ED25519 and ECDSAsecp256k1 private and public keys", async function () {
@@ -434,7 +437,9 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account key was updated.
-      await verifyAccountUpdateKeyList(accountId, thresholdKey.key);
+      await retryOnError(() =>
+        verifyAccountUpdateKeyList(accountId, thresholdKey.key),
+      );
     });
 
     it("(#8) Updates the key of an account to a key without signing with the new key", async function () {
@@ -537,9 +542,10 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 60 days.
-      await verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
+      await retryOnError(() =>
+        verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds),
+      );
     });
 
     it("(#2) Updates the auto-renew period of an account to -1 seconds", async function () {
@@ -578,9 +584,10 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 30 days.
-      await verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
+      await retryOnError(() =>
+        verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds),
+      );
     });
 
     it("(#4) Updates the auto-renew period of an account to 30 days minus one second (2,591,999 seconds)", async function () {
@@ -619,9 +626,10 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account was updated with an auto-renew period set to 8,000,001 seconds.
-      await verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds);
+      await retryOnError(() =>
+        verifyAccountAutoRenewPeriodUpdate(autoRenewPeriodSeconds),
+      );
     });
 
     it("(#6) Updates the auto-renew period of an account to the maximum period plus one second (8,000,002 seconds)", async function () {
@@ -680,9 +688,10 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
       // Verify the account was updated with an expiration time set to 8,000,001 seconds from the current time.
-      await verifyAccountExpirationTimeUpdate(expirationTimeSeconds);
+      await retryOnError(() =>
+        verifyAccountExpirationTimeUpdate(expirationTimeSeconds),
+      );
     });
 
     it("(#2) Updates the expiration time of an account to -1 seconds", async function () {
@@ -787,10 +796,9 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the account receiver signature required policy was updated.
-      await verifyAccountReceiverSignatureRequiredUpdate(
-        receiverSignatureRequired,
+      await retryOnError(() =>
+        verifyAccountReceiverSignatureRequiredUpdate(receiverSignatureRequired),
       );
     });
 
@@ -817,7 +825,6 @@ describe("AccountUpdateTransaction", function () {
 
   describe("Memo", async function () {
     async function verifyAccountMemoUpdate(memo) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
       // If the account was updated successfully, the queried account's memos should be equal.
       expect(memo).to.equal(
         await (
@@ -846,7 +853,7 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account was updated with the memo set to "testmemo".
-      await verifyAccountMemoUpdate(memo);
+      await retryOnError(() => verifyAccountMemoUpdate(memo));
     });
 
     it("(#2) Updates the memo of an account to a memo that is the minimum length", async function () {
@@ -864,7 +871,7 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account was updated with an empty memo.
-      await verifyAccountMemoUpdate(memo);
+      await retryOnError(() => verifyAccountMemoUpdate(memo));
     });
 
     it("(#3) Updates the memo of an account to a memo that is the maximum length", async function () {
@@ -883,7 +890,7 @@ describe("AccountUpdateTransaction", function () {
       }
 
       // Verify the account was updated with the memo set to "This is a really long memo but it is still valid because it is 100 characters exactly on the money!!".
-      await verifyAccountMemoUpdate(memo);
+      await retryOnError(() => verifyAccountMemoUpdate(memo));
     });
 
     it("(#4) Updates the memo of an account to a memo that exceeds the maximum length", async function () {
@@ -945,9 +952,10 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the max auto token associations of the account was updated.
-      await verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
+      await retryOnError(() =>
+        verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations),
+      );
     });
 
     it("(#2) Updates the max automatic token associations of an account to the minimum amount", async function () {
@@ -983,9 +991,10 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify max auto token associations of the account was updated.
-      await verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations);
+      await retryOnError(() =>
+        verifyMaxAutoTokenAssociationsUpdate(maxAutoTokenAssociations),
+      );
     });
 
     it("(#4) Updates the max automatic token associations of an account to an amount that exceeds the maximum amount", async function () {
@@ -1062,9 +1071,10 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the staked account ID of the account was updated.
-      await verifyAccountStakedAccountIdUpdate(stakedAccountId);
+      await retryOnError(() =>
+        verifyAccountStakedAccountIdUpdate(stakedAccountId),
+      );
     });
 
     it("(#2) Updates the staked node ID of an account to a valid node ID", async function () {
@@ -1081,9 +1091,8 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the staked node ID of the account was updated.
-      await verifyAccountStakedNodeIdUpdate(stakedNodeId);
+      await retryOnError(() => verifyAccountStakedNodeIdUpdate(stakedNodeId));
     });
 
     it("(#3) Updates the staked account ID of an account to an account ID that doesn't exist", async function () {
@@ -1202,9 +1211,10 @@ describe("AccountUpdateTransaction", function () {
         this.skip();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Verify the decline reward policy of the account was updated.
-      await verifyDeclineRewardUpdate(declineStakingRewards);
+      await retryOnError(() =>
+        verifyDeclineRewardUpdate(declineStakingRewards),
+      );
     });
 
     it("(#2) Updates the decline reward policy of an account to not decline staking rewards", async function () {
