@@ -498,7 +498,6 @@ describe("AccountCreateTransaction", function () {
       autoRenewPeriodSeconds,
     ) {
       // If the account was created successfully, the queried account's auto renew periods should be equal.
-
       expect(autoRenewPeriodSeconds).to.equal(
         Number(
           await (
@@ -947,7 +946,7 @@ describe("AccountCreateTransaction", function () {
       accountId,
       stakedAccountId,
     ) {
-      // If the account was created successfully, the queried account's staked node IDs should be equal.
+      // If the account was created successfully, the queried account's staked account IDs should be equal.
       expect(stakedAccountId).to.equal(
         await (
           await consensusInfoClient.getAccountInfo(accountId)
