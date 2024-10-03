@@ -2,9 +2,7 @@ import { JSONRPCRequest } from "../../client.js";
 import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
 import { setOperator } from "../../setup_Tests.js";
-import crypto from "crypto";
 import { assert, expect } from "chai";
-import { JSONRPC } from "json-rpc-2.0";
 
 // Needed to convert BigInts to JSON number format.
 BigInt.prototype.toJSON = function () {
@@ -84,8 +82,8 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     async function verifyTokenFeeScheduleUpdate(tokenId) {
         let mirrorNodeData = await mirrorNodeClient.getTokenData(tokenId);
         let consensusNodeData = await consensusInfoClient.getTokenInfo(tokenId);
-        expect(tokenId).to.be.equal(mirrorNodeData.tokens[0].token);
-        expect(tokenId).to.be.equal(consensusNodeData.tokens.toString());
+        expect(tokenId).to.be.equal(mirrorNodeData.token_id);
+        expect(tokenId).to.be.equal(consensusNodeData.tokenId.toString());
     }
 
     it("(#1) Updates an immutable token's fee schedule with no updates", async function () {
@@ -112,9 +110,14 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#2) Updates a mutable token with no updates", async function () {
-      const [_, tokenId] = await createToken("ft");
+      const {key, tokenId} = await createToken("ft");
       const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-        tokenId: tokenId
+        tokenId: tokenId,
+        commonTransactionParams: {
+          signers: [
+            key
+          ]
+        }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
