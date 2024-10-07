@@ -12,8 +12,17 @@
     "test": "mocha --recursive  --reporter mochawesome --exit",
     "format": "prettier --write .",
     "lint": "eslint ."
+    "test": "mocha --recursive  --reporter mochawesome --exit",
+    "format": "prettier --write .",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "eslint": "^9.11.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-define-config": "^2.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "mochawesome": "^7.1.3",
+    "prettier": "^3.3.3"
     "eslint": "^9.11.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-define-config": "^2.1.0",

@@ -33,8 +33,8 @@ class MirrorNodeClient {
           return response.data;
         }
       } catch (error) {
-        // Uncomment if you want to see the error message
-        // console.log(error);
+        // Uncomment if you want to see the error
+        // console.error(error);
       }
 
       // If the array is empty, delay for a second before the next try
