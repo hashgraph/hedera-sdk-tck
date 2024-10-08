@@ -115,7 +115,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
   afterEach(async function () {
     await JSONRPCRequest("reset");
   });
-/*
+
   describe("Token ID", function () {
     async function verifyTokenFeeScheduleUpdate(tokenId) {
         let mirrorNodeData = await mirrorNodeClient.getTokenData(tokenId);
@@ -234,7 +234,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
   });
-*/
+
   describe("Custom Fees", function () {
     async function consensusNodeFeeEqualsCustomFee(customFee, feeCollectorAccountId, feeCollectorsExempt) {
       return feeCollectorAccountId === customFee.feeCollectorAccountId.toString() &&
@@ -360,7 +360,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       expect(foundConsensusNodeFee).to.be.true;
       expect(foundMirrorNodeFee).to.be.true;
     }
-/*
+
     it("(#1) Updates a token's fee schedule with a fixed fee with an amount of 0", async function () {
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
@@ -2641,7 +2641,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
 
       assert.fail("Should throw an error");
     });
-*/
+
     it("(#73) Updates a token's fee schedule with a fixed fee with a fee collector account that doesn't exist", async function () {
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
