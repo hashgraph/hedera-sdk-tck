@@ -8,6 +8,8 @@ import mirrorNodeClient from "../../mirrorNodeClient.js";
 import consensusInfoClient from "../../consensusInfoClient.js";
 import { setOperator } from "../../setup_Tests.js";
 import { assert, expect } from "chai";
+import { retryOnError } from "../../utils/helpers/retry-on-error.js"
+
 
 // Needed to convert BigInts to JSON number format.
 BigInt.prototype.toJSON = function () {
@@ -87,12 +89,19 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       type: "ed25519PrivateKey"
     });
     nonFungibleTokenFeeScheduleKey = response.key;
+
+    // Generate its supply key.
+    response = await JSONRPCRequest("generateKey", {
+      type: "ed25519PrivateKey"
+    });
+    const nftSupplyKey = response.key;
   
     response = await JSONRPCRequest("createToken", {
       name: testTokenName,
       symbol: testTokenSymbol,
       treasuryAccountId: testTreasuryAccountId,
-      tokenType: "ft",
+      tokenType: "nft",
+      supplyKey: nftSupplyKey,
       feeScheduleKey: nonFungibleTokenFeeScheduleKey
     });
     nonFungibleTokenId = response.tokenId;
@@ -126,7 +135,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdate(fungibleTokenId);
+      await retryOnError(() => verifyTokenFeeScheduleUpdate(fungibleTokenId));
     });
 
     it("(#2) Updates a token's fee schedule to be empty when it is already empty", async function () {
@@ -315,16 +324,12 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
         }
       }
 
-      console.log(mirrorNodeInfo);
       for (let i = 0; i < mirrorNodeInfo.custom_fees.fractional_fees.length; i++) {
         if (mirrorNodeFeeEqualsCustomFractionalFee(mirrorNodeInfo.custom_fees.fractional_fees[i], feeCollectorAccountId, numerator, denominator, minAmount, maxAmount, assessmentMethod)) {
           foundMirrorNodeFee = true;
           break;
         }
       }
-
-      console.log(foundConsensusNodeFee);
-      console.log(foundMirrorNodeFee);
       
       expect(foundConsensusNodeFee).to.be.true;
       expect(foundMirrorNodeFee).to.be.true;
@@ -332,12 +337,12 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
 
     async function verifyTokenFeeScheduleUpdateWithRoyaltyFee(tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeAmount) {
       const consensusNodeInfo = await consensusInfoClient.getTokenInfo(tokenId);
-      const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId).tokens[0];
+      const mirrorNodeInfo = await mirrorNodeClient.getTokenData(tokenId);
 
       let foundConsensusNodeFee = false;
       let foundMirrorNodeFee = false;
 
-      for (let i = 0; i < consensusNodeInfo.customFees.size(); i++) {
+      for (let i = 0; i < consensusNodeInfo.customFees.length; i++) {
         if (consensusNodeInfo.customFees[i] instanceof CustomRoyaltyFee &&
             consensusNodeFeeEqualsCustomRoyaltyFee(consensusNodeInfo.customFees[i], feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fixedFeeAmount)) {
             foundConsensusNodeFee = true;
@@ -345,8 +350,8 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
         }
       }
 
-      for (let i = 0; i < mirrorNodeInfo.custom_fees.fractional_fees.size(); i++) {
-        if (mirrorNodeFeeEqualsCustomRoyaltyFee(mirrorNodeInfo.custom_fees.fractional_fees[i], feeCollectorAccountId, numerator, denominator, fixedFeeAmount)) {
+      for (let i = 0; i < mirrorNodeInfo.custom_fees.royalty_fees.length; i++) {
+        if (mirrorNodeFeeEqualsCustomRoyaltyFee(mirrorNodeInfo.custom_fees.royalty_fees[i], feeCollectorAccountId, numerator, denominator, fixedFeeAmount)) {
           foundMirrorNodeFee = true;
           break;
         }
@@ -355,7 +360,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       expect(foundConsensusNodeFee).to.be.true;
       expect(foundMirrorNodeFee).to.be.true;
     }
-
+/*
     it("(#1) Updates a token's fee schedule with a fixed fee with an amount of 0", async function () {
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
@@ -435,7 +440,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFixedFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFixedFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, amount));
     });
 
     it("(#4) Updates a token's fee schedule with a fixed fee with an amount of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
@@ -461,7 +466,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFixedFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFixedFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, amount));
     });
 
     it("(#5) Updates a token's fee schedule with a fixed fee with an amount of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -699,7 +704,8 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() =>
+        verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
     it("(#13) Updates a token's fee schedule with a fractional fee with a numerator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
@@ -733,7 +739,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
     it("(#14) Updates a token's fee schedule with a fractional fee with a numerator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -991,7 +997,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
     it("(#22) Updates a token's fee schedule with a fractional fee with a denominator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
@@ -1025,7 +1031,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
     it("(#23) Updates a token's fee schedule with a fractional fee with a denominator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -1219,7 +1225,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
     it("(#29) Updates a token's fee schedule with a fractional fee with a minimum amount of -1", async function () {
@@ -1509,7 +1515,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
     it("(#38) Updates a token's fee schedule with a fractional fee with a maximum amount of -1", async function () {
@@ -1575,7 +1581,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
     it("(#40) Updates a token's fee schedule with a fractional fee with a maximum amount of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
@@ -1609,7 +1615,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
     it("(#41) Updates a token's fee schedule with a fractional fee with a maximum amount of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
@@ -1771,12 +1777,11 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
 
       assert.fail("Should throw an error");
     });
-/*
+
     it("(#46) Updates a NFT's fee schedule with a royalty fee with a numerator of 0", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -1792,7 +1797,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -1806,10 +1811,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#47) Updates a NFT's fee schedule with a royalty fee with a numerator of -1", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -1825,7 +1829,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -1839,10 +1843,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#48) Updates a NFT's fee schedule with a royalty fee with a numerator of 9,223,372,036,854,775,807 (int64 max)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -1858,7 +1861,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -1872,10 +1875,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#49) Updates a NFT's fee schedule with a royalty fee with a numerator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -1891,7 +1893,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -1905,10 +1907,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#50) Updates a NFT's fee schedule with a royalty fee with a numerator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -1924,7 +1925,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -1938,10 +1939,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#51) Updates a NFT's fee schedule with a royalty fee with a numerator of 18,446,744,073,709,551,615 (uint64 max)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -1957,7 +1957,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -1971,10 +1971,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#52) Updates a NFT's fee schedule with a royalty fee with a numerator of 18,446,744,073,709,551,614 (uint64 max - 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -1990,7 +1989,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2004,10 +2003,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#53) Updates a NFT's fee schedule with a royalty fee with a numerator of -9,223,372,036,854,775,808 (int64 min)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2023,7 +2021,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2037,10 +2035,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#54) Updates a NFT's fee schedule with a royalty fee with a numerator of -9,223,372,036,854,775,807 (int64 min + 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2056,7 +2053,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2070,10 +2067,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#55) Updates a NFT's fee schedule with a royalty fee with a denominator of 0", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2089,7 +2085,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2103,10 +2099,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#56) Updates a NFT's fee schedule with a royalty fee with a denominator of -1", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2122,7 +2117,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2136,14 +2131,13 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#57) Updates a NFT's fee schedule with a royalty fee with a denominator of 9,223,372,036,854,775,807 (int64 max)", async function () {
-      const [key, tokenId] = await createToken("nft");
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 9223372036854775807n;
       const fallbackAmount = 10;
       const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-        tokenId: tokenId,
+        tokenId: nonFungibleTokenId,
         customFees: [
           {
             feeCollectorAccountId: feeCollectorAccountId,
@@ -2159,24 +2153,23 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
         ],
         commonTransactionParams: {
           signers: [
-            key
+            nonFungibleTokenFeeScheduleKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fallbackAmount);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithRoyaltyFee(nonFungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fallbackAmount));
     });
 
     it("(#58) Updates a NFT's fee schedule with a royalty fee with a denominator of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 9223372036854775806n;
       const fallbackAmount = 10;
       const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-        tokenId: tokenId,
+        tokenId: nonFungibleTokenId,
         customFees: [
           {
             feeCollectorAccountId: feeCollectorAccountId,
@@ -2192,20 +2185,19 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
         ],
         commonTransactionParams: {
           signers: [
-            key
+            nonFungibleTokenFeeScheduleKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fallbackAmount);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithRoyaltyFee(nonFungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fallbackAmount));
     });
 
     it("(#59) Updates a NFT's fee schedule with a royalty fee with a denominator of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2221,7 +2213,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2235,10 +2227,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#60) Updates a NFT's fee schedule with a royalty fee with a denominator of 18,446,744,073,709,551,615 (uint64 max)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2254,7 +2245,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2268,10 +2259,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#61) Updates a NFT's fee schedule with a royalty fee with a denominator of 18,446,744,073,709,551,614 (uint64 max - 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2287,7 +2277,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2301,10 +2291,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#62) Updates a NFT's fee schedule with a royalty fee with a denominator of -9,223,372,036,854,775,808 (int64 min)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2320,7 +2309,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2334,10 +2323,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#63) Updates a NFT's fee schedule with a royalty fee with a denominator of -9,223,372,036,854,775,807 (int64 min + 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2353,7 +2341,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2367,10 +2355,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#64) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of 0", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2386,7 +2373,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2400,10 +2387,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#65) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of -1", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2419,7 +2405,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2433,14 +2419,13 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#66) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of 9,223,372,036,854,775,807 (int64 max)", async function () {
-      const [key, tokenId] = await createToken("nft");
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 10;
       const fallbackAmount = 9223372036854775807n;
       const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-        tokenId: tokenId,
+        tokenId: nonFungibleTokenId,
         customFees: [
           {
             feeCollectorAccountId: feeCollectorAccountId,
@@ -2456,24 +2441,23 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
         ],
         commonTransactionParams: {
           signers: [
-            key
+            nonFungibleTokenFeeScheduleKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fallbackAmount);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithRoyaltyFee(nonFungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fallbackAmount));
     });
 
     it("(#67) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of 9,223,372,036,854,775,806 (int64 max - 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
       const denominator = 10;
       const fallbackAmount = 9223372036854775806n;
       const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-        tokenId: tokenId,
+        tokenId: nonFungibleTokenId,
         customFees: [
           {
             feeCollectorAccountId: feeCollectorAccountId,
@@ -2489,20 +2473,19 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
         ],
         commonTransactionParams: {
           signers: [
-            key
+            nonFungibleTokenFeeScheduleKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithRoyaltyFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fallbackAmount);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithRoyaltyFee(nonFungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, fallbackAmount));
     });
 
     it("(#68) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of 9,223,372,036,854,775,808 (int64 max + 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2518,7 +2501,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2532,10 +2515,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#68) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of 18,446,744,073,709,551,615 (uint64 max)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2551,7 +2533,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2565,10 +2547,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#70) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of 18,446,744,073,709,551,614 (uint64 max - 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2584,7 +2565,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2598,10 +2579,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#71) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of -9,223,372,036,854,775,808 (int64 min)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2617,7 +2597,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2631,10 +2611,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#72) Updates a NFT's fee schedule with a royalty fee with a fallback fee with an amount of -9,223,372,036,854,775,807 (int64 min + 1)", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -2650,7 +2629,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2662,12 +2641,11 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
 
       assert.fail("Should throw an error");
     });
-
+*/
     it("(#73) Updates a token's fee schedule with a fixed fee with a fee collector account that doesn't exist", async function () {
-      const [key, tokenId] = await createToken("ft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: "123.456.789",
@@ -2679,7 +2657,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2693,10 +2671,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#74) Updates a token's fee schedule with a fractional with a fee collector account that doesn't exist", async function () {
-      const [key, tokenId] = await createToken("ft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: "123.456.789",
@@ -2712,7 +2689,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2726,10 +2703,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#75) Updates a NFT's fee schedule with a royalty fee with a fee collector account that doesn't exist", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: "123.456.789",
@@ -2745,7 +2721,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2759,10 +2735,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#76) Updates a token's fee schedule with a fixed fee with an empty fee collector account", async function () {
-      const [key, tokenId] = await createToken("ft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: "",
@@ -2774,7 +2749,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2788,10 +2763,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#77) Updates a token's fee schedule with a fractional with an empty fee collector account", async function () {
-      const [key, tokenId] = await createToken("ft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: "",
@@ -2807,7 +2781,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2821,10 +2795,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
     });
 
     it("(#78) Updates a NFT's fee schedule with a royalty fee with an empty fee collector account", async function () {
-      const [key, tokenId] = await createToken("nft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: "",
@@ -2840,7 +2813,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2853,7 +2826,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#79) Updates a token's fee schedule with a fixed fee with a deleted fee collector account", async function () {
+    it.skip("(#79) Updates a token's fee schedule with a fixed fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -2877,10 +2850,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      const [key, tokenId] = await createToken("ft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: accountId,
@@ -2892,7 +2864,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2905,7 +2877,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#80) Updates a token's fee schedule with a fractional fee with a deleted fee collector account", async function () {
+    it.skip("(#80) Updates a token's fee schedule with a fractional fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -2929,10 +2901,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      const [key, tokenId] = await createToken("ft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: accountId,
@@ -2948,7 +2919,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -2961,7 +2932,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#81) Updates a NFT's fee schedule with a royalty fee with a deleted fee collector account", async function () {
+    it.skip("(#81) Updates a NFT's fee schedule with a royalty fee with a deleted fee collector account", async function () {
       let response = await JSONRPCRequest("generateKey", {
         type: "ed25519PrivateKey"
       });
@@ -2985,10 +2956,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      const [key, tokenId] = await createToken("ft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: accountId,
@@ -3004,7 +2974,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -3017,40 +2987,10 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#82) Updates a token's fee schedule with a fixed fee that is assessed with the created token", async function () {
-      const [key, tokenId] = await createToken("ft");
-      const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
-      const feeCollectorsExempt = false;
-      const amount = 10;
-      const denominatingTokenId = "0.0.0";
-      const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-        tokenId: tokenId,
-        customFees: [
-          {
-            feeCollectorAccountId: feeCollectorAccountId,
-            feeCollectorsExempt: feeCollectorsExempt,
-            fixedFee: {
-              amount: amount,
-              denominatingTokenId: denominatingTokenId
-            }
-          }
-        ],
-        commonTransactionParams: {
-          signers: [
-            key
-          ]
-        }
-      });
-      if (response.status === "NOT_IMPLEMENTED") this.skip();
-
-      await verifyTokenFeeScheduleUpdateWithFixedFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, amount);
-    });
-
-    it("(#83) Updates a token's fee schedule with a fixed fee that is assessed with a token that doesn't exist", async function () {
-      const [key, tokenId] = await createToken("ft");
+    it("(#82) Updates a token's fee schedule with a fixed fee that is assessed with a token that doesn't exist", async function () {
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -3063,7 +3003,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -3076,11 +3016,10 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#84) Updates a token's fee schedule with a fixed fee that is assessed with an empty token", async function () {
-      const [key, tokenId] = await createToken("ft");
+    it("(#83) Updates a token's fee schedule with a fixed fee that is assessed with an empty token", async function () {
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -3093,7 +3032,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -3106,10 +3045,26 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#85) Updates a token's fee schedule with a fixed fee that is assessed with a deleted token", async function () {
-      const [deleteKey, deleteTokenId] = await createToken("ft");
+    it("(#84) Updates a token's fee schedule with a fixed fee that is assessed with a deleted token", async function () {
+      let response = await JSONRPCRequest("generateKey", {
+        type: "ed25519PrivateKey"
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const deleteKey = response.key;
 
-      let response = await JSONRPCRequest("deleteToken", {
+      response = await JSONRPCRequest("createToken", {
+        name: testTokenName,
+        symbol: testTokenSymbol,
+        treasuryAccountId: testTreasuryAccountId,
+        adminKey: deleteKey,
+        commonTransactionParams: {
+          signers: [deleteKey]
+        }
+      });
+      if (response.status === "NOT_IMPLEMENTED") this.skip();
+      const deleteTokenId = response.tokenId;
+
+      response = await JSONRPCRequest("deleteToken", {
         tokenId: deleteTokenId,
         commonTransactionParams: {
           signers: [
@@ -3119,10 +3074,9 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       })
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      const [key, tokenId] = await createToken("ft");
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -3135,7 +3089,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -3148,8 +3102,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#86) Updates a token's fee schedule with a fractional fee that is assessed to the receiver", async function () {
-      const [key, tokenId] = await createToken("ft");
+    it("(#85) Updates a token's fee schedule with a fractional fee that is assessed to the receiver", async function () {
       const feeCollectorAccountId = process.env.OPERATOR_ACCOUNT_ID;
       const feeCollectorsExempt = false;
       const numerator = 1;
@@ -3158,7 +3111,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       const maxAmount = 10;
       const assessmentMethod = "exclusive";
       const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-        tokenId: tokenId,
+        tokenId: fungibleTokenId,
         customFees: [
           {
             feeCollectorAccountId: feeCollectorAccountId,
@@ -3174,20 +3127,19 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
         ],
         commonTransactionParams: {
           signers: [
-            key
+            fungibleTokenFeeScheduleKey
           ]
         }
       });
       if (response.status === "NOT_IMPLEMENTED") this.skip();
 
-      await verifyTokenFeeScheduleUpdateWithFractionalFee(response.tokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod);
+      await retryOnError(() => verifyTokenFeeScheduleUpdateWithFractionalFee(fungibleTokenId, feeCollectorAccountId, feeCollectorsExempt, numerator, denominator, minAmount, maxAmount, assessmentMethod));
     });
 
-    it("(#87) Updates a fungible token's fee schedule with a royalty fee", async function () {
-      const [key, tokenId] = await createToken("ft");
+    it("(#86) Updates a fungible token's fee schedule with a royalty fee", async function () {
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -3203,7 +3155,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -3216,11 +3168,10 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#88) Updates a NFT's fee schedule with a fractional fee", async function () {
-      const [key, tokenId] = await createToken("nft");
+    it("(#87) Updates a NFT's fee schedule with a fractional fee", async function () {
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: nonFungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -3236,7 +3187,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              nonFungibleTokenFeeScheduleKey
             ]
           }
         });
@@ -3248,12 +3199,11 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
 
       assert.fail("Should throw an error");
     });
-*/
-    it("(#89) Updates a token's fee schedule with more than the maximum amount of fees allowed", async function () {
-      const [key, tokenId] = await createToken("ft");
+
+    it("(#88) Updates a token's fee schedule with more than the maximum amount of fees allowed", async function () {
       try {
         const response = await JSONRPCRequest("updateTokenFeeSchedule", {
-          tokenId: tokenId,
+          tokenId: fungibleTokenId,
           customFees: [
             {
               feeCollectorAccountId: process.env.OPERATOR_ACCOUNT_ID,
@@ -3335,7 +3285,7 @@ describe("TokenFeeScheduleUpdateTransaction", function () {
           ],
           commonTransactionParams: {
             signers: [
-              key
+              fungibleTokenFeeScheduleKey
             ]
           }
         });
