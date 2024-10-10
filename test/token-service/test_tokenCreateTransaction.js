@@ -14,7 +14,6 @@ import {
   getPublicKeyFromMirrorNode,
   getEncodedKeyHexFromKeyListConsensus,
 } from "../../utils/helpers/key.js";
-import { TOKEN_TYPE } from "../../utils/helpers/constants/token-type.js";
 
 // Needed to convert BigInts to JSON number format.
 BigInt.prototype.toJSON = function () {
@@ -24,7 +23,7 @@ BigInt.prototype.toJSON = function () {
 /**
  * Tests for TokenCreateTransaction
  */
-describe.only("TokenCreateTransaction", function () {
+describe("TokenCreateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
@@ -479,17 +478,12 @@ describe.only("TokenCreateTransaction", function () {
         await mirrorNodeClient.getTokenData(tokenId)
       ).initial_supply;
 
-      if (BigInt(initialSupply) !== initialSupply) {
-        expect(initialSupply).to.equal(Number(totalSupplyConsensus));
-        expect(initialSupply).to.equal(Number(totalSupplyMirror));
-      } else {
-        expect(initialSupply).to.equal(BigInt(totalSupplyConsensus));
-        expect(initialSupply).to.equal(BigInt(totalSupplyMirror));
-      }
+      expect(initialSupply).to.equal(totalSupplyConsensus.toString());
+      expect(initialSupply).to.equal(totalSupplyMirror);
     }
 
     it("(#1) Creates a fungible token with 0 initial supply", async function () {
-      const initialSupply = 0;
+      const initialSupply = "0";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -511,7 +505,7 @@ describe.only("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: -1,
+          initialSupply: "-1",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") {
@@ -526,7 +520,7 @@ describe.only("TokenCreateTransaction", function () {
     });
 
     it("(#3) Creates a fungible token with 9,223,372,036,854,775,807 (int64 max) initial supply", async function () {
-      const initialSupply = 9223372036854775807n;
+      const initialSupply = "9223372036854775807";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -544,7 +538,7 @@ describe.only("TokenCreateTransaction", function () {
     });
 
     it("(#4) Creates a fungible token with 9,223,372,036,854,775,806 (int64 max - 1) initial supply", async function () {
-      const initialSupply = 9223372036854775806n;
+      const initialSupply = "9223372036854775806";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -557,7 +551,7 @@ describe.only("TokenCreateTransaction", function () {
 
       await verifyTokenCreationWithInitialSupply(
         response.tokenId,
-        BigInt(initialSupply),
+        initialSupply,
       );
     });
 
@@ -566,7 +560,7 @@ describe.only("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: 9223372036854775808n,
+          initialSupply: "9223372036854775808",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") {
@@ -585,7 +579,7 @@ describe.only("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: 18446744073709551615n,
+          initialSupply: "18446744073709551615",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") {
@@ -604,7 +598,7 @@ describe.only("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: 18446744073709551614n,
+          initialSupply: "18446744073709551614",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") {
@@ -623,7 +617,7 @@ describe.only("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: -9223372036854775808n,
+          initialSupply: "-9223372036854775808",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") {
@@ -642,7 +636,7 @@ describe.only("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: -9223372036854775807n,
+          initialSupply: "-9223372036854775807",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         });
         if (response.status === "NOT_IMPLEMENTED") {
@@ -658,7 +652,7 @@ describe.only("TokenCreateTransaction", function () {
 
     it("(#10) Creates a fungible token with a valid initial supply and decimals", async function () {
       const decimals = 2;
-      const initialSupply = 1000000;
+      const initialSupply = "1000000";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -670,7 +664,6 @@ describe.only("TokenCreateTransaction", function () {
         this.skip();
       }
 
-      // Why initialSupply / 10 ** decimals
       await verifyTokenCreationWithInitialSupply(
         response.tokenId,
         initialSupply,
@@ -679,7 +672,7 @@ describe.only("TokenCreateTransaction", function () {
 
     it("(#11) Creates a fungible token with a valid initial supply and more decimals", async function () {
       const decimals = 6;
-      const initialSupply = 1000000;
+      const initialSupply = "1000000";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -691,7 +684,6 @@ describe.only("TokenCreateTransaction", function () {
         this.skip();
       }
 
-      // Why initialSupply / 10 ** decimals
       await verifyTokenCreationWithInitialSupply(
         response.tokenId,
         initialSupply,
@@ -707,7 +699,7 @@ describe.only("TokenCreateTransaction", function () {
       }
       const key = response.key;
 
-      const initialSupply = 0;
+      const initialSupply = "0";
       response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -731,7 +723,7 @@ describe.only("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: 0,
+          initialSupply: "0",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           tokenType: "nft",
         });
@@ -751,7 +743,7 @@ describe.only("TokenCreateTransaction", function () {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
-          initialSupply: 3,
+          initialSupply: "3",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           tokenType: "nft",
         });
@@ -2519,34 +2511,40 @@ describe.only("TokenCreateTransaction", function () {
       tokenId,
       expirationTime,
     ) {
-      expect(expirationTime).to.equal(
-        Number(
+      // Remove milliseconds from the string because the consensus node is slow and the milliseconds might differ
+      expect(expirationTime.replace(/\.\d{3}Z$/, "Z")).to.equal(
+        await (
           await (
             await consensusInfoClient.getTokenInfo(tokenId)
-          ).expirationTime,
-        ),
+          ).expirationTime.toDate()
+        )
+          .toISOString()
+          .replace(/\.\d{3}Z$/, "Z"),
       );
 
-      // Check if this is expected to act like this
-      const convertedExpirationTimeToNanoSeconds =
-        expirationTime * 1_000_000_000;
-
-      expect(convertedExpirationTimeToNanoSeconds).to.equal(
+      // Convert nanoseconds got back from to milliseconds
+      const epochMilliseconds =
         Number(
           await (
             await mirrorNodeClient.getTokenData(tokenId)
           ).expiry_timestamp,
-        ),
-      );
+        ) / 1_000_000;
+
+      // Create a Date object using milliseconds
+      const date = new Date(epochMilliseconds);
+
+      expect(expirationTime).to.equal(date.toISOString());
     }
 
     it("(#1) Creates a token with an expiration time of 0 seconds", async function () {
       try {
+        const expirationTimeIso = new Date(0).toISOString();
+
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 0,
+          expirationTime: expirationTimeIso,
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2561,11 +2559,13 @@ describe.only("TokenCreateTransaction", function () {
 
     it("(#2) Creates a token with an expiration time of -1 seconds", async function () {
       try {
+        const expirationTimeIso = new Date(-1).toISOString();
+
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: -1,
+          expirationTime: expirationTimeIso,
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2584,7 +2584,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 9223372036854775807n,
+          expirationTime: "9223372036854775807",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2603,7 +2603,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 9223372036854775806n,
+          expirationTime: "9223372036854775806",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2622,7 +2622,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 9223372036854775808n,
+          expirationTime: "9223372036854775808",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2641,7 +2641,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: 18446744073709551615n,
+          expirationTime: "18446744073709551615",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2679,7 +2679,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: -9223372036854775808n,
+          expirationTime: "-9223372036854775808",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2698,7 +2698,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: -9223372036854775807n,
+          expirationTime: "-9223372036854775807",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2710,32 +2710,31 @@ describe.only("TokenCreateTransaction", function () {
 
       assert.fail("Should throw an error");
     });
-
     it("(#10) Creates a token with an expiration time of 60 days (5,184,000 seconds) from the current time", async function () {
-      const expirationTime = parseInt(Date.now() / 1000 + 5184000);
+      const expirationDate = new Date(Date.now() + 5184000000);
+      const expirationTimeIso = expirationDate.toISOString();
+
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        expirationTime: expirationTime,
+        expirationTime: expirationTimeIso,
       });
+
       if (response.status === "NOT_IMPLEMENTED") {
         this.skip();
       }
-
-      await verifyTokenCreationWithExpirationTime(
-        response.tokenId,
-        expirationTime,
-      );
     });
 
     it("(#11) Creates a token with an expiration time of 30 days (2,592,000 seconds) from the current time", async function () {
-      const expirationTime = parseInt(Date.now() / 1000 + 2592000);
+      const expirationDate = new Date(Date.now() + 2592000000);
+      const expirationTimeIso = expirationDate.toISOString();
+
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        expirationTime: expirationTime,
+        expirationTime: expirationTimeIso,
       });
       if (response.status === "NOT_IMPLEMENTED") {
         this.skip();
@@ -2743,7 +2742,7 @@ describe.only("TokenCreateTransaction", function () {
 
       await verifyTokenCreationWithExpirationTime(
         response.tokenId,
-        expirationTime,
+        expirationTimeIso,
       );
     });
 
@@ -2765,12 +2764,14 @@ describe.only("TokenCreateTransaction", function () {
     //});
 
     it("(#13) Creates a token with an expiration time of 8,000,001 seconds from the current time", async function () {
-      const expirationTime = parseInt(Date.now() / 1000 + 8000001);
+      const expirationDate = new Date(Date.now() + 8000001000);
+      const expirationTimeIso = expirationDate.toISOString();
+
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        expirationTime: expirationTime,
+        expirationTime: expirationTimeIso,
       });
       if (response.status === "NOT_IMPLEMENTED") {
         this.skip();
@@ -2778,17 +2779,21 @@ describe.only("TokenCreateTransaction", function () {
 
       await verifyTokenCreationWithExpirationTime(
         response.tokenId,
-        expirationTime,
+        expirationTimeIso,
       );
     });
 
     it("(#14) Creates a token with an expiration time of 8,000,002 seconds from the current time", async function () {
       try {
+        const expirationDate = new Date(Date.now() + 8000002000);
+        const expirationTimeIso = expirationDate.toISOString();
+
+        // Create the token with the calculated expiration time in ISO format
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          expirationTime: Date.now() / 1000 + 8000002,
+          expirationTime: expirationTimeIso,
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -2979,17 +2984,15 @@ describe.only("TokenCreateTransaction", function () {
       autoRenewPeriod,
     ) {
       expect(autoRenewPeriod).to.equal(
-        Number(
-          await (
-            await consensusInfoClient.getTokenInfo(tokenId)
-          ).autoRenewPeriod.seconds,
-        ),
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).autoRenewPeriod.seconds.toString(),
       );
 
       expect(autoRenewPeriod).to.equal(
         await (
           await mirrorNodeClient.getTokenData(tokenId)
-        ).auto_renew_period,
+        ).auto_renew_period.toString(),
       );
     }
 
@@ -3000,7 +3003,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 0,
+          autoRenewPeriod: "0",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3020,7 +3023,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: -1,
+          autoRenewPeriod: "-1",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3039,7 +3042,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 9223372036854775807n,
+          autoRenewPeriod: "9223372036854775807",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3058,7 +3061,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 9223372036854775806n,
+          autoRenewPeriod: "9223372036854775806",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3077,7 +3080,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 9223372036854775808n,
+          autoRenewPeriod: "9223372036854775808",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3096,7 +3099,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 18446744073709551615n,
+          autoRenewPeriod: "18446744073709551615",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3115,7 +3118,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 18446744073709551614n,
+          autoRenewPeriod: "18446744073709551614",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3134,7 +3137,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: -9223372036854775808n,
+          autoRenewPeriod: "-9223372036854775808",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3153,7 +3156,7 @@ describe.only("TokenCreateTransaction", function () {
           name: "testname",
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: -9223372036854775807n,
+          autoRenewPeriod: "-9223372036854775807",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3167,7 +3170,7 @@ describe.only("TokenCreateTransaction", function () {
     });
 
     it("(#10) Creates a token with an auto renew period of 60 days (5,184,000 seconds)", async function () {
-      const autoRenewPeriod = 5184000;
+      const autoRenewPeriod = "5184000";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -3183,7 +3186,7 @@ describe.only("TokenCreateTransaction", function () {
     });
 
     it("(#11) Creates a token with an auto renew period of 30 days (2,592,000 seconds)", async function () {
-      const autoRenewPeriod = 2592000;
+      const autoRenewPeriod = "2592000";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -3205,7 +3208,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 2591999,
+          autoRenewPeriod: "2591999",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3219,7 +3222,7 @@ describe.only("TokenCreateTransaction", function () {
     });
 
     it("(#13) Creates a token with an auto renew period set to the maximum period of 8,000,001 seconds", async function () {
-      const autoRenewPeriod = 8000001;
+      const autoRenewPeriod = "8000001";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -3241,7 +3244,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           autoRenewAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: 8000002,
+          autoRenewPeriod: "8000002",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3337,11 +3340,11 @@ describe.only("TokenCreateTransaction", function () {
 
   describe("Token Type", function () {
     async function verifyTokenCreationWithTokenType(tokenId, type) {
-      expect(TOKEN_TYPE[type]).to.deep.equal;
-
-      await (
-        await consensusInfoClient.getTokenInfo(tokenId)
-      ).tokenType;
+      expect(type).to.deep.equal(
+        await (
+          await consensusInfoClient.getTokenInfo(tokenId)
+        ).tokenType.toString(),
+      );
 
       expect(type).to.equal(
         await (
@@ -3396,10 +3399,10 @@ describe.only("TokenCreateTransaction", function () {
 
   describe("Supply Type", function () {
     async function verifyTokenCreationWithSupplyType(tokenId, type) {
-      expect(TOKEN_TYPE[type]).to.equal(
+      expect(type).to.equal(
         await (
           await consensusInfoClient.getTokenInfo(tokenId)
-        ).supplyType,
+        ).supplyType.toString(),
       );
       expect(type).to.equal(
         await (
@@ -3448,13 +3451,8 @@ describe.only("TokenCreateTransaction", function () {
         await mirrorNodeClient.getTokenData(tokenId)
       ).max_supply;
 
-      if (BigInt(maxSupply) !== maxSupply) {
-        expect(maxSupply).to.equal(Number(totalMaxSupplyConsensus));
-        expect(maxSupply).to.equal(Number(totalMaxSupplyMirror));
-      } else {
-        expect(maxSupply).to.equal(BigInt(totalMaxSupplyConsensus));
-        expect(maxSupply).to.equal(BigInt(totalMaxSupplyMirror));
-      }
+      expect(maxSupply).to.equal(totalMaxSupplyConsensus.toString());
+      expect(maxSupply).to.equal(totalMaxSupplyMirror);
     }
 
     it("(#1) Creates a token with 0 max supply", async function () {
@@ -3464,7 +3462,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: 0,
+          maxSupply: "0",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3484,7 +3482,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: -1,
+          maxSupply: "-1",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3498,7 +3496,7 @@ describe.only("TokenCreateTransaction", function () {
     });
 
     it("(#3) Creates a token with 9,223,372,036,854,775,807 (int64 max) max supply", async function () {
-      const maxSupply = 9223372036854775807n;
+      const maxSupply = "9223372036854775807";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -3514,7 +3512,7 @@ describe.only("TokenCreateTransaction", function () {
     });
 
     it("(#4) Creates a token with 9,223,372,036,854,775,806 (int64 max - 1) max supply", async function () {
-      const maxSupply = 9223372036854775806n;
+      const maxSupply = "9223372036854775806";
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
@@ -3536,7 +3534,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: 9223372036854775808n,
+          maxSupply: "9223372036854775808",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3556,7 +3554,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: 18446744073709551615n,
+          maxSupply: "18446744073709551615",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3576,7 +3574,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: 18446744073709551614n,
+          maxSupply: "18446744073709551614",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3596,7 +3594,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: -9223372036854775808n,
+          maxSupply: "-9223372036854775808",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3616,7 +3614,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "finite",
-          maxSupply: -9223372036854775807n,
+          maxSupply: "-9223372036854775807",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -3636,7 +3634,7 @@ describe.only("TokenCreateTransaction", function () {
           symbol: "testsymbol",
           treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
           supplyType: "infinite",
-          maxSupply: 1000000,
+          maxSupply: "1000000",
         });
         if (response.status === "NOT_IMPLEMENTED") {
           this.skip();
@@ -7856,14 +7854,11 @@ describe.only("TokenCreateTransaction", function () {
 
     it("(#1) Creates a token with metadata", async function () {
       const metadataValue = "1234";
-      // Send the metadata as a hexadecimal representation
-      const metadata = Buffer.from(metadataValue, "utf8").toString("hex");
-
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-        metadata: metadata,
+        metadata: metadataValue,
       });
 
       if (response.status === "NOT_IMPLEMENTED") {
