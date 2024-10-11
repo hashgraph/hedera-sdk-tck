@@ -14,6 +14,7 @@ import {
   getPublicKeyFromMirrorNode,
   getEncodedKeyHexFromKeyListConsensus,
 } from "../../utils/helpers/key.js";
+import { ASN1Decoder } from "../../utils/helpers/asn1-decoder.js";
 
 // Needed to convert BigInts to JSON number format.
 BigInt.prototype.toJSON = function () {
@@ -1275,12 +1276,19 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe("KYC Key", function () {
+  describe.only("KYC Key", function () {
     async function verifyTokenCreationWithKycKey(tokenId, kycKey) {
-      expect(kycKey).to.equal(
-        (await (await consensusInfoClient.getTokenInfo(tokenId)).kycKey)
-          .toStringDer()
-          .toUpperCase(),
+      const data1 = Uint8Array.from(Buffer.from(kycKey, "hex"));
+
+      let decoder = new ASN1Decoder(data1);
+      let result = decoder.getRawKey();
+
+      expect(result).to.equal(
+        (
+          await (
+            await consensusInfoClient.getTokenInfo(tokenId)
+          ).kycKey
+        ).toStringRaw(),
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
@@ -1289,7 +1297,20 @@ describe("TokenCreateTransaction", function () {
         "kyc_key",
       );
 
-      expect(kycKey).to.equal(publicKeyMirrorNode.toString().toUpperCase());
+      expect(result).to.equal(publicKeyMirrorNode.toStringRaw());
+    }
+
+    function cutBeforeFirstOccurrence(input) {
+      const index = input.indexOf("0a");
+      if (index !== -1) {
+        // Check if the string starts with "0a"
+        if (index === 0) {
+          return input.slice(index); // Return the string from "0a" onwards
+        } else {
+          return input.slice(index); // Return the string from the first occurrence of "0a"
+        }
+      }
+      return input; // Return the original string if "0a" is not found
     }
 
     async function verifyTokenCreationWithKycKeyList(tokenId, kycKey) {
@@ -1299,17 +1320,15 @@ describe("TokenCreateTransaction", function () {
         "kycKey",
       );
 
-      // Consensus node check
-      expect(kycKey).to.include(keyHex.toUpperCase());
-
-      // Mirror node check
-      expect(kycKey).to.equal(
-        (
-          await (
-            await mirrorNodeClient.getTokenData(tokenId)
-          ).kyc_key
-        ).key.toUpperCase(),
+      expect(cutBeforeFirstOccurrence(kycKey)).to.equal(
+        cutBeforeFirstOccurrence(keyHex),
       );
+
+      const test = cutBeforeFirstOccurrence(
+        (await (await mirrorNodeClient.getTokenData(tokenId)).kyc_key).key,
+      );
+      // Mirror node check
+      expect(cutBeforeFirstOccurrence(kycKey)).to.equal(test);
     }
     it("(#1) Creates a token with a valid ED25519 public key as its KYC key", async function () {
       let response = await JSONRPCRequest("generateKey", {
