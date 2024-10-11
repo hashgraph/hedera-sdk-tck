@@ -135,3 +135,10 @@ export class ASN1Decoder {
     throw new Error("No key found in the provided data.");
   }
 }
+
+export const getRawKeyFromHex = (hex) => {
+  const data1 = Uint8Array.from(Buffer.from(hex, "hex"));
+  const decoder = new ASN1Decoder(data1);
+
+  return decoder.getRawKey();
+};
