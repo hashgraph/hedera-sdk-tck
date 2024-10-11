@@ -8,6 +8,7 @@ import {
   getPublicKeyFromMirrorNode,
 } from "../../utils/helpers/key.js";
 import { retryOnError } from "../../utils/helpers/retry-on-error.js";
+import { getRawKeyFromHex } from "../../utils/helpers/asn1-decoder.js";
 
 describe("AccountUpdateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
@@ -104,12 +105,12 @@ describe("AccountUpdateTransaction", function () {
   describe("Key", async function () {
     async function verifyAccountUpdateKey(accountId, updatedKey) {
       // If the account was updated successfully, the queried account keys should be equal.
+      const rawKey = getRawKeyFromHex(updatedKey);
 
-      // Consensus node check
-      expect(updatedKey).to.equal(
+      expect(rawKey).to.equal(
         await (
           await consensusInfoClient.getAccountInfo(accountId)
-        ).key._key.toStringDer(),
+        ).key.toStringRaw(),
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
@@ -118,8 +119,7 @@ describe("AccountUpdateTransaction", function () {
         "key",
       );
 
-      // Mirror node check
-      expect(updatedKey).to.equal(publicKeyMirrorNode.toString());
+      expect(rawKey).to.equal(publicKeyMirrorNode.toStringRaw());
     }
 
     async function verifyAccountUpdateKeyList(accountId, updatedKey) {
@@ -133,9 +133,14 @@ describe("AccountUpdateTransaction", function () {
       expect(updatedKey).to.equal(keyHex);
 
       // Mirror node check
-      expect(
-        (await (await mirrorNodeClient.getAccountData(accountId)).key).key,
-      ).to.include(updatedKey);
+      const mirrorNodeKey = await (
+        await mirrorNodeClient.getAccountData(accountId)
+      ).key.key;
+
+      expect(updatedKey).to.equal(
+        // Removing the unnecessary prefix from the mirror node key
+        mirrorNodeKey.slice(mirrorNodeKey.length - updatedKey.length),
+      );
     }
 
     it("(#1) Updates the key of an account to a new valid ED25519 public key", async function () {
