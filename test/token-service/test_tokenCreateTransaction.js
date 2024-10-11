@@ -913,7 +913,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe.only("Admin Key", function () {
+  describe("Admin Key", function () {
     async function verifyTokenCreationWithAdminKey(tokenId, adminKey) {
       const rawKey = getRawKeyFromHex(adminKey);
 
@@ -1283,7 +1283,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe.only("KYC Key", function () {
+  describe("KYC Key", function () {
     async function verifyTokenCreationWithKycKey(tokenId, kycKey) {
       const rawKey = getRawKeyFromHex(kycKey);
 
@@ -1575,7 +1575,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe.only("Freeze Key", function () {
+  describe("Freeze Key", function () {
     async function verifyTokenCreationWithFreezeKey(tokenId, freezeKey) {
       const rawKey = getRawKeyFromHex(freezeKey);
 
@@ -1869,7 +1869,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe.only("Wipe Key", function () {
+  describe("Wipe Key", function () {
     async function verifyTokenCreationWithWipeKey(tokenId, wipeKey) {
       const rawKey = getRawKeyFromHex(wipeKey);
 
@@ -2158,7 +2158,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe.only("Supply Key", function () {
+  describe("Supply Key", function () {
     async function verifyTokenCreationWithSupplyKey(tokenId, supplyKey) {
       const rawKey = getRawKeyFromHex(supplyKey);
 
@@ -3456,7 +3456,7 @@ describe("TokenCreateTransaction", function () {
         symbol: "testsymbol",
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
         supplyType: "finite",
-        maxSupply: 1000000,
+        maxSupply: "1000000",
       });
       if (response.status === "NOT_IMPLEMENTED") {
         this.skip();
@@ -3687,7 +3687,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe.only("Fee Schedule Key", function () {
+  describe("Fee Schedule Key", function () {
     async function verifyTokenCreationWithFeeScheduleKey(
       tokenId,
       feeScheduleKey,
@@ -7306,7 +7306,7 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it.only("(#84) Creates a token with a fixed fee that is assessed with an empty token", async function () {
+    it("(#84) Creates a token with a fixed fee that is assessed with an empty token", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -7597,7 +7597,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe.only("Pause Key", function () {
+  describe("Pause Key", function () {
     async function verifyTokenCreationWithPauseKey(tokenId, pauseKey) {
       const rawKey = getRawKeyFromHex(pauseKey);
 
@@ -7938,7 +7938,7 @@ describe("TokenCreateTransaction", function () {
     });
   });
 
-  describe.only("Metadata Key", function () {
+  describe("Metadata Key", function () {
     async function verifyTokenCreationWithMetadataKey(tokenId, metadataKey) {
       const rawKey = getRawKeyFromHex(metadataKey);
 
