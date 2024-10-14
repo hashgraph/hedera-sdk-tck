@@ -107,10 +107,11 @@ describe("AccountUpdateTransaction", function () {
       // If the account was updated successfully, the queried account keys should be equal.
       const rawKey = getRawKeyFromHex(updatedKey);
 
+      // Consensus node check
       expect(rawKey).to.equal(
         await (
           await consensusInfoClient.getAccountInfo(accountId)
-        ).key.toStringRaw(),
+        ).key._key.toStringRaw(),
       );
 
       const publicKeyMirrorNode = await getPublicKeyFromMirrorNode(
@@ -119,6 +120,7 @@ describe("AccountUpdateTransaction", function () {
         "key",
       );
 
+      // Mirror node check
       expect(rawKey).to.equal(publicKeyMirrorNode.toStringRaw());
     }
 
@@ -130,12 +132,17 @@ describe("AccountUpdateTransaction", function () {
       );
 
       // Consensus node check
-      expect(updatedKey).to.equal(keyHex);
+      // Removing the unnecessary prefix from the incoming key
+      expect(updatedKey.slice(updatedKey.length - keyHex.length)).to.equal(
+        keyHex,
+      );
 
       // Mirror node check
-      const mirrorNodeKey = await (
-        await mirrorNodeClient.getAccountData(accountId)
-      ).key.key;
+      const mirrorNodeKey = (
+        await (
+          await mirrorNodeClient.getAccountData(accountId)
+        ).key
+      ).key;
 
       expect(updatedKey).to.equal(
         // Removing the unnecessary prefix from the mirror node key
