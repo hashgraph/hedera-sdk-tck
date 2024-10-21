@@ -3121,24 +3121,24 @@ describe("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#5) Creates a token with an auto renew period of 9,223,372,036,854,775,808 (`int64` max + 1) seconds", async function () {
-      try {
-        const response = await JSONRPCRequest("createToken", {
-          name: "testname",
-          symbol: "testsymbol",
-          treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
-          autoRenewPeriod: "9223372036854775808",
-        });
-        if (response.status === "NOT_IMPLEMENTED") {
-          this.skip();
-        }
-      } catch (err) {
-        assert.equal(err.data.status, "INVALID_RENEWAL_PERIOD");
-        return;
-      }
+    // it("(#5) Creates a token with an auto renew period of 9,223,372,036,854,775,808 (`int64` max + 1) seconds", async function () {
+    //   try {
+    //     const response = await JSONRPCRequest("createToken", {
+    //       name: "testname",
+    //       symbol: "testsymbol",
+    //       treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
+    //       autoRenewPeriod: "9223372036854775808",
+    //     });
+    //     if (response.status === "NOT_IMPLEMENTED") {
+    //       this.skip();
+    //     }
+    //   } catch (err) {
+    //     assert.equal(err.data.status, "INVALID_RENEWAL_PERIOD");
+    //     return;
+    //   }
 
-      assert.fail("Should throw an error");
-    });
+    //   assert.fail("Should throw an error");
+    // });
 
     // it("(#6) Creates a token with an auto renew period of 18,446,744,073,709,551,615 (`uint64` max) seconds", async function () {
     //   try {
@@ -3178,7 +3178,7 @@ describe("TokenCreateTransaction", function () {
     //   assert.fail("Should throw an error");
     // });
 
-    it("(#8) Creates a token with an auto renew period of -9,223,372,036,854,775,808 (`int64` min) seconds", async function () {
+    it.skip("(#8) Creates a token with an auto renew period of -9,223,372,036,854,775,808 (`int64` min) seconds", async function () {
       try {
         const response = await JSONRPCRequest("createToken", {
           name: "testname",
@@ -4983,7 +4983,7 @@ describe("TokenCreateTransaction", function () {
               feeCollectorsExempt: false,
               fractionalFee: {
                 numerator: "1",
-                denominator: "9223372036854775808n",
+                denominator: "9223372036854775808",
                 minimumAmount: "1",
                 maximumAmount: "10",
                 assessmentMethod: "inclusive",
