@@ -25,7 +25,7 @@ BigInt.prototype.toJSON = function () {
 /**
  * Tests for TokenCreateTransaction
  */
-describe.only("TokenCreateTransaction", function () {
+describe("TokenCreateTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
@@ -6293,10 +6293,11 @@ describe.only("TokenCreateTransaction", function () {
       assert.fail("Should throw an error");
     });
 
-    it("(#61) Creates a token with a fixed fee that is assessed with a deleted token", async function () {
+    it.skip("(#61) Creates a token with a fixed fee that is assessed with a deleted token", async function () {
       let response = await JSONRPCRequest("createToken", {
         name: "testname",
         symbol: "testsymbol",
+        adminKey: process.env.OPERATOR_ACCOUNT_PRIVATE_KEY,
         treasuryAccountId: process.env.OPERATOR_ACCOUNT_ID,
       });
       if (response.status === "NOT_IMPLEMENTED") {

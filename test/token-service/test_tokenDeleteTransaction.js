@@ -10,7 +10,7 @@ import {
 /**
  * Tests for TokenDeleteTransaction
  */
-describe.only("TokenDeleteTransaction", function () {
+describe("TokenDeleteTransaction", function () {
   // Tests should not take longer than 30 seconds to fully execute.
   this.timeout(30000);
 
@@ -25,7 +25,7 @@ describe.only("TokenDeleteTransaction", function () {
     await JSONRPCRequest("reset");
   });
 
-  describe.only("Token ID", function () {
+  describe("Token ID", function () {
     it("(#1) Deletes an immutable token", async function () {
       const response = await JSONRPCRequest("createToken", {
         name: "testname",
