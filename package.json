@@ -1,7 +1,7 @@
 {
   "type": "module",
   "dependencies": {
-    "@hashgraph/sdk": "^v2.31.0",
+    "@hashgraph/sdk": "^v2.51.0",
     "axios": "^1.6.0",
     "chai": "^4.3.6",
     "dotenv": "^16.0.1",
@@ -9,9 +9,16 @@
     "mocha": "^9.2.2"
   },
   "scripts": {
-    "test": "mocha --recursive  --reporter mochawesome --exit"
+    "test": "mocha --recursive  --reporter mochawesome --exit",
+    "format": "prettier --write .",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "mochawesome": "^7.1.3"
+    "eslint": "^9.11.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-define-config": "^2.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "mochawesome": "^7.1.3",
+    "prettier": "^3.3.3"
   }
 }
